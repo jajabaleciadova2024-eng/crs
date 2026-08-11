@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Build Order — Workstation & Leave Management App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1c1e21;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --panel: #f8f9fa;
+    --accent: #2563eb;
+    --done: #16a34a;
+    --todo: #d97706;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181c;
+      --fg: #e7e9ea;
+      --muted: #9aa0a6;
+      --line: #2e3238;
+      --panel: #1d2025;
+      --accent: #6ea8fe;
+      --done: #4ade80;
+      --todo: #fbbf24;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+    line-height: 1.55;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.15rem; margin-top: 2.5rem; border-bottom: 1px solid var(--line); padding-bottom: 0.4rem; }
+  .subtitle { color: var(--muted); margin-top: 0; font-size: 0.95rem; }
+  .meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; }
+  code {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+    font-size: 0.9em;
+  }
+  ul.checklist { list-style: none; padding-left: 0; margin: 1rem 0; }
+  ul.checklist li {
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    font-size: 0.95rem;
+  }
+  ul.checklist li:last-child { border-bottom: none; }
+  .badge {
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    margin-top: 0.15rem;
+  }
+  .badge.done { background: color-mix(in srgb, var(--done) 18%, transparent); color: var(--done); }
+  .badge.todo { background: color-mix(in srgb, var(--todo) 18%, transparent); color: var(--todo); }
+  .label { flex: 1; }
+  .label strong { font-weight: 600; }
+  .label .path { color: var(--muted); font-size: 0.85em; }
+  ol.order li { margin-bottom: 0.5rem; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>Build Order — Workstation &amp; Leave Management App</h1>
+<p class="subtitle">Living checklist of what's built and what's left.</p>
+<p class="meta">Stack: Next.js (App Router) + Supabase (Postgres, Auth, RLS) + Tailwind v4 &middot;
+Roles: <code>team_leader</code> (highest) &gt; <code>oic</code> &gt; <code>associate</code> &mdash;
+Team Leader and OIC are collectively "leadership"/"approvers" (<code>isApprover()</code> in <code>src/lib/auth.ts</code>).</p>
+
+<h2>✅ Done</h2>
+<ul class="checklist">
+  <li><span class="badge done">DONE</span><span class="label"><strong>Schema &amp; RLS</strong> <span class="path">(supabase/migrations/0001_init.sql)</span> — profiles, workstations, schedule_weeks, assignments, leave_requests, org_settings, notification_prefs, all with row-level security policies scoped by role/ownership.</span></li>
+  <li><span class="badge done">DONE</span><span class="label"><strong>Auth</strong> <span class="path">(src/lib/supabase/*, src/lib/auth.ts, src/app/login)</span> — Supabase SSR client/middleware, session guard + role helpers, login page supporting sign-in by PSID or email.</span></li>
+  <li><span class="badge done">DONE</span><span class="label"><strong>App shell</strong> <span class="path">(src/components/*)</span> — sidebar nav, sign-out, shared UI primitives, protected (app) layout.</span></li>
+  <li><span class="badge done">DONE</span><span class="label"><strong>Dashboard</strong> <span class="path">(src/app/(app)/page.tsx)</span></span></li>
+  <li><span class="badge done">DONE</span><span class="label"><strong>Team management</strong> <span class="path">(src/app/(app)/team/*, src/app/api/team/route.ts)</span> — list/add members, role edit, /api/team route using the service-role client to invite users via Supabase Auth.</span></li>
+  <li><span class="badge done">DONE</span><span class="label"><strong>Workstations CRUD</strong> <span class="path">(src/app/(app)/workstations/*)</span></span></li>
+  <li><span class="badge done">DONE</span><span class="label"><strong>Leave requests</strong> <span class="path">(src/app/(app)/leave/*)</span> — submit form, approve/reject actions, RLS prevents self-approval.</span></li>
+  <li><span class="badge done">DONE</span><span class="label"><strong>Settings</strong> <span class="path">(src/app/(app)/settings/*)</span> — account form, org settings (cadence, leave types, required reason, approver roles), notification-preference toggles.</span></li>
+  <li><span class="badge done">DONE</span><span class="label"><strong>Schedule page (read/manual)</strong> <span class="path">(src/app/(app)/schedule/*)</span> — shows current week's assignments, manual reassignment form for leadership.</span></li>
+  <li><span class="badge done">DONE</span><span class="label"><strong>Seed script</strong> <span class="path">(scripts/seed.mjs)</span> — provisions initial workstations + first Team Leader account via invite email.</span></li>
+</ul>
+
+<h2>🚧 To Do</h2>
+<ul class="checklist">
+  <li><span class="badge todo">TODO</span><span class="label"><strong>Auto-generate weekly schedule</strong> — the "Generate next week" button in <code>src/app/(app)/schedule/page.tsx</code> is currently disabled ("Auto-shuffle logic ships in a later build"). Needs the rotation/shuffle algorithm: one associate per workstation, respect <code>is_immune</code> and active leave, honor <code>org_settings.schedule_cadence</code> (weekly/biweekly).</span></li>
+  <li><span class="badge todo">TODO</span><span class="label"><strong>Notifications delivery</strong> — <code>notification_prefs</code> toggles exist in the UI and DB but nothing actually sends email/SMS yet. No mailer/SMS provider is wired up (no Resend/nodemailer/Twilio dependency present). Needs a provider choice + integration, plus trigger points: leave status change, schedule published, new leave to review, optional <code>remind_pending_after_hours</code> reminder job.</span></li>
+  <li><span class="badge todo">TODO</span><span class="label"><strong>Scheduled/cron trigger</strong> for weekly generation + reminder emails (e.g. Supabase cron / Vercel cron hitting a route handler).</span></li>
+  <li><span class="badge todo">TODO</span><span class="label"><strong>.env.local / .env.example</strong> — none checked in; document required vars (<code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>) so a fresh clone can run <code>npm run dev</code> and <code>scripts/seed.mjs</code> without guessing.</span></li>
+  <li><span class="badge todo">TODO</span><span class="label"><strong>Tests</strong> — no test setup yet (unit or e2e).</span></li>
+  <li><span class="badge todo">TODO</span><span class="label"><strong>README</strong> — still the default create-next-app boilerplate; needs project-specific setup (Supabase project + migration + seed steps).</span></li>
+  <li><span class="badge todo">TODO</span><span class="label"><strong>Biweekly cadence support</strong> — schema/settings allow it (<code>org_settings.schedule_cadence</code>), but schedule page logic is hardcoded to the current week only; biweekly generation/view not implemented.</span></li>
+  <li><span class="badge todo">TODO</span><span class="label"><strong>Leave/schedule conflict handling</strong> — no visible logic yet ensuring an associate approved for leave is excluded from that week's assignment.</span></li>
+</ul>
+
+<h2>Suggested next order of work</h2>
+<div class="panel">
+<ol class="order">
+  <li>Auto-generate weekly schedule (core product gap, everything else assumes it exists).</li>
+  <li>Leave/schedule conflict handling (depends on #1).</li>
+  <li>Notifications delivery + triggers.</li>
+  <li>Cron wiring for weekly generation + reminders.</li>
+  <li>.env.example + real README (unblocks anyone else opening the repo).</li>
+  <li>Biweekly cadence support.</li>
+  <li>Tests.</li>
+</ol>
+</div>
+
+</body>
+</html>
