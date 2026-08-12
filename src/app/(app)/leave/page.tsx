@@ -1,18 +1,9 @@
-// The Supabase client is deliberately untyped (see src/lib/supabase/client.ts),
-// so joined-column access below is cast through `any` on purpose.
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, isApprover, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, Pill, Avatar } from "@/components/ui";
+import { Panel } from "@/components/ui";
 import LeaveRequestForm from "./LeaveRequestForm";
-import ApprovalActions from "./ApprovalActions";
-import type { LeaveStatus } from "@/lib/database.types";
-
-const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
-  pending: "warn",
-  approved: "good",
-  rejected: "bad",
-};
+import LeaveQueueTable from "./LeaveQueueTable";
+import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
 
 export default async function LeavePage() {
   const profile = await requireProfile();
@@ -23,17 +14,17 @@ export default async function LeavePage() {
   const canManage = canManageOperations(profile.role);
 
   const { data: orgSettings } = await supabase.from("org_settings").select("*").limit(1).maybeSingle();
+  const leaveTypeConfigs = orgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
 
   const listQuery = supabase
     .from("leave_requests")
-    .select("*, profiles(first_name, last_name)")
+    .select("*, profiles(first_name, last_name), leave_request_ranges(start_date, end_date)")
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
 
   const { data: requests } = canViewAll ? await listQuery : await listQuery.eq("associate_id", profile.id);
 
   const pendingCount = requests?.filter((r) => r.status === "pending").length ?? 0;
-  const colCount = 4 + (canViewAll ? 1 : 0) + (canManage ? 1 : 0);
 
   return (
     <>
@@ -47,61 +38,21 @@ export default async function LeavePage() {
       <div className={canViewAll ? "grid grid-cols-1 gap-4" : "grid grid-cols-[1.3fr_1fr] gap-4 items-start"}>
         <Panel title="Queue" hint={`${pendingCount} pending`}>
           <div className="overflow-x-auto">
-            <table className="w-full text-[13px] border-collapse">
-              <thead>
-                <tr>
-                  {canViewAll && <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Associate</th>}
-                  <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Type</th>
-                  <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Dates</th>
-                  <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Reason</th>
-                  <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
-                  {canManage && <th className="py-2.5 border-b border-[var(--line)]" />}
-                </tr>
-              </thead>
-              <tbody>
-                {requests && requests.length > 0 ? (
-                  requests.map((r: any) => (
-                    <tr key={r.id}>
-                      {canViewAll && (
-                        <td className="py-2.5 border-b border-[var(--line)]">
-                          <span className="flex items-center">
-                            <Avatar firstName={r.profiles?.first_name ?? ""} lastName={r.profiles?.last_name ?? ""} />
-                            {r.profiles?.first_name} {r.profiles?.last_name}
-                          </span>
-                        </td>
-                      )}
-                      <td className="py-2.5 border-b border-[var(--line)] capitalize">{r.leave_type}</td>
-                      <td className="py-2.5 border-b border-[var(--line)]">
-                        {r.start_date === r.end_date ? r.start_date : `${r.start_date} – ${r.end_date}`}
-                      </td>
-                      <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.reason ?? "—"}</td>
-                      <td className="py-2.5 border-b border-[var(--line)]">
-                        <Pill tone={STATUS_TONE[r.status as LeaveStatus]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
-                      </td>
-                      {canManage && (
-                        <td className="py-2.5 border-b border-[var(--line)]">
-                          {r.status === "pending" && r.associate_id !== profile.id ? (
-                            <ApprovalActions requestId={r.id} reviewerId={profile.id} />
-                          ) : null}
-                        </td>
-                      )}
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={colCount} className="py-4 text-[var(--muted)]">
-                      No leave requests yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <LeaveQueueTable
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              requests={(requests ?? []) as any}
+              leaveTypeConfigs={leaveTypeConfigs}
+              requireReason={orgSettings?.require_leave_reason ?? true}
+              viewerId={profile.id}
+              canViewAll={canViewAll}
+              canManage={canManage}
+            />
           </div>
         </Panel>
 
         {!canViewAll && (
           <Panel title="File a request">
-            <LeaveRequestForm requireReason={orgSettings?.require_leave_reason ?? true} />
+            <LeaveRequestForm leaveTypeConfigs={leaveTypeConfigs} requireReason={orgSettings?.require_leave_reason ?? true} />
           </Panel>
         )}
       </div>

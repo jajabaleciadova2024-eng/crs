@@ -1,19 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notifyApproversNewLeave } from "@/lib/notify";
 import { hasVacationConflict } from "@/lib/leaveConflict";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
 
-// Files a leave request as the signed-in associate (insert respects the
-// existing "leave_requests_insert_own" RLS policy — no admin client for the
-// main insert), then notifies the Team Leader if enabled.
-//
-// Supports non-consecutive dates: `ranges` beyond the first become rows in
-// leave_request_ranges, the first becomes the primary start_date/end_date.
-// For vacation-conflict-behavior types, does an org-wide overlap check
-// (soft — never blocks submission, just flags it for the Team Leader).
-export async function POST(request: Request) {
+// Lets the requester edit their OWN request while it's still pending
+// (type, dates, reason). Respects "leave_requests_update_own_pending" RLS
+// for the parent row; leave_request_ranges are simply wiped and
+// re-inserted (simpler and safer than diffing).
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createClient();
   const {
     data: { user },
@@ -41,7 +37,6 @@ export async function POST(request: Request) {
   const { data: orgSettings } = await admin.from("org_settings").select("leave_type_configs").limit(1).maybeSingle();
   const configs: LeaveTypeConfig[] = orgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
   const typeConfig = findLeaveTypeConfig(configs, leave_type);
-
   if (!typeConfig) {
     return NextResponse.json({ error: "That leave type doesn't exist anymore — refresh and try again." }, { status: 400 });
   }
@@ -49,39 +44,48 @@ export async function POST(request: Request) {
   let flaggedConflict = false;
   if (typeConfig.behavior === "vacation_conflict") {
     const vacationKeys = configs.filter((c) => c.behavior === "vacation_conflict").map((c) => c.key);
-    flaggedConflict = await hasVacationConflict(vacationKeys, ranges);
+    flaggedConflict = await hasVacationConflict(vacationKeys, ranges, id);
   }
 
   const [primary, ...extra] = ranges;
 
-  const { data: inserted, error } = await supabase
+  // RLS (leave_requests_update_own_pending) enforces: own row, still
+  // pending, and stays pending after the update.
+  const { error, count } = await supabase
     .from("leave_requests")
-    .insert({
-      associate_id: user.id,
-      leave_type,
-      start_date: primary.start_date,
-      end_date: primary.end_date,
-      reason: reason || null,
-      flagged_conflict: flaggedConflict,
-    })
-    .select("id")
-    .single();
+    .update(
+      {
+        leave_type,
+        start_date: primary.start_date,
+        end_date: primary.end_date,
+        reason: reason || null,
+        flagged_conflict: flaggedConflict,
+      },
+      { count: "exact" }
+    )
+    .eq("id", id)
+    .eq("associate_id", user.id)
+    .eq("status", "pending");
 
-  if (error || !inserted) {
-    return NextResponse.json({ error: error?.message ?? "Couldn't submit your request." }, { status: 400 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+  if (!count) {
+    return NextResponse.json({ error: "That request can no longer be edited." }, { status: 400 });
   }
 
+  // Replace extra ranges wholesale — RLS (leave_request_ranges_write_own_pending)
+  // requires the parent to still be pending, which it just was confirmed to be.
+  await supabase.from("leave_request_ranges").delete().eq("leave_request_id", id);
   if (extra.length > 0) {
     await supabase.from("leave_request_ranges").insert(
       extra.map((r: { start_date: string; end_date: string }) => ({
-        leave_request_id: inserted.id,
+        leave_request_id: id,
         start_date: r.start_date,
         end_date: r.end_date,
       }))
     );
   }
-
-  await notifyApproversNewLeave(inserted.id);
 
   return NextResponse.json({ ok: true, flagged_conflict: flaggedConflict });
 }

@@ -7,8 +7,12 @@
 // known TS resolution issue against @supabase/ssr's generic defaults that
 // silently collapses query results to `never`.
 
+import type { LeaveTypeConfig } from "./leaveTypes";
+
 export type AppRole = "team_leader" | "oic" | "associate";
-export type LeaveType = "sick" | "vacation" | "emergency" | "other";
+// leave_type is free text now (was a fixed enum) — driven by
+// org_settings.leave_type_configs, see src/lib/leaveTypes.ts.
+export type LeaveType = string;
 export type LeaveStatus = "pending" | "approved" | "rejected";
 export type ScheduleCadence = "weekly" | "biweekly";
 export type TenureGroup = "new_hire" | "tenured";
@@ -62,13 +66,24 @@ export interface LeaveRequest {
   status: LeaveStatus;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  document_url: string | null;
+  document_uploaded_at: string | null;
+  flagged_conflict: boolean;
+  created_at: string;
+}
+
+export interface LeaveRequestRange {
+  id: string;
+  leave_request_id: string;
+  start_date: string;
+  end_date: string;
   created_at: string;
 }
 
 export interface OrgSettings {
   id: string;
   schedule_cadence: ScheduleCadence;
-  leave_types: string[];
+  leave_type_configs: LeaveTypeConfig[];
   require_leave_reason: boolean;
   approver_roles: AppRole[];
   updated_at: string;
@@ -160,6 +175,9 @@ export interface Database {
           status?: LeaveStatus;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          document_url?: string | null;
+          document_uploaded_at?: string | null;
+          flagged_conflict?: boolean;
         };
         Update: {
           associate_id?: string;
@@ -170,20 +188,29 @@ export interface Database {
           status?: LeaveStatus;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          document_url?: string | null;
+          document_uploaded_at?: string | null;
+          flagged_conflict?: boolean;
         };
+        Relationships: [];
+      };
+      leave_request_ranges: {
+        Row: LeaveRequestRange;
+        Insert: { leave_request_id: string; start_date: string; end_date: string };
+        Update: { leave_request_id?: string; start_date?: string; end_date?: string };
         Relationships: [];
       };
       org_settings: {
         Row: OrgSettings;
         Insert: {
           schedule_cadence?: ScheduleCadence;
-          leave_types?: string[];
+          leave_type_configs?: LeaveTypeConfig[];
           require_leave_reason?: boolean;
           approver_roles?: AppRole[];
         };
         Update: {
           schedule_cadence?: ScheduleCadence;
-          leave_types?: string[];
+          leave_type_configs?: LeaveTypeConfig[];
           require_leave_reason?: boolean;
           approver_roles?: AppRole[];
         };
@@ -241,7 +268,6 @@ export interface Database {
     };
     Enums: {
       app_role: AppRole;
-      leave_type: LeaveType;
       leave_status: LeaveStatus;
       schedule_cadence: ScheduleCadence;
       tenure_group: TenureGroup;

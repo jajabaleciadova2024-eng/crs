@@ -40,3 +40,32 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   return NextResponse.json({ ok: true });
 }
+
+// Lets the requester cancel their OWN request while it's still pending
+// (respects "leave_requests_delete_own_pending" RLS — no admin client).
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  const { error, count } = await supabase
+    .from("leave_requests")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("associate_id", user.id)
+    .eq("status", "pending");
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+  if (!count) {
+    return NextResponse.json({ error: "That request can no longer be cancelled." }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true });
+}

@@ -16,6 +16,16 @@ function startOfWeek(date: Date) {
   return d;
 }
 
+function addDays(dateStr: string, days: number) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string) {
+  return aStart <= bEnd && bStart <= aEnd;
+}
+
 export default async function SchedulePage() {
   const profile = await requireProfile();
   const supabase = await createClient();
@@ -34,6 +44,7 @@ export default async function SchedulePage() {
 
   const week = latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek : null;
   const weekStart = week?.week_start_date ?? thisWeekStart;
+  const weekEnd = addDays(weekStart, 6);
 
   const { data: assignments } = week
     ? await supabase
@@ -51,6 +62,28 @@ export default async function SchedulePage() {
         .order("first_name")
     : { data: [] };
 
+  // "On leave" flag: approved leave overlapping this week, for whoever's
+  // assigned — visibility only, TL decides whether/how to reassign (see
+  // ReassignForm above).
+  const assignedIds = (assignments ?? []).map((a: any) => a.associate_id);
+  const { data: leaveOnRecord } =
+    assignedIds.length > 0
+      ? await supabase
+          .from("leave_requests")
+          .select("associate_id, start_date, end_date, leave_request_ranges(start_date, end_date)")
+          .eq("status", "approved")
+          .in("associate_id", assignedIds)
+      : { data: [] };
+
+  const onLeaveIds = new Set(
+    (leaveOnRecord ?? [])
+      .filter((lr: any) => {
+        const ranges = [{ start_date: lr.start_date, end_date: lr.end_date }, ...(lr.leave_request_ranges ?? [])];
+        return ranges.some((r) => rangesOverlap(r.start_date, r.end_date, weekStart, weekEnd));
+      })
+      .map((lr: any) => lr.associate_id)
+  );
+
   return (
     <>
       <header className="mb-6">
@@ -61,7 +94,7 @@ export default async function SchedulePage() {
       <Panel
         title={`Week of ${weekStart}`}
         action={canManage && <GenerateButton />}
-        footnote="Immune associates keep their previous station; everyone else is reshuffled across the remaining stations."
+        footnote="Immune associates keep their previous station; everyone else is reshuffled across the remaining stations. “On leave” flags approved leave overlapping this week — reassign manually if needed."
       >
         <div className="overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">
@@ -70,6 +103,7 @@ export default async function SchedulePage() {
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Assigned to</th>
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>
+                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Leave</th>
                 {canManage && <th className="py-2.5 border-b border-[var(--line)]" />}
               </tr>
             </thead>
@@ -83,6 +117,9 @@ export default async function SchedulePage() {
                     </td>
                     <td className="py-2.5 border-b border-[var(--line)]">
                       {a.profiles?.is_immune ? <Pill tone="accent">Immune</Pill> : <span className="text-[var(--muted)]">—</span>}
+                    </td>
+                    <td className="py-2.5 border-b border-[var(--line)]">
+                      {onLeaveIds.has(a.associate_id) ? <Pill tone="bad">On leave</Pill> : <span className="text-[var(--muted)]">—</span>}
                     </td>
                     {canManage && (
                       <td className="py-2.5 border-b border-[var(--line)]">
@@ -98,7 +135,7 @@ export default async function SchedulePage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={canManage ? 4 : 3} className="py-4 text-[var(--muted)]">
+                  <td colSpan={canManage ? 5 : 4} className="py-4 text-[var(--muted)]">
                     No schedule has been generated for this week yet.
                   </td>
                 </tr>

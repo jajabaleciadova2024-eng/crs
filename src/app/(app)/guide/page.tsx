@@ -50,6 +50,11 @@ const SECTIONS: GuideSection[] = [
         roles: ["team_leader"],
       },
       {
+        q: "What does the \"Leave\" column mean?",
+        a: "Flags anyone assigned this week who also has approved leave overlapping these dates — a heads-up, not automatic. Reassign their station manually if needed.",
+        roles: ["team_leader"],
+      },
+      {
         q: "How do I manually reassign a station?",
         a: "On the Weekly Schedule page, use the dropdown next to any row to swap who's assigned to that station. Team Leader only.",
         roles: ["team_leader"],
@@ -61,13 +66,25 @@ const SECTIONS: GuideSection[] = [
     items: [
       {
         q: "How do I file a leave request?",
-        a: "Go to Leave Requests, fill in the type, dates, and a reason (if required by your org's settings), then submit. You'll see it appear in your queue as \"Pending.\"",
+        a: "Go to Leave Requests, pick a type, fill in a reason (if required), and add date(s). If your days off aren't consecutive, click \"+ Add another date range\" instead of filing separately. Submit — it appears in your queue as \"Pending.\"",
         roles: ["associate"],
+      },
+      {
+        q: "How do I edit or cancel a request I filed?",
+        a: "While it's still Pending, use the Edit or Cancel button on your row in the queue. Once it's approved or rejected, it's locked — file a new one instead.",
       },
       {
         q: "How do I approve or reject a request?",
         a: "On the Leave Requests page, use the Approve/Reject buttons next to any pending request that isn't your own. You can't approve/reject your own leave. Team Leader only — OIC sees everyone's requests but can't act on them.",
         roles: ["team_leader"],
+      },
+      {
+        q: "What does \"Possible conflict\" mean?",
+        a: "For Vacation-type leave, only one person can be on leave per day org-wide. If your requested dates overlap someone else's pending/approved Vacation leave, you'll see a warning before submitting — you can still submit, but it's more likely to be rejected on review.",
+      },
+      {
+        q: "Do Sick/Bereavement requests need approval?",
+        a: "They still show as Pending so the Team Leader can see them, but they're flagged \"Auto-approved type\" — no action is expected. Upload your supporting document (medical certificate, proof of the event, etc.) from the Document column on your row, any time after filing.",
       },
       {
         q: "Will I be notified when something changes?",
@@ -124,7 +141,12 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "What's in Organization settings?",
-        a: "Leave types offered, schedule cadence (weekly/bi-weekly), and whether a reason is required on leave requests — applies to the whole team.",
+        a: "Schedule cadence (weekly/bi-weekly), whether a reason is required on leave requests, and the leave types themselves — applies to the whole team.",
+        roles: ["team_leader"],
+      },
+      {
+        q: "How do I add or change a leave type?",
+        a: "Settings → Organization settings → Leave types. Add a type, rename any of them, or change a type's \"behavior\": Standard review (default), Vacation-style (1 person/day conflict checking), or Auto-approved (needs a document). Renaming an existing type keeps its history intact — only newly-added types get a fresh key.",
         roles: ["team_leader"],
       },
       {

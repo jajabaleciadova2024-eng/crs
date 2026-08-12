@@ -83,6 +83,7 @@ src/
 supabase/migrations/0001_init.sql   full schema, RLS policies, helper functions
 supabase/migrations/0002_tenure_group.sql   adds profiles.tenure_group (new_hire/tenured)
 supabase/migrations/0005_restrict_oic_write_access.sql   narrows OIC to view-only (workstations/schedule/leave writes -> Team Leader only)
+supabase/migrations/0006_leave_overhaul.sql   leave_type -> text, org_settings.leave_type_configs, leave_request_ranges, document_url, flagged_conflict, self edit/cancel RLS
 scripts/seed.mjs                     one-off: seeds workstations + first Team Leader
 vercel.json                          Vercel Cron config (keep-alive)
 ```
@@ -106,13 +107,44 @@ See `supabase/migrations/0001_init.sql` for the full source of truth. Tables:
   `org_settings.schedule_cadence`). Associates flagged
   `is_immune` keep their previous station; everyone else is shuffled across
   the remaining open stations. See `src/lib/schedule.ts` for the pure
-  assignment logic (unit-tested).
-- `leave_requests` — type, date range, reason, status (pending/approved/rejected).
-  OIC sees everyone's requests (view-only) but only Team Leader can
-  approve/reject (`leave_requests_update_team_leader_not_self` RLS policy,
-  double-checked in `/api/leave/[id]`).
-- `org_settings` — single row, Team-Leader-editable (leave types, schedule
-  cadence, require-reason toggle, approver roles)
+  assignment logic (unit-tested). `/schedule` also shows an "On leave" flag
+  on any assigned associate with approved leave overlapping the displayed
+  week — visibility only, Team Leader decides whether/how to reassign via
+  the same manual control (see Known gaps for what this doesn't do yet).
+- `leave_requests` — type (free text, see `leave_type_configs` below), a
+  primary date range (`start_date`/`end_date`), reason, status
+  (pending/approved/rejected), plus:
+  - `flagged_conflict` — set at submission time if a Vacation-behavior
+    type overlapped another org-wide pending/approved request on any date
+    (soft warning shown to the filer and a "Possible conflict" badge in the
+    queue — never blocks submission).
+  - `document_url` / `document_uploaded_at` — for Sick/Bereavement-behavior
+    types, uploaded by the requester any time after filing (see Google
+    Drive setup below).
+  - `leave_request_ranges` (child table) — extra non-consecutive date
+    ranges beyond the primary one, for "a few days here, a few days there"
+    requests. RLS mirrors the parent (owner can only add/remove while
+    still pending).
+  - OIC sees everyone's requests (view-only) but only Team Leader can
+    approve/reject (`leave_requests_update_team_leader_not_self` RLS
+    policy, double-checked in `/api/leave/[id]`).
+  - The requester (any role) can edit or cancel their **own** request
+    while it's still `pending` (`leave_requests_update_own_pending` /
+    `leave_requests_delete_own_pending` RLS) — locked once approved/rejected.
+- `org_settings` — single row, Team-Leader-editable: schedule cadence,
+  require-reason toggle, approver roles, and `leave_type_configs` (jsonb) —
+  a Team-Leader-editable list of `{key, label, behavior}`, where behavior is
+  one of:
+  - `review` — standard: Team Leader approves/rejects manually (default for
+    Emergency/Other)
+  - `vacation_conflict` — org-wide "1 person on leave per day" conflict
+    checking against every other request of any type with this behavior
+    (default for Vacation)
+  - `auto_approve_document` — no review expected; the requester uploads
+    supporting documentation (medical certificate, proof of event, etc.)
+    (default for Sick/Bereavement)
+  See `src/lib/leaveTypes.ts` for the shared types/defaults, edited from
+  Settings → Organization settings.
 - `access_requests` — self-service "Request access" submissions from the
   login page (name, email, mobile, optional message). Anyone can insert
   (public, unauthenticated — RLS `access_requests_insert_anyone`); only
@@ -163,12 +195,35 @@ SMTP_USER=you@yourdomain.com        # full Hostinger mailbox address
 SMTP_PASS=...                       # mailbox password (or app-specific password if 2FA is on)
 # RESEND_API_KEY=...                # alternative to SMTP — https://resend.com, free tier 3k/mo
 NOTIFICATIONS_FROM_EMAIL=...        # optional, defaults to SMTP_USER (or Resend's onboarding sender if using Resend)
+
+# Leave document uploads (Sick/Bereavement) — src/lib/googleDrive.ts.
+# Without these, the upload button shows a clear "not configured" error
+# instead of failing silently.
+GOOGLE_SERVICE_ACCOUNT_EMAIL=...          # from the service account's JSON key
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=...    # from the same JSON key — real or \n-escaped newlines both work
+GOOGLE_DRIVE_FOLDER_ID=...                # the folder's ID from its Drive URL
 ```
 
 Get the Supabase values from Supabase → Project Settings → API. Get SMTP
 credentials from Hostinger → Emails → your mailbox → "Configuration" (or
 webmail settings) — the host/port/username/password. All of these need to be
 set as Environment Variables in the Vercel project for deploys too.
+
+### Google Drive setup (for leave document uploads)
+
+1. [console.cloud.google.com](https://console.cloud.google.com) → create/select
+   a project → APIs & Services → Enable the **Google Drive API**.
+2. Credentials → Create Credentials → **Service Account** → create it, then
+   generate a JSON key and download it.
+3. Create a Drive folder for the documents. Share it with the service
+   account's email (from the JSON key, looks like
+   `xxx@xxx.iam.gserviceaccount.com`) as **Editor**, and set the folder's
+   general sharing to **Anyone with the link — Viewer** so uploaded files
+   are actually reachable via their link.
+4. From the JSON key, set `GOOGLE_SERVICE_ACCOUNT_EMAIL` (the `client_email`
+   field) and `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (the `private_key`
+   field). Set `GOOGLE_DRIVE_FOLDER_ID` to the folder's ID (the string in
+   its URL after `/folders/`).
 
 To re-run the seed script (idempotent-ish — skips the Team Leader invite if a
 profile with that email already exists, upserts workstations by name):
@@ -190,9 +245,16 @@ npm test
   The exact rule for factoring `tenure_group` into placement (vs. just
   `is_immune`) is still undecided — currently tenure grouping is captured
   but not consumed by the algorithm.
-- **Associate tenure grouping**: ✅ done — Settings → "Associate groups"
+- **Associate tenure grouping**: ✅ done — Team & Roles' "Tenure" column
   (Team Leader only), manual Tenured/New Hire label per associate
   (`profiles.tenure_group`), no auto-promotion.
+- **Leave request editing/cancelling, conflict warnings, type-specific
+  behavior, and document uploads**: ✅ done — see the `leave_requests` bullet
+  above and `0006_leave_overhaul.sql`. Specifically **not** built: the
+  auto-shuffle algorithm doesn't yet automatically exclude associates with
+  approved leave for the target week (the "On leave" flag on `/schedule` is
+  visibility-only — Team Leader reassigns manually); and there's still no
+  leave-balance/yearly-summary view, just the flat queue.
 - **Notifications**: ✅ done — see `src/lib/email.ts` / `src/lib/notify.ts`.
   Sends via SMTP (e.g. a Hostinger mailbox) if `SMTP_HOST`/`SMTP_USER`/
   `SMTP_PASS` are set, else via Resend if `RESEND_API_KEY` is set. Fires on:
