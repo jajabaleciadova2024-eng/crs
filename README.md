@@ -199,6 +199,27 @@ npm test
 - **Supabase's free-tier invite email has a low rate limit** — a few failed
   seed attempts in a row will trip "email rate limit exceeded." Space out
   invite attempts if you hit this.
+- **Email link prefetching silently burns one-time invite/reset tokens —
+  fixed via a manual-click confirm page.** Beyond the corporate-scanner case
+  below, this turned out to also happen with plain personal Gmail (some
+  combination of Gmail's own safety scanning / an extension / antivirus),
+  making Supabase's default flow (email links straight to their `/verify`
+  GET endpoint, auto-consuming the token) unreliable enough that it kept
+  failing even after the redirect fixes below. **Fix**: `src/app/auth/confirm/`
+  is a page that does *not* auto-consume anything on load — it requires an
+  explicit button click before calling `supabase.auth.verifyOtp({ token_hash,
+  type })`. A prefetching bot fetches the page's HTML but never clicks the
+  button, so the token survives until the real human does. This requires
+  changing Supabase's email templates (Authentication → Emails) so the link
+  points at our confirm page instead of `{{ .ConfirmationURL }}`:
+  ```html
+  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite">Accept invitation</a>
+  ```
+  (swap `type=invite` for `type=recovery` in the "Reset Password" template).
+  `/auth/confirm` then routes to `/reset-password` once the token's verified
+  and a session exists — `/reset-password` itself needs no changes, it
+  already picks up any established session regardless of which flow created
+  it.
 - **Corporate email security scanners can silently break invite/reset links.**
   Supabase's invite and password-reset links are one-time-use (`/verify`
   consumes the token on first GET). Some corporate mail gateways (Microsoft

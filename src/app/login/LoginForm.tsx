@@ -75,7 +75,7 @@ export default function LoginForm() {
               autoFocus
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="PS-1042 or you@agency.gov"
+              placeholder="123456 or your personal email"
               className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
