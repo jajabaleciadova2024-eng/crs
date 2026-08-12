@@ -19,7 +19,7 @@ export default function PreviewBanner({ label }: { label: string }) {
   }
 
   return (
-    <div className="sticky top-0 z-10 -mx-8 -mt-7 mb-6 px-8 py-2 bg-[var(--warn)] text-white text-[12.5px] font-semibold flex items-center justify-between">
+    <div className="sticky top-0 z-10 -mx-4 md:-mx-8 -mt-5 md:-mt-7 mb-6 px-4 md:px-8 py-2 bg-[var(--warn)] text-white text-[12.5px] font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-0">
       <span>Previewing as {label} — the app is showing exactly what this role would see.</span>
       <button
         type="button"

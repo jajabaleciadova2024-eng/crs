@@ -92,7 +92,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">First name</label>
                 <input

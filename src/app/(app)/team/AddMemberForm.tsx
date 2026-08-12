@@ -62,7 +62,7 @@ export default function AddMemberForm() {
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-10 px-4">
       <div className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-md w-full max-w-md p-5">
         <h2 className="text-sm font-bold mb-4">Add member</h2>
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="PSID" value={form.psid} onChange={(v) => update("psid", v)} />
           <Field label="Role">
             <select

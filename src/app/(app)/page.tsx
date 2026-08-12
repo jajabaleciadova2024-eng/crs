@@ -65,13 +65,13 @@ export default async function DashboardPage() {
   return (
     <>
       <header className="mb-5.5 mb-6">
-        <h1 className="font-serif text-2xl m-0 mb-1">Good day, {ROLE_LABEL[profile.role]}</h1>
+        <h1 className="font-serif text-2xl m-0 mb-1">Good day, {profile.first_name}</h1>
         <p className="text-sm text-[var(--muted)] m-0">
           Week of {weekStart} · {totalStations} stations · signed in as {profile.first_name} {profile.last_name}
         </p>
       </header>
 
-      <div className={`grid ${profile.role === "team_leader" ? "grid-cols-5" : "grid-cols-3"} gap-3 mb-5.5 mb-6`}>
+      <div className={`grid grid-cols-2 ${profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-3"} gap-3 mb-5.5 mb-6`}>
         <Card label="Stations manned" value={`${stationsManned} / ${totalStations}`} sub={week ? "This week's coverage" : "No schedule published yet"} />
         <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} />
         {profile.role === "team_leader" && <Card label="Immune this cycle" value={String(immuneCount ?? 0)} sub="Excluded from shuffle" />}
@@ -88,7 +88,7 @@ export default async function DashboardPage() {
 
       <Panel title="This week's assignments" hint={week ? week.week_start_date : "Not yet generated"}>
         {assignments && assignments.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {assignments.map((a) => {
               const isOwn = a.associate_id === profile.id;
               return (

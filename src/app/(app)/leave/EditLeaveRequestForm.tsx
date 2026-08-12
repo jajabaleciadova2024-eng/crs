@@ -106,7 +106,7 @@ export default function EditLeaveRequestForm({
 
   return (
     <div className="flex flex-col gap-2.5 bg-[var(--paper)] rounded-md p-3 border border-[var(--line)]">
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <div>
           <label className="block text-[10.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1">Leave type</label>
           <select

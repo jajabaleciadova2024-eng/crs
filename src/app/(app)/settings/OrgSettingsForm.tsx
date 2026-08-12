@@ -74,46 +74,48 @@ export default function OrgSettingsForm({ settings }: { settings: OrgSettings })
 
       <div>
         <div className="text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-2">Leave types</div>
-        <table className="w-full text-[13px] border-collapse">
-          <thead>
-            <tr>
-              <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Label</th>
-              <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Behavior</th>
-              <th className="py-2 border-b border-[var(--line)]" />
-            </tr>
-          </thead>
-          <tbody>
-            {leaveTypes.map((t, i) => (
-              <tr key={t.key}>
-                <td className="py-2 border-b border-[var(--line)]">
-                  <input
-                    value={t.label}
-                    onChange={(e) => updateType(i, "label", e.target.value)}
-                    className="w-full text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)]"
-                  />
-                </td>
-                <td className="py-2 border-b border-[var(--line)]">
-                  <select
-                    value={t.behavior}
-                    onChange={(e) => updateType(i, "behavior", e.target.value)}
-                    className="text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)]"
-                  >
-                    {(Object.keys(BEHAVIOR_LABEL) as LeaveTypeBehavior[]).map((b) => (
-                      <option key={b} value={b}>
-                        {BEHAVIOR_LABEL[b]}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="py-2 border-b border-[var(--line)]">
-                  <Button style={{ padding: "5px 10px" }} onClick={() => removeType(i)}>
-                    Remove
-                  </Button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px] border-collapse">
+            <thead>
+              <tr>
+                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Label</th>
+                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Behavior</th>
+                <th className="py-2 border-b border-[var(--line)]" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {leaveTypes.map((t, i) => (
+                <tr key={t.key}>
+                  <td className="py-2 border-b border-[var(--line)]">
+                    <input
+                      value={t.label}
+                      onChange={(e) => updateType(i, "label", e.target.value)}
+                      className="w-full min-w-[110px] text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)]"
+                    />
+                  </td>
+                  <td className="py-2 border-b border-[var(--line)]">
+                    <select
+                      value={t.behavior}
+                      onChange={(e) => updateType(i, "behavior", e.target.value)}
+                      className="text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)] min-w-[220px]"
+                    >
+                      {(Object.keys(BEHAVIOR_LABEL) as LeaveTypeBehavior[]).map((b) => (
+                        <option key={b} value={b}>
+                          {BEHAVIOR_LABEL[b]}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="py-2 border-b border-[var(--line)]">
+                    <Button style={{ padding: "5px 10px" }} onClick={() => removeType(i)}>
+                      Remove
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <button type="button" onClick={addType} className="text-xs font-bold text-[var(--accent-strong)] mt-2">
           + Add leave type
         </button>

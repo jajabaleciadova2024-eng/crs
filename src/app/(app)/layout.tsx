@@ -1,6 +1,7 @@
 import { requireProfileWithPreview, ROLE_LABEL } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import Sidebar from "@/components/Sidebar";
+import SidebarShell from "@/components/SidebarShell";
 import PreviewBanner from "@/components/PreviewBanner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -17,9 +18,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar profile={profile} pendingAccessRequests={pendingAccessRequests} realRole={realRole} />
-      <main className="flex-1 px-8 py-7 pb-16 max-w-[980px]">
+    <div className="flex flex-col md:flex-row min-h-screen">
+      <SidebarShell>
+        <Sidebar profile={profile} pendingAccessRequests={pendingAccessRequests} realRole={realRole} />
+      </SidebarShell>
+      <main className="flex-1 min-w-0 px-4 md:px-8 py-5 md:py-7 pb-16 max-w-[980px] w-full">
         {previewing && <PreviewBanner label={ROLE_LABEL[profile.role]} />}
         {children}
       </main>

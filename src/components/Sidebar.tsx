@@ -50,7 +50,7 @@ export default function Sidebar({
   const initials = `${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase();
 
   return (
-    <aside className="border-r border-[var(--line)] px-4 py-6 flex flex-col gap-6 sticky top-0 h-screen overflow-y-auto shrink-0 w-[216px]">
+    <aside className="border-r border-[var(--line)] px-4 py-6 flex flex-col gap-6 h-full w-[216px] overflow-y-auto shrink-0 bg-[var(--paper)]">
       <div>
         <div className="font-serif text-[17px] font-bold text-[var(--ink)]">CRS Naga</div>
         <span className="block text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)] mt-0.5">

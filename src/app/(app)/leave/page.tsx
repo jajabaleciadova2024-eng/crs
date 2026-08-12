@@ -36,7 +36,7 @@ export default async function LeavePage() {
         </p>
       </header>
 
-      <div className={canViewAll ? "grid grid-cols-1 gap-4" : "grid grid-cols-[1.3fr_1fr] gap-4 items-start"}>
+      <div className={canViewAll ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-4 items-start"}>
         <Panel title="Queue" hint={`${pendingCount} pending`}>
           <div className="overflow-x-auto">
             <LeaveQueueTable
