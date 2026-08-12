@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
-import type { AppRole } from "@/lib/database.types";
 
+// Access requests are always approved as Associate — Team Leader/OIC
+// accounts are only ever created directly from /team, never through
+// self-service. Only PSID needs assigning here.
 export default function ReviewForm({ requestId }: { requestId: string }) {
   const [approving, setApproving] = useState(false);
   const [psid, setPsid] = useState("");
-  const [role, setRole] = useState<AppRole>("associate");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function ReviewForm({ requestId }: { requestId: string }) {
       const res = await fetch(`/api/access-requests/${requestId}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ psid: psid.trim(), role }),
+        body: JSON.stringify({ psid: psid.trim() }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -61,19 +62,10 @@ export default function ReviewForm({ requestId }: { requestId: string }) {
           value={psid}
           onChange={(e) => setPsid(e.target.value)}
           placeholder="PSID"
-          className="w-20 text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
+          className="w-24 text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
         />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value as AppRole)}
-          className="text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
-        >
-          <option value="associate">Associate</option>
-          <option value="oic">OIC</option>
-          <option value="team_leader">Team Leader</option>
-        </select>
         <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pending} onClick={approve}>
-          {pending ? "Inviting…" : "Confirm"}
+          {pending ? "Inviting…" : "Confirm as Associate"}
         </Button>
         <Button style={{ padding: "5px 10px" }} onClick={() => setApproving(false)}>
           Cancel

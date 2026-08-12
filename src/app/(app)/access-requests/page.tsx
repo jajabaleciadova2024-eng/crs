@@ -40,7 +40,7 @@ export default async function AccessRequestsPage() {
       <Panel
         title="Pending"
         hint={`${pending?.length ?? 0} waiting`}
-        footnote="Approving invites the person by email, same as adding a member from Team & Roles — assign a PSID and role first."
+        footnote="Approving always creates an Associate account and invites the person by email, same as adding a member from Team & Roles — just assign a PSID. Need to add a Team Leader or OIC instead? Use Team & Roles directly."
       >
         <div className="overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">

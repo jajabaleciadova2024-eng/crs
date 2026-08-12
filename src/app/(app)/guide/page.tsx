@@ -29,7 +29,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "I don't have an account yet — how do I get one?",
-        a: "On the login page, click \"Request access\" and fill in your name, email, and (optionally) mobile number and a note. Your Team Leader reviews it in the app; once approved, you'll get the same invite email as anyone added directly.",
+        a: "On the login page, click \"Request access\" and fill in your name, email, and (optionally) mobile number and a note. This creates an Associate account once approved. Team Leader/OIC accounts are set up directly by the Team Leader from Team & Roles, not through this form.",
       },
     ],
   },
@@ -93,7 +93,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "How do I handle a \"Request access\" submission?",
-        a: "Go to Access Requests (badge in the sidebar shows how many are waiting). Click Approve, fill in a PSID and role, then Confirm — this sends them the same invite email as adding a member manually. Reject just dismisses it, no email sent.",
+        a: "Go to Access Requests (badge in the sidebar shows how many are waiting). Click Approve, assign a PSID, then Confirm — this always creates an Associate account and sends the same invite email as adding a member manually. To promote someone to OIC or Team Leader, do it from Team & Roles after their account exists. Reject just dismisses it, no email sent.",
       },
       {
         q: "A new member says their invite link is \"invalid or expired\" even though they just got the email — what happened?",

@@ -102,13 +102,19 @@ See `supabase/migrations/0001_init.sql` for the full source of truth. Tables:
   login page (name, email, mobile, optional message). Anyone can insert
   (public, unauthenticated — RLS `access_requests_insert_anyone`); only
   Team Leader/OIC can read (`access_requests_select_leadership`). Reviewed
-  from `/access-requests` (Team Leader only): approving runs the exact same
-  invite as `/team`'s "Add member" (`src/lib/inviteMember.ts`, shared by
-  both) — the requester gets the same invite email, just needs a PSID/role
-  assigned first. Rejecting just marks the row. A pending-count badge shows
-  in the sidebar nav item and a Dashboard card, and `notifyLeadersNewAccessRequest`
-  emails all active Team Leaders when one comes in (same no-op-if-unconfigured
-  behavior as the other notifications).
+  from `/access-requests` (Team Leader only): approving always creates an
+  **Associate** account (role is hardcoded server-side in the approve
+  route — not client-supplied) and runs the exact same invite as `/team`'s
+  "Add member" (`src/lib/inviteMember.ts`, shared by both), just needs a
+  PSID assigned first. Rejecting just marks the row. Team Leader/OIC
+  accounts are never created through this form — those are only ever added
+  directly from `/team`, which stays gated to Team Leader only (page-level
+  `requireRole` + RLS `profiles_team_leader_full_write`; OIC cannot edit any
+  profile but their own, even via direct API/SQL access, since RLS enforces
+  it independent of the UI). A pending-count badge shows in the sidebar nav
+  item and a Dashboard card, and `notifyLeadersNewAccessRequest` emails all
+  active Team Leaders when one comes in (same no-op-if-unconfigured behavior
+  as the other notifications).
 - `notification_prefs` — per-user notification toggles. Now wired to real
   emails via Resend (see `src/lib/email.ts` / `src/lib/notify.ts`): fires on
   leave status change, new leave request needing review, and schedule

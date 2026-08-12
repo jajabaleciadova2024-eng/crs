@@ -6,6 +6,10 @@ import { inviteMember } from "@/lib/inviteMember";
 // Approving an access request runs the exact same invite as /team's "Add
 // member" — the requester gets the same invite email. Team Leader only,
 // since this is the same authority level as adding a member manually.
+// Role is always "associate" — self-service requests never create a Team
+// Leader or OIC account. Those roles are only ever set via /team directly
+// (or by editing role afterward from /team once the associate exists), so
+// this doesn't take a role from the client at all.
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -22,12 +26,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const body = await request.json();
-  const { psid, role } = body ?? {};
-  if (!psid || !role) {
-    return NextResponse.json({ error: "PSID and role are required." }, { status: 400 });
-  }
-  if (!["team_leader", "oic", "associate"].includes(role)) {
-    return NextResponse.json({ error: "Invalid role." }, { status: 400 });
+  const { psid } = body ?? {};
+  if (!psid) {
+    return NextResponse.json({ error: "PSID is required." }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -49,7 +50,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     last_name: accessRequest.last_name,
     email: accessRequest.email,
     mobile_number: accessRequest.mobile_number,
-    role,
+    role: "associate",
     siteUrl,
   });
 

@@ -74,7 +74,9 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
               </button>
             </div>
             <p className="text-xs text-[var(--muted)] -mt-2 mb-1">
-              Your Team Leader will review this and, if approved, invite you the same way any new member is added.
+              For associate accounts. Your Team Leader will review this and, if approved, invite you the same way any
+              new member is added. Team Leader/OIC accounts are set up directly by your Team Leader, not through this
+              form.
             </p>
 
             <div className="grid grid-cols-2 gap-3">
