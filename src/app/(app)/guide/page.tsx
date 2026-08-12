@@ -25,7 +25,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "What's on the Dashboard?",
-        a: "A quick snapshot: how many stations are manned this week, how many leave requests are pending, who's currently immune from shuffling, your role, this week's full station assignment grid, and your 5 most recent leave requests.",
+        a: "A quick snapshot: how many stations are manned this week, how many leave requests are pending, your role, this week's full station assignment grid, and your 5 most recent leave requests. Team Leaders also see how many associates are currently immune from shuffling.",
       },
       {
         q: "I don't have an account yet — how do I get one?",

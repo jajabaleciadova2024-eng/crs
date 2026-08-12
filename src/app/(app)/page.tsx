@@ -51,11 +51,12 @@ export default async function DashboardPage() {
     .select("id", { count: "exact", head: true })
     .eq("status", "pending");
 
-  const { count: immuneCount } = await supabase
-    .from("profiles")
-    .select("id", { count: "exact", head: true })
-    .eq("is_immune", true)
-    .eq("is_active", true);
+  // Immune is a Team-Leader-only scheduling concern (which associates are
+  // excluded from auto-shuffle) — not shown to OIC/associates.
+  const { count: immuneCount } =
+    profile.role === "team_leader"
+      ? await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_immune", true).eq("is_active", true)
+      : { count: null };
 
   const { count: pendingAccessCount } =
     profile.role === "team_leader"
@@ -84,10 +85,10 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <div className={`grid ${profile.role === "team_leader" ? "grid-cols-5" : "grid-cols-4"} gap-3 mb-5.5 mb-6`}>
+      <div className={`grid ${profile.role === "team_leader" ? "grid-cols-5" : "grid-cols-3"} gap-3 mb-5.5 mb-6`}>
         <Card label="Stations manned" value={`${stationsManned} / ${totalStations}`} sub={week ? "This week's coverage" : "No schedule published yet"} />
         <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} />
-        <Card label="Immune this cycle" value={String(immuneCount ?? 0)} sub="Excluded from shuffle" />
+        {profile.role === "team_leader" && <Card label="Immune this cycle" value={String(immuneCount ?? 0)} sub="Excluded from shuffle" />}
         {profile.role === "team_leader" && (
           <Card
             label="Access requests"

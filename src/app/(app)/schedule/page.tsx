@@ -49,7 +49,7 @@ export default async function SchedulePage() {
   const { data: assignments } = week
     ? await supabase
         .from("assignments")
-        .select("*, workstations(name), profiles(first_name, last_name, is_immune)")
+        .select(`*, workstations(name), profiles(first_name, last_name${canManage ? ", is_immune" : ""})`)
         .eq("schedule_week_id", week.id)
         .order("workstation_id")
     : { data: [] };
@@ -94,7 +94,11 @@ export default async function SchedulePage() {
       <Panel
         title={`Week of ${weekStart}`}
         action={canManage && <GenerateButton />}
-        footnote="Immune associates keep their previous station; everyone else is reshuffled across the remaining stations. “On leave” flags approved leave overlapping this week — reassign manually if needed."
+        footnote={
+          canManage
+            ? "Immune associates keep their previous station; everyone else is reshuffled across the remaining stations. “On leave” flags approved leave overlapping this week — reassign manually if needed."
+            : "“On leave” flags approved leave overlapping this week."
+        }
       >
         <div className="overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">
@@ -102,7 +106,7 @@ export default async function SchedulePage() {
               <tr>
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Assigned to</th>
-                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>
+                {canManage && <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>}
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Leave</th>
                 {canManage && <th className="py-2.5 border-b border-[var(--line)]" />}
               </tr>
@@ -115,9 +119,11 @@ export default async function SchedulePage() {
                     <td className="py-2.5 border-b border-[var(--line)]">
                       {a.profiles?.first_name} {a.profiles?.last_name}
                     </td>
-                    <td className="py-2.5 border-b border-[var(--line)]">
-                      {a.profiles?.is_immune ? <Pill tone="accent">Immune</Pill> : <span className="text-[var(--muted)]">—</span>}
-                    </td>
+                    {canManage && (
+                      <td className="py-2.5 border-b border-[var(--line)]">
+                        {a.profiles?.is_immune ? <Pill tone="accent">Immune</Pill> : <span className="text-[var(--muted)]">—</span>}
+                      </td>
+                    )}
                     <td className="py-2.5 border-b border-[var(--line)]">
                       {onLeaveIds.has(a.associate_id) ? <Pill tone="bad">On leave</Pill> : <span className="text-[var(--muted)]">—</span>}
                     </td>
@@ -135,7 +141,7 @@ export default async function SchedulePage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={canManage ? 5 : 4} className="py-4 text-[var(--muted)]">
+                  <td colSpan={canManage ? 5 : 3} className="py-4 text-[var(--muted)]">
                     No schedule has been generated for this week yet.
                   </td>
                 </tr>
