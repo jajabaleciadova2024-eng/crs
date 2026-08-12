@@ -2,20 +2,19 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui";
 
-export default function ApprovalActions({ requestId, reviewerId }: { requestId: string; reviewerId: string }) {
+export default function ApprovalActions({ requestId }: { requestId: string; reviewerId: string }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
   function decide(status: "approved" | "rejected") {
     startTransition(async () => {
-      const supabase = createClient();
-      await supabase
-        .from("leave_requests")
-        .update({ status, reviewed_by: reviewerId, reviewed_at: new Date().toISOString() })
-        .eq("id", requestId);
+      await fetch(`/api/leave/${requestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
       router.refresh();
     });
   }

@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui";
 import type { LeaveType } from "@/lib/database.types";
 
@@ -13,7 +12,7 @@ const LEAVE_TYPES: { value: LeaveType; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-export default function LeaveRequestForm({ associateId, requireReason }: { associateId: string; requireReason: boolean }) {
+export default function LeaveRequestForm({ requireReason }: { requireReason: boolean }) {
   const router = useRouter();
   const [leaveType, setLeaveType] = useState<LeaveType>("sick");
   const [startDate, setStartDate] = useState("");
@@ -40,18 +39,21 @@ export default function LeaveRequestForm({ associateId, requireReason }: { assoc
     }
 
     setSubmitting(true);
-    const supabase = createClient();
-    const { error: insertError } = await supabase.from("leave_requests").insert({
-      associate_id: associateId,
-      leave_type: leaveType,
-      start_date: startDate,
-      end_date: endDate,
-      reason: reason.trim() || null,
+    const res = await fetch("/api/leave", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        leave_type: leaveType,
+        start_date: startDate,
+        end_date: endDate,
+        reason: reason.trim() || null,
+      }),
     });
     setSubmitting(false);
 
-    if (insertError) {
-      setError("Couldn't submit your request. Please try again.");
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? "Couldn't submit your request. Please try again.");
       return;
     }
 

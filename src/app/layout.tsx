@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Roster & Leave",
+  title: "CRS Naga",
   description: "Workstation assignments and leave requests for Field Operations",
 };
 

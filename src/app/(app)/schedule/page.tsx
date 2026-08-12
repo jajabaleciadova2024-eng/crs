@@ -3,8 +3,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, isApprover } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, Pill, Button } from "@/components/ui";
+import { Panel, Pill } from "@/components/ui";
 import ReassignForm from "./ReassignForm";
+import GenerateButton from "./GenerateButton";
 
 function startOfWeek(date: Date) {
   const d = new Date(date);
@@ -20,13 +21,19 @@ export default async function SchedulePage() {
   const supabase = await createClient();
   const canManage = isApprover(profile.role);
 
-  const weekStart = startOfWeek(new Date()).toISOString().slice(0, 10);
+  const thisWeekStart = startOfWeek(new Date()).toISOString().slice(0, 10);
 
-  const { data: week } = await supabase
+  // Show whichever is more current: this calendar week, or the latest
+  // generated week if the Team Leader/OIC has already generated ahead.
+  const { data: latestWeek } = await supabase
     .from("schedule_weeks")
     .select("*")
-    .eq("week_start_date", weekStart)
+    .order("week_start_date", { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+  const week = latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek : null;
+  const weekStart = week?.week_start_date ?? thisWeekStart;
 
   const { data: assignments } = week
     ? await supabase
@@ -53,16 +60,8 @@ export default async function SchedulePage() {
 
       <Panel
         title={`Week of ${weekStart}`}
-        action={
-          <div className="flex items-center gap-2">
-            {canManage && (
-              <Button disabled title="Auto-shuffle logic ships in a later build">
-                Generate next week
-              </Button>
-            )}
-          </div>
-        }
-        footnote="Auto-shuffle when generating a new week is planned for a later build — this view is read/manual-reassign only for now."
+        action={canManage && <GenerateButton />}
+        footnote="Immune associates keep their previous station; everyone else is reshuffled across the remaining stations."
       >
         <div className="overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">

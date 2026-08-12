@@ -97,7 +97,7 @@ export default async function LeavePage() {
 
         {!approver && (
           <Panel title="File a request">
-            <LeaveRequestForm associateId={profile.id} requireReason={orgSettings?.require_leave_reason ?? true} />
+            <LeaveRequestForm requireReason={orgSettings?.require_leave_reason ?? true} />
           </Panel>
         )}
       </div>

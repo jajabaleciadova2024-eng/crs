@@ -1,9 +1,9 @@
-# CRS Naga Platform — Roster & Leave
+# CRS Naga
 
 Internal, role-based web app for a team of 15 + associates: view weekly workstation
-assignments and file/approve leave requests. Built as the foundation phase —
-database, auth, and role-based frontend — with more functionality (like
-auto-generated weekly schedules) planned to layer on top later.
+assignments and file/approve leave requests. Started as a foundation phase —
+database, auth, and role-based frontend — now with auto-generated weekly
+schedules, associate tenure grouping, and email notifications layered on top.
 
 **Live**: https://crs.jajabaleciado.com (also on Vercel's default domain,
 `crs-brown.vercel.app`)
@@ -18,8 +18,9 @@ auto-generated weekly schedules) planned to layer on top later.
 Highest → lowest authority:
 
 1. **Team Leader** — full control: add/remove members, assign roles, manage
-   workstations, view/manually edit weekly schedules, set the "immune" flag,
-   approve/reject any leave request, edit organization-wide settings.
+   workstations, view/manually edit weekly schedules, generate the next
+   week's schedule, set the "immune" flag, group associates as Tenured/New
+   Hire, approve/reject any leave request, edit organization-wide settings.
 2. **OIC** — manage workstation assignments, approve/reject leave requests,
    view all schedules/leave, own review preferences.
 3. **Associate** — view own workstation assignment, file leave requests, view
@@ -49,12 +50,20 @@ src/
       leave/                leave request queue + associate's own filing form
       team/                 roster management (Team Leader only)
       workstations/         station list CRUD (Team Leader/OIC)
-      settings/              account, notifications, org settings, review prefs
-    api/team/route.ts       server route: creates auth user + profile (service role)
+      settings/              account, notifications, org settings, review prefs, associate tenure groups
+    api/
+      team/route.ts          server route: creates auth user + profile (service role)
+      leave/route.ts          file a leave request + notify approvers
+      leave/[id]/route.ts      approve/reject a leave request + notify the associate
+      schedule/generate/route.ts  auto-shuffle: generates the next schedule week
+      keepalive/route.ts      hit by Vercel Cron daily to prevent Supabase auto-pause
   components/               Sidebar, ui.tsx (Panel/Pill/Card/Button/Avatar), SignOutButton
   lib/
     auth.ts                 requireProfile()/requireRole() route guards
     database.types.ts       hand-authored schema types (see gotcha below)
+    schedule.ts              pure auto-shuffle assignment algorithm (unit-tested, schedule.test.ts)
+    email.ts                 Resend REST API wrapper (no-ops if RESEND_API_KEY unset)
+    notify.ts                notification triggers: leave status change, new leave to review, schedule published
     supabase/
       client.ts             browser client
       server.ts              server component/route client
@@ -62,27 +71,37 @@ src/
       middleware.ts           session refresh + route guard logic
   proxy.ts                   Next.js 16's replacement for middleware.ts
 supabase/migrations/0001_init.sql   full schema, RLS policies, helper functions
+supabase/migrations/0002_tenure_group.sql   adds profiles.tenure_group (new_hire/tenured)
 scripts/seed.mjs                     one-off: seeds workstations + first Team Leader
+vercel.json                          Vercel Cron config (keep-alive)
 ```
 
 ## Database schema
 
 See `supabase/migrations/0001_init.sql` for the full source of truth. Tables:
 
-- `profiles` — PSID, name, email, mobile, role, `is_immune`, `is_active`
+- `profiles` — PSID, name, email, mobile, role, `is_immune`, `is_active`,
+  `tenure_group` (`new_hire` | `tenured`, manual, Team Leader only — see
+  Settings → Associate groups; not yet consumed by the auto-shuffle rule)
 - `workstations` — the rotating stations (Screener, Collecting Officer,
   Releasing Officer, PACD, Electronic Endorsement, Premium Annotation — seeded,
   but editable/expandable from `/workstations`)
-- `schedule_weeks` + `assignments` — one row per station per week; `is_immune`
-  on a profile is meant to exclude that associate from future auto-shuffling
-  (**the shuffle/auto-generate algorithm itself is not built yet** — `/schedule`
-  is read + manual-reassign only, with a disabled "Generate next week" button
-  as a placeholder)
+- `schedule_weeks` + `assignments` — one row per station per week. `/schedule`
+  supports manual reassignment **and** auto-generation via "Generate next
+  week" (`POST /api/schedule/generate`, Team Leader/OIC only): fills the
+  current week if empty, otherwise generates the week after the latest one
+  on record (spaced by `org_settings.schedule_cadence`). Associates flagged
+  `is_immune` keep their previous station; everyone else is shuffled across
+  the remaining open stations. See `src/lib/schedule.ts` for the pure
+  assignment logic (unit-tested).
 - `leave_requests` — type, date range, reason, status (pending/approved/rejected)
 - `org_settings` — single row, Team-Leader-editable (leave types, schedule
   cadence, require-reason toggle, approver roles)
-- `notification_prefs` — per-user notification toggles (UI exists; no emails
-  are actually sent yet — see Known gaps)
+- `notification_prefs` — per-user notification toggles. Now wired to real
+  emails via Resend (see `src/lib/email.ts` / `src/lib/notify.ts`): fires on
+  leave status change, new leave request needing review, and schedule
+  publish. Requires `RESEND_API_KEY` (see Local development below) — without
+  it, sends are skipped with a console warning instead of failing.
 
 RLS is enabled on every table. Two `security definer` helper functions
 (`current_role()`, `is_leader_or_oic()`) back most policies. A third,
@@ -101,11 +120,15 @@ Needs `.env.local` (not committed — see `.gitignore`) with:
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...       # server-only, used by /api/team and scripts/seed.mjs
+SUPABASE_SERVICE_ROLE_KEY=...       # server-only, used by /api/team, /api/keepalive, and scripts/seed.mjs
+RESEND_API_KEY=...                  # server-only, used by src/lib/email.ts for notifications (optional — sends are skipped with a warning if unset)
+NOTIFICATIONS_FROM_EMAIL=...        # optional, defaults to "CRS Naga <onboarding@resend.dev>"
 ```
 
-Get these from Supabase → Project Settings → API. The same three need to be
-set as Environment Variables in the Vercel project for deploys.
+Get the Supabase values from Supabase → Project Settings → API, and the
+Resend key from https://resend.com (free tier: 3k emails/mo) → API Keys. All
+of these need to be set as Environment Variables in the Vercel project for
+deploys too.
 
 To re-run the seed script (idempotent-ish — skips the Team Leader invite if a
 profile with that email already exists, upserts workstations by name):
@@ -114,17 +137,30 @@ profile with that email already exists, upserts workstations by name):
 node scripts/seed.mjs
 ```
 
+To run the test suite:
+
+```bash
+npm test
+```
+
 ## Known gaps / next steps
 
-- **Weekly auto-shuffle**: not implemented. `/schedule` supports manual
-  reassignment; the "Generate next week" button is a disabled placeholder.
-  This was intentionally deferred — see plan history for the "immune" flag
-  design intent.
-- **Notifications**: `notification_prefs` UI exists and persists to the DB,
-  but nothing actually sends an email/notification yet. Would need a
-  Supabase Edge Function or similar triggered on leave status change /
-  schedule publish.
-- **No automated tests** yet.
+- **Weekly auto-shuffle**: ✅ done — see `/schedule`'s "Generate next week"
+  button, `src/app/api/schedule/generate/route.ts`, and `src/lib/schedule.ts`.
+  The exact rule for factoring `tenure_group` into placement (vs. just
+  `is_immune`) is still undecided — currently tenure grouping is captured
+  but not consumed by the algorithm.
+- **Associate tenure grouping**: ✅ done — Settings → "Associate groups"
+  (Team Leader only), manual Tenured/New Hire label per associate
+  (`profiles.tenure_group`), no auto-promotion.
+- **Notifications**: ✅ done via Resend — see `src/lib/email.ts` /
+  `src/lib/notify.ts`. Fires on: leave status change (to the associate), new
+  leave request (to approvers with the pref on), schedule published (to
+  everyone with the pref on). Needs `RESEND_API_KEY` set (see Local
+  development) — until then, sends no-op with a console warning rather than
+  failing the request.
+- **Automated tests**: ✅ started — Vitest (`npm test`), currently covering
+  `src/lib/schedule.ts`'s auto-shuffle logic. No integration/E2E tests yet.
 - **Keep-alive**: ✅ done. `vercel.json` defines a daily Vercel Cron job
   (`0 0 * * *`, the max frequency on the Hobby plan) hitting
   `GET /api/keepalive`, which does a trivial `org_settings` read via the

@@ -55,7 +55,7 @@ export default function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--paper)] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="font-serif text-2xl text-[var(--ink)]">Roster &amp; Leave</h1>
+          <h1 className="font-serif text-2xl text-[var(--ink)]">CRS Naga</h1>
           <p className="text-sm text-[var(--muted)] mt-1">Field Operations</p>
         </div>
 

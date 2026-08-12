@@ -11,6 +11,7 @@ export type AppRole = "team_leader" | "oic" | "associate";
 export type LeaveType = "sick" | "vacation" | "emergency" | "other";
 export type LeaveStatus = "pending" | "approved" | "rejected";
 export type ScheduleCadence = "weekly" | "biweekly";
+export type TenureGroup = "new_hire" | "tenured";
 
 export interface Profile {
   id: string;
@@ -23,6 +24,7 @@ export interface Profile {
   role: AppRole;
   is_immune: boolean;
   is_active: boolean;
+  tenure_group: TenureGroup;
   created_at: string;
 }
 
@@ -97,6 +99,7 @@ export interface Database {
           role?: AppRole;
           is_immune?: boolean;
           is_active?: boolean;
+          tenure_group?: TenureGroup;
         };
         Update: {
           id?: string;
@@ -109,6 +112,7 @@ export interface Database {
           role?: AppRole;
           is_immune?: boolean;
           is_active?: boolean;
+          tenure_group?: TenureGroup;
         };
         Relationships: [];
       };
