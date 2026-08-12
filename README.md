@@ -121,14 +121,21 @@ Needs `.env.local` (not committed — see `.gitignore`) with:
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...       # server-only, used by /api/team, /api/keepalive, and scripts/seed.mjs
-RESEND_API_KEY=...                  # server-only, used by src/lib/email.ts for notifications (optional — sends are skipped with a warning if unset)
-NOTIFICATIONS_FROM_EMAIL=...        # optional, defaults to "CRS Naga <onboarding@resend.dev>"
+
+# Email notifications — src/lib/email.ts tries SMTP first, then Resend, then
+# no-ops with a console warning if neither is configured.
+SMTP_HOST=smtp.hostinger.com        # Hostinger mailbox SMTP host
+SMTP_PORT=465                       # 465 = SSL, 587 = STARTTLS
+SMTP_USER=you@yourdomain.com        # full Hostinger mailbox address
+SMTP_PASS=...                       # mailbox password (or app-specific password if 2FA is on)
+# RESEND_API_KEY=...                # alternative to SMTP — https://resend.com, free tier 3k/mo
+NOTIFICATIONS_FROM_EMAIL=...        # optional, defaults to SMTP_USER (or Resend's onboarding sender if using Resend)
 ```
 
-Get the Supabase values from Supabase → Project Settings → API, and the
-Resend key from https://resend.com (free tier: 3k emails/mo) → API Keys. All
-of these need to be set as Environment Variables in the Vercel project for
-deploys too.
+Get the Supabase values from Supabase → Project Settings → API. Get SMTP
+credentials from Hostinger → Emails → your mailbox → "Configuration" (or
+webmail settings) — the host/port/username/password. All of these need to be
+set as Environment Variables in the Vercel project for deploys too.
 
 To re-run the seed script (idempotent-ish — skips the Team Leader invite if a
 profile with that email already exists, upserts workstations by name):
@@ -153,11 +160,12 @@ npm test
 - **Associate tenure grouping**: ✅ done — Settings → "Associate groups"
   (Team Leader only), manual Tenured/New Hire label per associate
   (`profiles.tenure_group`), no auto-promotion.
-- **Notifications**: ✅ done via Resend — see `src/lib/email.ts` /
-  `src/lib/notify.ts`. Fires on: leave status change (to the associate), new
-  leave request (to approvers with the pref on), schedule published (to
-  everyone with the pref on). Needs `RESEND_API_KEY` set (see Local
-  development) — until then, sends no-op with a console warning rather than
+- **Notifications**: ✅ done — see `src/lib/email.ts` / `src/lib/notify.ts`.
+  Sends via SMTP (e.g. a Hostinger mailbox) if `SMTP_HOST`/`SMTP_USER`/
+  `SMTP_PASS` are set, else via Resend if `RESEND_API_KEY` is set. Fires on:
+  leave status change (to the associate), new leave request (to approvers
+  with the pref on), schedule published (to everyone with the pref on).
+  Until credentials are set, sends no-op with a console warning rather than
   failing the request.
 - **Automated tests**: ✅ started — Vitest (`npm test`), currently covering
   `src/lib/schedule.ts`'s auto-shuffle logic. No integration/E2E tests yet.
