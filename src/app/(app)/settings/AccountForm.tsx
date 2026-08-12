@@ -31,7 +31,9 @@ export default function AccountForm({ profile }: { profile: Profile }) {
 
   async function sendReset() {
     const supabase = createClient();
-    await supabase.auth.resetPasswordForEmail(profile.email);
+    await supabase.auth.resetPasswordForEmail(profile.email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
     setResetSent(true);
   }
 

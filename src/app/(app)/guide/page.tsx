@@ -20,6 +20,10 @@ const SECTIONS: GuideSection[] = [
         a: "Use the PSID or email your Team Leader gave you, plus the password you set from the invite email. First-time users: check your inbox (and spam folder) for an invite link from Supabase after your Team Leader adds you.",
       },
       {
+        q: "I forgot my password — what do I do?",
+        a: "On the login page, click \"Forgot password?\", enter your PSID or email, and a reset link will be emailed to you. Already signed in? You can also reset it from Settings → My account → \"Send password reset link\".",
+      },
+      {
         q: "What's on the Dashboard?",
         a: "A quick snapshot: how many stations are manned this week, how many leave requests are pending, who's currently immune from shuffling, your role, this week's full station assignment grid, and your 5 most recent leave requests.",
       },

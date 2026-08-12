@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginForm() {
@@ -80,9 +81,14 @@ export default function LoginForm() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+                Password
+              </label>
+              <Link href="/forgot-password" className="text-xs font-bold text-[var(--accent-strong)]">
+                Forgot password?
+              </Link>
+            </div>
             <input
               id="password"
               type="password"

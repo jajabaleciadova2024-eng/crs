@@ -199,6 +199,14 @@ npm test
 - **Supabase's free-tier invite email has a low rate limit** — a few failed
   seed attempts in a row will trip "email rate limit exceeded." Space out
   invite attempts if you hit this.
+- **Password reset redirect URLs must be allow-listed in Supabase.** The
+  forgot-password flow (`/forgot-password` → email → `/reset-password`) calls
+  `resetPasswordForEmail(email, { redirectTo: ".../reset-password" })`.
+  Supabase silently ignores/rejects redirect URLs not on its allow list —
+  add both `https://crs.jajabaleciado.com/reset-password` and
+  `https://crs-brown.vercel.app/reset-password` (and your local dev URL, if
+  testing locally) under Supabase → Authentication → URL Configuration →
+  Redirect URLs.
 - **Windows path-with-spaces** broke the `preview_start` dev-server launch
   config when pointed at `J:\Claude Projects\CRS Naga Platform` directly. Fixed
   by creating a junction (`J:\CRSNagaPlatform` → the real folder, via
