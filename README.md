@@ -217,14 +217,28 @@ npm test
   re-clicking the dead invite link. If it keeps happening on the same
   corporate domain, their IT admin needs to exclude Supabase's auth domain
   from link-prefetching/scanning.
-- **Password reset redirect URLs must be allow-listed in Supabase.** The
-  forgot-password flow (`/forgot-password` → email → `/reset-password`) calls
-  `resetPasswordForEmail(email, { redirectTo: ".../reset-password" })`.
-  Supabase silently ignores/rejects redirect URLs not on its allow list —
-  add both `https://crs.jajabaleciado.com/reset-password` and
-  `https://crs-brown.vercel.app/reset-password` (and your local dev URL, if
-  testing locally) under Supabase → Authentication → URL Configuration →
-  Redirect URLs.
+- **Every redirectTo URL must be allow-listed in Supabase, including the
+  invite flow's.** `resetPasswordForEmail`/`inviteUserByEmail` both take a
+  `redirectTo`, and Supabase rejects any target not on its allow list with
+  `"requested path is invalid"` — this is what "error request path is
+  invalid" means if you see it right after accepting an invite. Both
+  `/api/team/route.ts` (member invites) and `scripts/seed.mjs` now pass an
+  explicit `redirectTo` (root `/`, via `NEXT_PUBLIC_SITE_URL` or the
+  request's own origin) instead of relying on Supabase's default Site URL.
+  Add all of these under Supabase → Authentication → URL Configuration →
+  Redirect URLs (wildcards supported):
+  ```
+  https://crs.jajabaleciado.com/**
+  https://crs-brown.vercel.app/**
+  ```
+  and set **Site URL** (same page) to `https://crs.jajabaleciado.com`. The
+  wildcard form covers `/`, `/reset-password`, and anything added later — no
+  need to list each path individually. If testing invites/resets from local
+  dev, also add your `http://localhost:3000/**`.
+  Optionally set `NEXT_PUBLIC_SITE_URL=https://crs.jajabaleciado.com` in
+  `.env.local`/Vercel if you ever want invite links to point somewhere other
+  than the request's own origin (e.g. always the canonical domain even when
+  someone adds a member from the Vercel preview URL).
 - **Windows path-with-spaces** broke the `preview_start` dev-server launch
   config when pointed at `J:\Claude Projects\CRS Naga Platform` directly. Fixed
   by creating a junction (`J:\CRSNagaPlatform` → the real folder, via

@@ -28,6 +28,7 @@ function loadEnv(filePath) {
 const env = loadEnv(envPath);
 const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+const SITE_URL = env.NEXT_PUBLIC_SITE_URL ?? "https://crs.jajabaleciado.com";
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
@@ -80,7 +81,9 @@ async function main() {
     return;
   }
 
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(TEAM_LEADER.email);
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(TEAM_LEADER.email, {
+    redirectTo: `${SITE_URL}/`,
+  });
   if (inviteError || !invited?.user) {
     console.error(`  ✗ Invite failed: ${inviteError?.message}`);
     process.exit(1);

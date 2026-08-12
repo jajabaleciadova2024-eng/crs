@@ -38,7 +38,15 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email);
+  // Explicit redirectTo so the invite link lands somewhere predictable
+  // instead of relying on Supabase's configured default Site URL — but this
+  // still only works if that URL is on Supabase's Auth → URL Configuration
+  // → Redirect URLs allow list (see README gotchas), otherwise GoTrue
+  // rejects it with "requested path is invalid".
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${siteUrl}/`,
+  });
   if (inviteError || !invited?.user) {
     return NextResponse.json(
       { error: inviteError?.message ?? "Couldn't create the account for that email." },
