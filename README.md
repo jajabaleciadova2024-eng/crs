@@ -125,8 +125,12 @@ node scripts/seed.mjs
   Supabase Edge Function or similar triggered on leave status change /
   schedule publish.
 - **No automated tests** yet.
-- **Keep-alive**: the user mentioned wanting to ping the site periodically to
-  prevent Supabase's free-tier 7-day auto-pause. Not yet set up.
+- **Keep-alive**: ✅ done. `vercel.json` defines a daily Vercel Cron job
+  (`0 0 * * *`, the max frequency on the Hobby plan) hitting
+  `GET /api/keepalive`, which does a trivial `org_settings` read via the
+  admin client — real DB activity, so it resets Supabase's 7-day auto-pause
+  clock. No extra env vars needed; Vercel Cron authenticates automatically
+  when the route lives in the deployed project.
 
 ## Gotchas hit during setup (useful if debugging weirdness later)
 
