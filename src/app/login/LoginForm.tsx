@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import RequestAccessModal from "./RequestAccessModal";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showRequestAccess, setShowRequestAccess] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -75,7 +77,7 @@ export default function LoginForm() {
               autoFocus
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="123456 or your personal email"
+              placeholder=""
               className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
@@ -114,10 +116,19 @@ export default function LoginForm() {
           </button>
 
           <p className="text-xs text-[var(--muted)] text-center">
-            New here? Your Team Leader adds your account — check your email for an invite.
+            New here?{" "}
+            <button
+              type="button"
+              onClick={() => setShowRequestAccess(true)}
+              className="font-bold text-[var(--accent-strong)]"
+            >
+              Request access
+            </button>
           </p>
         </form>
       </div>
+
+      {showRequestAccess && <RequestAccessModal onClose={() => setShowRequestAccess(false)} />}
     </div>
   );
 }

@@ -86,6 +86,29 @@ export async function notifyApproversNewLeave(leaveRequestId: string) {
   );
 }
 
+export async function notifyLeadersNewAccessRequest(accessRequestId: string) {
+  const admin = createAdminClient();
+
+  const { data: req } = await admin
+    .from("access_requests")
+    .select("first_name, last_name, email")
+    .eq("id", accessRequestId)
+    .single();
+  if (!req) return;
+
+  // Access requests are a Team Leader decision specifically (approving one
+  // creates a new account), unlike leave requests which OIC can also act on.
+  const { data: leaders } = await admin.from("profiles").select("email").eq("role", "team_leader").eq("is_active", true);
+  if (!leaders || leaders.length === 0) return;
+
+  await sendEmail(
+    leaders.map((l) => l.email),
+    `New access request from ${req.first_name} ${req.last_name}`,
+    `<p>${req.first_name} ${req.last_name} (${req.email}) requested access to CRS Naga.</p>
+     <p>Review it from the app's Access Requests page.</p>`
+  );
+}
+
 export async function notifySchedulePublished(weekStartDate: string) {
   const admin = createAdminClient();
 

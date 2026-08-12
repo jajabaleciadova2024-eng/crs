@@ -3,17 +3,24 @@ import type { Profile } from "@/lib/database.types";
 import { ROLE_LABEL } from "@/lib/auth";
 import SignOutButton from "@/components/SignOutButton";
 
-const NAV_ITEMS: { href: string; label: string; roles?: Profile["role"][] }[] = [
+const NAV_ITEMS: { href: string; label: string; roles?: Profile["role"][]; badgeKey?: "accessRequests" }[] = [
   { href: "/", label: "Dashboard" },
   { href: "/schedule", label: "Weekly Schedule" },
   { href: "/leave", label: "Leave Requests" },
   { href: "/team", label: "Team & Roles", roles: ["team_leader"] },
+  { href: "/access-requests", label: "Access Requests", roles: ["team_leader"], badgeKey: "accessRequests" },
   { href: "/workstations", label: "Workstations", roles: ["team_leader", "oic"] },
   { href: "/settings", label: "Settings" },
   { href: "/guide", label: "User Guide" },
 ];
 
-export default function Sidebar({ profile }: { profile: Profile }) {
+export default function Sidebar({
+  profile,
+  pendingAccessRequests = 0,
+}: {
+  profile: Profile;
+  pendingAccessRequests?: number;
+}) {
   const initials = `${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase();
 
   return (
@@ -26,15 +33,23 @@ export default function Sidebar({ profile }: { profile: Profile }) {
       </div>
 
       <nav className="flex flex-col gap-0.5">
-        {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile.role)).map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="px-2.5 py-2 rounded text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--paper-raised)] hover:text-[var(--ink)]"
-          >
-            {item.label}
-          </Link>
-        ))}
+        {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile.role)).map((item) => {
+          const badgeCount = item.badgeKey === "accessRequests" ? pendingAccessRequests : 0;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="px-2.5 py-2 rounded text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--paper-raised)] hover:text-[var(--ink)] flex items-center justify-between"
+            >
+              {item.label}
+              {badgeCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--accent)] text-white text-[10.5px] font-bold">
+                  {badgeCount}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="mt-auto border-t border-[var(--line)] pt-4 flex items-center gap-2.5">

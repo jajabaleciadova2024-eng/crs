@@ -57,6 +57,11 @@ export default async function DashboardPage() {
     .eq("is_immune", true)
     .eq("is_active", true);
 
+  const { count: pendingAccessCount } =
+    profile.role === "team_leader"
+      ? await supabase.from("access_requests").select("id", { count: "exact", head: true }).eq("status", "pending")
+      : { count: null };
+
   const leaveQuery = supabase
     .from("leave_requests")
     .select("*, profiles(first_name, last_name)")
@@ -79,10 +84,18 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <div className="grid grid-cols-4 gap-3 mb-5.5 mb-6">
+      <div className={`grid ${profile.role === "team_leader" ? "grid-cols-5" : "grid-cols-4"} gap-3 mb-5.5 mb-6`}>
         <Card label="Stations manned" value={`${stationsManned} / ${totalStations}`} sub={week ? "This week's coverage" : "No schedule published yet"} />
         <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} />
         <Card label="Immune this cycle" value={String(immuneCount ?? 0)} sub="Excluded from shuffle" />
+        {profile.role === "team_leader" && (
+          <Card
+            label="Access requests"
+            value={String(pendingAccessCount ?? 0)}
+            sub="Awaiting review"
+            tone={(pendingAccessCount ?? 0) > 0 ? "warn" : undefined}
+          />
+        )}
         <Card label="Your role" value={ROLE_LABEL[profile.role]} sub={profile.psid} />
       </div>
 

@@ -9,7 +9,13 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
+  // Excludes /api: every API route already does its own auth check
+  // server-side (requireProfile-equivalent getUser() calls), so this
+  // middleware guard was redundant for them — and actively broke two
+  // things that hit API routes without a session cookie: Vercel Cron's
+  // /api/keepalive ping (silently redirected to /login instead of ever
+  // reaching the DB) and the public /api/access-requests submit endpoint.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

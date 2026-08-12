@@ -12,6 +12,7 @@ export type LeaveType = "sick" | "vacation" | "emergency" | "other";
 export type LeaveStatus = "pending" | "approved" | "rejected";
 export type ScheduleCadence = "weekly" | "biweekly";
 export type TenureGroup = "new_hire" | "tenured";
+export type AccessRequestStatus = "pending" | "approved" | "rejected";
 
 export interface Profile {
   id: string;
@@ -81,6 +82,19 @@ export interface NotificationPrefs {
   on_new_leave_to_review: boolean;
   remind_pending_after_hours: number | null;
   updated_at: string;
+}
+
+export interface AccessRequest {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  mobile_number: string | null;
+  message: string | null;
+  status: AccessRequestStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
 }
 
 export interface Database {
@@ -192,6 +206,28 @@ export interface Database {
         };
         Relationships: [];
       };
+      access_requests: {
+        Row: AccessRequest;
+        Insert: {
+          first_name: string;
+          last_name: string;
+          email: string;
+          mobile_number?: string | null;
+          message?: string | null;
+          status?: AccessRequestStatus;
+        };
+        Update: {
+          first_name?: string;
+          last_name?: string;
+          email?: string;
+          mobile_number?: string | null;
+          message?: string | null;
+          status?: AccessRequestStatus;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -205,6 +241,8 @@ export interface Database {
       leave_type: LeaveType;
       leave_status: LeaveStatus;
       schedule_cadence: ScheduleCadence;
+      tenure_group: TenureGroup;
+      access_request_status: AccessRequestStatus;
     };
     CompositeTypes: Record<string, never>;
   };

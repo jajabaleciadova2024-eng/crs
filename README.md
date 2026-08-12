@@ -27,8 +27,9 @@ Highest → lowest authority:
    own leave history, manage own account/notification settings.
 
 The first Team Leader account was created via `scripts/seed.mjs` (PSID `337912`,
-Jerick Salinas). Team Leaders add everyone else from the `/team` page in the app
-— no more manual seeding needed for new members.
+Jerick Salinas). Team Leaders add everyone else either from the `/team` page,
+or by approving a self-service request submitted from the login page (see
+"Access requests" below) — no more manual seeding needed for new members.
 
 ## Tech stack
 
@@ -97,6 +98,17 @@ See `supabase/migrations/0001_init.sql` for the full source of truth. Tables:
 - `leave_requests` — type, date range, reason, status (pending/approved/rejected)
 - `org_settings` — single row, Team-Leader-editable (leave types, schedule
   cadence, require-reason toggle, approver roles)
+- `access_requests` — self-service "Request access" submissions from the
+  login page (name, email, mobile, optional message). Anyone can insert
+  (public, unauthenticated — RLS `access_requests_insert_anyone`); only
+  Team Leader/OIC can read (`access_requests_select_leadership`). Reviewed
+  from `/access-requests` (Team Leader only): approving runs the exact same
+  invite as `/team`'s "Add member" (`src/lib/inviteMember.ts`, shared by
+  both) — the requester gets the same invite email, just needs a PSID/role
+  assigned first. Rejecting just marks the row. A pending-count badge shows
+  in the sidebar nav item and a Dashboard card, and `notifyLeadersNewAccessRequest`
+  emails all active Team Leaders when one comes in (same no-op-if-unconfigured
+  behavior as the other notifications).
 - `notification_prefs` — per-user notification toggles. Now wired to real
   emails via Resend (see `src/lib/email.ts` / `src/lib/notify.ts`): fires on
   leave status change, new leave request needing review, and schedule
@@ -199,6 +211,16 @@ npm test
 - **Supabase's free-tier invite email has a low rate limit** — a few failed
   seed attempts in a row will trip "email rate limit exceeded." Space out
   invite attempts if you hit this.
+- **API routes are excluded from the auth-guard middleware.**
+  `src/proxy.ts`'s matcher used to cover `/api/*` too, which silently broke
+  any API route hit without a session cookie — including Vercel Cron's
+  `/api/keepalive` ping (redirected to `/login` instead of ever reaching the
+  DB — the keep-alive likely never actually worked until this was fixed) and
+  the public `/api/access-requests` submit endpoint. Every API route already
+  does its own `getUser()`/role check inside the handler, so excluding `/api`
+  from the middleware matcher doesn't remove any protection — it just stops
+  a redundant guard from blocking unauthenticated requests that are supposed
+  to reach the route.
 - **Email link prefetching silently burns one-time invite/reset tokens —
   fixed via a manual-click confirm page.** Beyond the corporate-scanner case
   below, this turned out to also happen with plain personal Gmail (some

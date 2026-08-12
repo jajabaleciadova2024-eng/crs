@@ -27,6 +27,10 @@ const SECTIONS: GuideSection[] = [
         q: "What's on the Dashboard?",
         a: "A quick snapshot: how many stations are manned this week, how many leave requests are pending, who's currently immune from shuffling, your role, this week's full station assignment grid, and your 5 most recent leave requests.",
       },
+      {
+        q: "I don't have an account yet — how do I get one?",
+        a: "On the login page, click \"Request access\" and fill in your name, email, and (optionally) mobile number and a note. Your Team Leader reviews it in the app; once approved, you'll get the same invite email as anyone added directly.",
+      },
     ],
   },
   {
@@ -86,6 +90,10 @@ const SECTIONS: GuideSection[] = [
       {
         q: "How do I deactivate someone instead of deleting them?",
         a: "Use the Deactivate button on their row. Deactivated members are excluded from active-associate queries (like scheduling) but their history is preserved.",
+      },
+      {
+        q: "How do I handle a \"Request access\" submission?",
+        a: "Go to Access Requests (badge in the sidebar shows how many are waiting). Click Approve, fill in a PSID and role, then Confirm — this sends them the same invite email as adding a member manually. Reject just dismisses it, no email sent.",
       },
       {
         q: "A new member says their invite link is \"invalid or expired\" even though they just got the email — what happened?",
