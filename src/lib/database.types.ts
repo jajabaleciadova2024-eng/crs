@@ -66,7 +66,7 @@ export interface LeaveRequest {
   status: LeaveStatus;
   reviewed_by: string | null;
   reviewed_at: string | null;
-  document_url: string | null;
+  document_path: string | null;
   document_uploaded_at: string | null;
   flagged_conflict: boolean;
   created_at: string;
@@ -175,7 +175,7 @@ export interface Database {
           status?: LeaveStatus;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
-          document_url?: string | null;
+          document_path?: string | null;
           document_uploaded_at?: string | null;
           flagged_conflict?: boolean;
         };
@@ -188,7 +188,7 @@ export interface Database {
           status?: LeaveStatus;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
-          document_url?: string | null;
+          document_path?: string | null;
           document_uploaded_at?: string | null;
           flagged_conflict?: boolean;
         };

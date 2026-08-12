@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pill, Avatar, Button } from "@/components/ui";
 import EditLeaveRequestForm from "./EditLeaveRequestForm";
-import DocumentUpload from "./DocumentUpload";
+import DocumentUpload, { DocumentLinks } from "./DocumentUpload";
 import type { LeaveStatus } from "@/lib/database.types";
 import type { LeaveTypeConfig } from "@/lib/leaveTypes";
 
@@ -18,7 +18,7 @@ export type QueueRequest = {
   end_date: string;
   reason: string | null;
   status: LeaveStatus;
-  document_url: string | null;
+  document_path: string | null;
   flagged_conflict: boolean;
   leave_request_ranges: Range[];
   profiles: { first_name: string; last_name: string } | null;
@@ -138,13 +138,13 @@ export default function LeaveQueueTable({
                 <td className="py-2.5 border-b border-[var(--line)]">
                   {typeConfig?.behavior === "auto_approve_document" ? (
                     isOwn ? (
-                      <DocumentUpload requestId={r.id} documentUrl={r.document_url} />
-                    ) : r.document_url ? (
-                      <a href={r.document_url} target="_blank" rel="noreferrer" className="text-xs font-bold text-[var(--accent-strong)]">
-                        View document
-                      </a>
-                    ) : (
+                      <DocumentUpload requestId={r.id} hasDocument={Boolean(r.document_path)} />
+                    ) : canManage && r.document_path ? (
+                      <DocumentLinks requestId={r.id} />
+                    ) : canManage ? (
                       <span className="text-[var(--muted)]">Not uploaded</span>
+                    ) : (
+                      <span className="text-[var(--muted)]">—</span>
                     )
                   ) : (
                     <span className="text-[var(--muted)]">—</span>

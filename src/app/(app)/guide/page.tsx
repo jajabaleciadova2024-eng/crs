@@ -79,12 +79,17 @@ const SECTIONS: GuideSection[] = [
         roles: ["team_leader"],
       },
       {
+        q: "How do I view or download an associate's supporting document?",
+        a: "On the Leave Requests queue, the Document column shows View/Download buttons for any Sick/Bereavement-type request that has one uploaded. Team Leader only. These are freshly-generated links each time you click, and documents get auto-deleted after a while — download a copy if you need to keep it longer.",
+        roles: ["team_leader"],
+      },
+      {
         q: "What does \"Possible conflict\" mean?",
         a: "For Vacation-type leave, only one person can be on leave per day org-wide. If your requested dates overlap someone else's pending/approved Vacation leave, you'll see a warning before submitting — you can still submit, but it's more likely to be rejected on review.",
       },
       {
         q: "Do Sick/Bereavement requests need approval?",
-        a: "They still show as Pending so the Team Leader can see them, but they're flagged \"Auto-approved type\" — no action is expected. Upload your supporting document (medical certificate, proof of the event, etc.) from the Document column on your row, any time after filing.",
+        a: "They still show as Pending so the Team Leader can see them, but they're flagged \"Auto-approved type\" — no action is expected. Upload your supporting document (medical certificate, proof of the event, etc.) from the Document column on your row, any time after filing. Documents are private — only you and the Team Leader can view or download them, and they're auto-deleted after a while to keep storage tidy (ask your Team Leader if you need it back after that).",
       },
       {
         q: "Will I be notified when something changes?",

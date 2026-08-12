@@ -84,6 +84,7 @@ supabase/migrations/0001_init.sql   full schema, RLS policies, helper functions
 supabase/migrations/0002_tenure_group.sql   adds profiles.tenure_group (new_hire/tenured)
 supabase/migrations/0005_restrict_oic_write_access.sql   narrows OIC to view-only (workstations/schedule/leave writes -> Team Leader only)
 supabase/migrations/0006_leave_overhaul.sql   leave_type -> text, org_settings.leave_type_configs, leave_request_ranges, document_url, flagged_conflict, self edit/cancel RLS
+supabase/migrations/0007_leave_documents_storage.sql   document_url -> document_path, creates the private leave-documents Storage bucket
 scripts/seed.mjs                     one-off: seeds workstations + first Team Leader
 vercel.json                          Vercel Cron config (keep-alive)
 ```
@@ -118,9 +119,19 @@ See `supabase/migrations/0001_init.sql` for the full source of truth. Tables:
     type overlapped another org-wide pending/approved request on any date
     (soft warning shown to the filer and a "Possible conflict" badge in the
     queue — never blocks submission).
-  - `document_url` / `document_uploaded_at` — for Sick/Bereavement-behavior
-    types, uploaded by the requester any time after filing (see Google
-    Drive setup below).
+  - `document_path` / `document_uploaded_at` — for Sick/Bereavement-behavior
+    types, uploaded by the requester any time after filing to a private
+    Supabase Storage bucket (`leave-documents`; `src/lib/documentStorage.ts`).
+    `document_path` is a storage path, not a public URL — there's no direct
+    client access to the bucket at all (no `storage.objects` RLS policies),
+    everything goes through `/api/leave/[id]/document`: `POST` to upload
+    (owner only), `GET` to fetch short-lived signed view/download links
+    (owner **or Team Leader** only — OIC doesn't get document access).
+    Links expire in 60 seconds and are generated fresh on every click, never
+    stored. A monthly cron (`GET /api/leave-documents-cleanup`, protected by
+    `CRON_SECRET`) deletes documents older than `DOCUMENT_RETENTION_DAYS`
+    (default 30) so Storage doesn't grow unbounded — the `leave_requests`
+    row itself is untouched, just the attached file.
   - `leave_request_ranges` (child table) — extra non-consecutive date
     ranges beyond the primary one, for "a few days here, a few days there"
     requests. RLS mirrors the parent (owner can only add/remove while
@@ -196,12 +207,11 @@ SMTP_PASS=...                       # mailbox password (or app-specific password
 # RESEND_API_KEY=...                # alternative to SMTP — https://resend.com, free tier 3k/mo
 NOTIFICATIONS_FROM_EMAIL=...        # optional, defaults to SMTP_USER (or Resend's onboarding sender if using Resend)
 
-# Leave document uploads (Sick/Bereavement) — src/lib/googleDrive.ts.
-# Without these, the upload button shows a clear "not configured" error
-# instead of failing silently.
-GOOGLE_SERVICE_ACCOUNT_EMAIL=...          # from the service account's JSON key
-GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=...    # from the same JSON key — real or \n-escaped newlines both work
-GOOGLE_DRIVE_FOLDER_ID=...                # the folder's ID from its Drive URL
+# Leave document cleanup cron (src/app/api/leave-documents-cleanup) —
+# Vercel auto-sends this as a Bearer header on cron-triggered requests once
+# CRON_SECRET is set as an env var; the route refuses to run without it.
+CRON_SECRET=...                     # any random string — generate one, doesn't need to mean anything
+# DOCUMENT_RETENTION_DAYS=30        # optional, defaults to 30
 ```
 
 Get the Supabase values from Supabase → Project Settings → API. Get SMTP
@@ -209,21 +219,10 @@ credentials from Hostinger → Emails → your mailbox → "Configuration" (or
 webmail settings) — the host/port/username/password. All of these need to be
 set as Environment Variables in the Vercel project for deploys too.
 
-### Google Drive setup (for leave document uploads)
-
-1. [console.cloud.google.com](https://console.cloud.google.com) → create/select
-   a project → APIs & Services → Enable the **Google Drive API**.
-2. Credentials → Create Credentials → **Service Account** → create it, then
-   generate a JSON key and download it.
-3. Create a Drive folder for the documents. Share it with the service
-   account's email (from the JSON key, looks like
-   `xxx@xxx.iam.gserviceaccount.com`) as **Editor**, and set the folder's
-   general sharing to **Anyone with the link — Viewer** so uploaded files
-   are actually reachable via their link.
-4. From the JSON key, set `GOOGLE_SERVICE_ACCOUNT_EMAIL` (the `client_email`
-   field) and `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (the `private_key`
-   field). Set `GOOGLE_DRIVE_FOLDER_ID` to the folder's ID (the string in
-   its URL after `/folders/`).
+Leave documents (medical certificates, bereavement proof) live in a private
+Supabase Storage bucket — no separate service/credentials needed, unlike the
+Google Drive approach this briefly used. See the `leave_requests` bullet
+under Database schema below for how access/cleanup work.
 
 To re-run the seed script (idempotent-ish — skips the Team Leader invite if a
 profile with that email already exists, upserts workstations by name):
