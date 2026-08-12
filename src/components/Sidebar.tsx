@@ -10,6 +10,7 @@ const NAV_ITEMS: { href: string; label: string; roles?: Profile["role"][] }[] = 
   { href: "/team", label: "Team & Roles", roles: ["team_leader"] },
   { href: "/workstations", label: "Workstations", roles: ["team_leader", "oic"] },
   { href: "/settings", label: "Settings" },
+  { href: "/guide", label: "User Guide" },
 ];
 
 export default function Sidebar({ profile }: { profile: Profile }) {
