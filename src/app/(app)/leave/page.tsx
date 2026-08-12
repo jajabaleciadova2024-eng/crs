@@ -13,16 +13,17 @@ export default async function LeavePage() {
   const canViewAll = isApprover(profile.role);
   const canManage = canManageOperations(profile.role);
 
-  const { data: orgSettings } = await supabase.from("org_settings").select("*").limit(1).maybeSingle();
-  const leaveTypeConfigs = orgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
-
   const listQuery = supabase
     .from("leave_requests")
     .select("*, profiles(first_name, last_name), leave_request_ranges(start_date, end_date)")
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
 
-  const { data: requests } = canViewAll ? await listQuery : await listQuery.eq("associate_id", profile.id);
+  const [{ data: orgSettings }, { data: requests }] = await Promise.all([
+    supabase.from("org_settings").select("*").limit(1).maybeSingle(),
+    canViewAll ? listQuery : listQuery.eq("associate_id", profile.id),
+  ]);
+  const leaveTypeConfigs = orgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
 
   const pendingCount = requests?.filter((r) => r.status === "pending").length ?? 0;
 

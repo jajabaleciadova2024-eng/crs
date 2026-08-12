@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
@@ -38,36 +39,44 @@ const PREVIEWABLE_ROLES: AppRole[] = ["oic", "associate"];
 // grant full Team Leader authority regardless of what's being previewed —
 // intentional, since this is a testing aid for a trusted role, not a
 // privilege-restriction mechanism.
-export async function requireProfileWithPreview(): Promise<{
-  profile: Profile;
-  realRole: AppRole;
-  previewing: boolean;
-}> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+// Wrapped in React's cache() so the layout and the page (both of which call
+// requireProfile()/requireProfileWithPreview() independently, plus the
+// proxy middleware doing its own session check) don't each trigger a fresh
+// getUser() + profile round-trip to Supabase — within a single request
+// they now share one result. This was the main source of page-load delay:
+// 2-3 redundant Supabase Auth/DB round-trips stacked on every navigation.
+export const requireProfileWithPreview = cache(
+  async (): Promise<{
+    profile: Profile;
+    realRole: AppRole;
+    previewing: boolean;
+  }> => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: dbProfile, error } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-
-  if (error || !dbProfile) {
-    redirect("/login");
-  }
-
-  if (dbProfile.role === "team_leader") {
-    const cookieStore = await cookies();
-    const previewRole = cookieStore.get(PREVIEW_ROLE_COOKIE)?.value as AppRole | undefined;
-    if (previewRole && PREVIEWABLE_ROLES.includes(previewRole)) {
-      return { profile: { ...dbProfile, role: previewRole }, realRole: "team_leader", previewing: true };
+    if (!user) {
+      redirect("/login");
     }
-  }
 
-  return { profile: dbProfile, realRole: dbProfile.role, previewing: false };
-}
+    const { data: dbProfile, error } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+
+    if (error || !dbProfile) {
+      redirect("/login");
+    }
+
+    if (dbProfile.role === "team_leader") {
+      const cookieStore = await cookies();
+      const previewRole = cookieStore.get(PREVIEW_ROLE_COOKIE)?.value as AppRole | undefined;
+      if (previewRole && PREVIEWABLE_ROLES.includes(previewRole)) {
+        return { profile: { ...dbProfile, role: previewRole }, realRole: "team_leader", previewing: true };
+      }
+    }
+
+    return { profile: dbProfile, realRole: dbProfile.role, previewing: false };
+  }
+);
 
 // Call after requireProfile() on pages restricted to specific roles.
 // Redirects to the dashboard (with a denial flag) rather than throwing, so a

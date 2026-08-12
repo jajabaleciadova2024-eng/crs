@@ -35,12 +35,14 @@ export default async function SchedulePage() {
 
   // Show whichever is more current: this calendar week, or the latest
   // generated week if the Team Leader/OIC has already generated ahead.
-  const { data: latestWeek } = await supabase
-    .from("schedule_weeks")
-    .select("*")
-    .order("week_start_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // latestWeek and associates are independent — run together; assignments
+  // needs latestWeek's id first, so it follows in its own batch.
+  const [{ data: latestWeek }, { data: associates }] = await Promise.all([
+    supabase.from("schedule_weeks").select("*").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
+    canManage
+      ? supabase.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
+      : Promise.resolve({ data: [] }),
+  ]);
 
   const week = latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek : null;
   const weekStart = week?.week_start_date ?? thisWeekStart;
@@ -52,14 +54,6 @@ export default async function SchedulePage() {
         .select(`*, workstations(name), profiles(first_name, last_name${canManage ? ", is_immune" : ""})`)
         .eq("schedule_week_id", week.id)
         .order("workstation_id")
-    : { data: [] };
-
-  const { data: associates } = canManage
-    ? await supabase
-        .from("profiles")
-        .select("id, first_name, last_name")
-        .eq("is_active", true)
-        .order("first_name")
     : { data: [] };
 
   // "On leave" flag: approved leave overlapping this week, for whoever's

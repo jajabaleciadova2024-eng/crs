@@ -15,18 +15,10 @@ export default async function AccessRequestsPage() {
   await requireRole(profile, ["team_leader"]);
 
   const supabase = await createClient();
-  const { data: pending } = await supabase
-    .from("access_requests")
-    .select("*")
-    .eq("status", "pending")
-    .order("created_at", { ascending: true });
-
-  const { data: recent } = await supabase
-    .from("access_requests")
-    .select("*")
-    .neq("status", "pending")
-    .order("reviewed_at", { ascending: false })
-    .limit(10);
+  const [{ data: pending }, { data: recent }] = await Promise.all([
+    supabase.from("access_requests").select("*").eq("status", "pending").order("created_at", { ascending: true }),
+    supabase.from("access_requests").select("*").neq("status", "pending").order("reviewed_at", { ascending: false }).limit(10),
+  ]);
 
   return (
     <>

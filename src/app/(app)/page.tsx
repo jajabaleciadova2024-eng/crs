@@ -28,40 +28,23 @@ export default async function DashboardPage() {
 
   const weekStart = startOfWeek(new Date()).toISOString().slice(0, 10);
 
-  const { data: week } = await supabase
-    .from("schedule_weeks")
-    .select("*")
-    .eq("week_start_date", weekStart)
-    .maybeSingle();
-
-  const { data: assignments } = week
-    ? await supabase
-        .from("assignments")
-        .select("*, workstations(name), profiles(first_name, last_name)")
-        .eq("schedule_week_id", week.id)
-    : { data: null };
-
-  const { data: activeWorkstations } = await supabase
-    .from("workstations")
-    .select("id")
-    .eq("is_active", true);
-
-  const { count: pendingCount } = await supabase
-    .from("leave_requests")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "pending");
-
-  // Immune is a Team-Leader-only scheduling concern (which associates are
-  // excluded from auto-shuffle) — not shown to OIC/associates.
-  const { count: immuneCount } =
-    profile.role === "team_leader"
-      ? await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_immune", true).eq("is_active", true)
-      : { count: null };
-
-  const { count: pendingAccessCount } =
-    profile.role === "team_leader"
-      ? await supabase.from("access_requests").select("id", { count: "exact", head: true }).eq("status", "pending")
-      : { count: null };
+  // Independent queries run in parallel instead of stacking sequentially —
+  // this was a big chunk of page-load delay (6+ round-trips one after
+  // another). Assignments/recent-leave depend on the first batch's results
+  // (week id, role), so they go in a second parallel batch.
+  const [{ data: week }, { data: activeWorkstations }, { count: pendingCount }, { count: immuneCount }, { count: pendingAccessCount }] =
+    await Promise.all([
+      supabase.from("schedule_weeks").select("*").eq("week_start_date", weekStart).maybeSingle(),
+      supabase.from("workstations").select("id").eq("is_active", true),
+      supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      // Immune is a Team-Leader-only scheduling concern — not shown to OIC/associates.
+      profile.role === "team_leader"
+        ? supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_immune", true).eq("is_active", true)
+        : Promise.resolve({ count: null as number | null }),
+      profile.role === "team_leader"
+        ? supabase.from("access_requests").select("id", { count: "exact", head: true }).eq("status", "pending")
+        : Promise.resolve({ count: null as number | null }),
+    ]);
 
   const leaveQuery = supabase
     .from("leave_requests")
@@ -69,9 +52,12 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false })
     .limit(5);
 
-  const { data: recentLeave } = approver
-    ? await leaveQuery
-    : await leaveQuery.eq("associate_id", profile.id);
+  const [{ data: assignments }, { data: recentLeave }] = await Promise.all([
+    week
+      ? supabase.from("assignments").select("*, workstations(name), profiles(first_name, last_name)").eq("schedule_week_id", week.id)
+      : Promise.resolve({ data: null }),
+    approver ? leaveQuery : leaveQuery.eq("associate_id", profile.id),
+  ]);
 
   const stationsManned = assignments?.length ?? 0;
   const totalStations = activeWorkstations?.length ?? 0;

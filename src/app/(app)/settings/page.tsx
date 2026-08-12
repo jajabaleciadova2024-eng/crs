@@ -10,15 +10,10 @@ export default async function SettingsPage() {
   const supabase = await createClient();
   const isTeamLeader = profile.role === "team_leader";
 
-  const { data: prefs } = await supabase
-    .from("notification_prefs")
-    .select("*")
-    .eq("profile_id", profile.id)
-    .maybeSingle();
-
-  const { data: orgSettings } = isTeamLeader
-    ? await supabase.from("org_settings").select("*").limit(1).maybeSingle()
-    : { data: null };
+  const [{ data: prefs }, { data: orgSettings }] = await Promise.all([
+    supabase.from("notification_prefs").select("*").eq("profile_id", profile.id).maybeSingle(),
+    isTeamLeader ? supabase.from("org_settings").select("*").limit(1).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
 
   return (
     <>

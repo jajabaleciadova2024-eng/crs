@@ -239,6 +239,16 @@ npm test
 
 ## Known gaps / next steps
 
+- **Page-load delay**: ✅ fixed a real perf bug — `requireProfile()`/
+  `requireProfileWithPreview()` was called independently by both the
+  `(app)` layout and every page (each doing its own `getUser()` + profile
+  `select`), on top of the proxy middleware's own session check — 2-3
+  redundant Supabase round-trips on every navigation. `requireProfileWithPreview`
+  is now wrapped in React's `cache()` (`src/lib/auth.ts`) so the layout and
+  page share one result per request. Also parallelized previously-sequential
+  independent queries via `Promise.all` on the pages that had the most
+  (`/`, `/leave`, `/schedule`, `/settings`, `/access-requests`) instead of
+  awaiting them one after another.
 - **Weekly auto-shuffle**: ✅ done — see `/schedule`'s "Generate next week"
   button, `src/app/api/schedule/generate/route.ts`, and `src/lib/schedule.ts`.
   The exact rule for factoring `tenure_group` into placement (vs. just
