@@ -7,9 +7,9 @@ import { Button } from "@/components/ui";
 // Access requests are always approved as Associate — Team Leader/OIC
 // accounts are only ever created directly from /team, never through
 // self-service. Only PSID needs assigning here.
-export default function ReviewForm({ requestId }: { requestId: string }) {
+export default function ReviewForm({ requestId, suggestedPsid }: { requestId: string; suggestedPsid?: string | null }) {
   const [approving, setApproving] = useState(false);
-  const [psid, setPsid] = useState("");
+  const [psid, setPsid] = useState(suggestedPsid ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();

@@ -46,6 +46,7 @@ export default async function AccessRequestsPage() {
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>
+                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">PSID</th>
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Name</th>
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Email</th>
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Mobile</th>
@@ -57,6 +58,7 @@ export default async function AccessRequestsPage() {
               {pending && pending.length > 0 ? (
                 pending.map((r) => (
                   <tr key={r.id}>
+                    <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.psid ?? "—"}</td>
                     <td className="py-2.5 border-b border-[var(--line)]">
                       {r.first_name} {r.last_name}
                     </td>
@@ -64,13 +66,13 @@ export default async function AccessRequestsPage() {
                     <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.mobile_number ?? "—"}</td>
                     <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.message ?? "—"}</td>
                     <td className="py-2.5 border-b border-[var(--line)]">
-                      <ReviewForm requestId={r.id} />
+                      <ReviewForm requestId={r.id} suggestedPsid={r.psid} />
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-4 text-[var(--muted)]">
+                  <td colSpan={6} className="py-4 text-[var(--muted)]">
                     No pending requests.
                   </td>
                 </tr>

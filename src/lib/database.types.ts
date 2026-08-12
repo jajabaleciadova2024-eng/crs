@@ -101,6 +101,7 @@ export interface NotificationPrefs {
 
 export interface AccessRequest {
   id: string;
+  psid: string | null;
   first_name: string;
   middle_name: string | null;
   last_name: string;
@@ -237,6 +238,7 @@ export interface Database {
       access_requests: {
         Row: AccessRequest;
         Insert: {
+          psid?: string | null;
           first_name: string;
           middle_name?: string | null;
           last_name: string;
@@ -246,6 +248,7 @@ export interface Database {
           status?: AccessRequestStatus;
         };
         Update: {
+          psid?: string | null;
           first_name?: string;
           middle_name?: string | null;
           last_name?: string;

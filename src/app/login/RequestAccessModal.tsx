@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 export default function RequestAccessModal({ onClose }: { onClose: () => void }) {
+  const [psid, setPsid] = useState("");
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -27,6 +28,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        psid: psid.trim() || null,
         first_name: firstName.trim(),
         middle_name: middleName.trim() || null,
         last_name: lastName.trim(),
@@ -78,6 +80,17 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
             <p className="text-xs text-[var(--muted)] -mt-2 mb-1">
               Your Team Leader will review this and reach out by email once it&apos;s approved.
             </p>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+                PSID <span className="normal-case font-normal">(optional — leave blank if you don&apos;t have one yet)</span>
+              </label>
+              <input
+                value={psid}
+                onChange={(e) => setPsid(e.target.value)}
+                className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
