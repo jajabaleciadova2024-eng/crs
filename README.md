@@ -20,7 +20,13 @@ Highest → lowest authority:
 1. **Team Leader** — full control: add/remove members, assign roles, manage
    workstations, view/manually edit weekly schedules, generate the next
    week's schedule, set the "immune" flag, group associates as Tenured/New
-   Hire, approve/reject any leave request, edit organization-wide settings.
+   Hire, approve/reject any leave request, edit organization-wide settings,
+   and use **Preview mode** (sidebar → "Preview as") to see the entire app
+   exactly as OIC or Associate would — nav, page access, buttons, even the
+   User Guide content — for testing without a second account. Purely a
+   UI/UX aid: the underlying session and every API route's own permission
+   check still use the real Team Leader role regardless of what's being
+   previewed (see `requireProfileWithPreview` in `src/lib/auth.ts`).
 2. **OIC** — manage workstation assignments, approve/reject leave requests,
    view all schedules/leave, own review preferences.
 3. **Associate** — view own workstation assignment, file leave requests, view
@@ -60,7 +66,7 @@ src/
       keepalive/route.ts      hit by Vercel Cron daily to prevent Supabase auto-pause
   components/               Sidebar, ui.tsx (Panel/Pill/Card/Button/Avatar), SignOutButton
   lib/
-    auth.ts                 requireProfile()/requireRole() route guards
+    auth.ts                 requireProfile()/requireRole() route guards + Team-Leader-only preview-mode override
     database.types.ts       hand-authored schema types (see gotcha below)
     schedule.ts              pure auto-shuffle assignment algorithm (unit-tested, schedule.test.ts)
     email.ts                 Resend REST API wrapper (no-ops if RESEND_API_KEY unset)

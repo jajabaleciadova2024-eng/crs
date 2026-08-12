@@ -128,6 +128,11 @@ const SECTIONS: GuideSection[] = [
         a: "Leave types offered, schedule cadence (weekly/bi-weekly), and whether a reason is required on leave requests — applies to the whole team.",
         roles: ["team_leader"],
       },
+      {
+        q: "What's \"Preview as\" in the sidebar?",
+        a: "Lets you see the entire app exactly as an OIC or Associate would — nav, page access, buttons, even this guide's content — without a second account. A banner stays visible at the top of every page while active; click \"Exit preview\" (or pick \"Team Leader (you)\") to return to normal. It's a testing aid only — your real Team Leader permissions never actually change underneath it.",
+        roles: ["team_leader"],
+      },
     ],
   },
 ];
