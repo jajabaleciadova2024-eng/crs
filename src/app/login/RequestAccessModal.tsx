@@ -18,8 +18,8 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
     e.preventDefault();
     setError(null);
 
-    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      setError("First name, last name, and email are required.");
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !mobile.trim()) {
+      setError("First name, last name, email, and mobile number are required.");
       return;
     }
 
@@ -136,10 +136,9 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
-                Mobile number <span className="normal-case font-normal">(optional)</span>
-              </label>
+              <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Mobile number</label>
               <input
+                required
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
                 className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"

@@ -10,8 +10,8 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { psid, first_name, middle_name, last_name, email, mobile_number, message } = body ?? {};
 
-  if (!first_name || !last_name || !email) {
-    return NextResponse.json({ error: "First name, last name, and email are required." }, { status: 400 });
+  if (!first_name || !last_name || !email || !mobile_number) {
+    return NextResponse.json({ error: "First name, last name, email, and mobile number are required." }, { status: 400 });
   }
 
   const admin = createAdminClient();
