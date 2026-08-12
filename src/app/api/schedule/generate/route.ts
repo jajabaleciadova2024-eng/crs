@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isApprover } from "@/lib/auth";
+import { canManageOperations } from "@/lib/auth";
 import { generateAssignments } from "@/lib/schedule";
 import { notifySchedulePublished } from "@/lib/notify";
 
@@ -38,8 +38,8 @@ export async function POST() {
   }
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (!profile || !isApprover(profile.role)) {
-    return NextResponse.json({ error: "Only Team Leader/OIC can generate a schedule." }, { status: 403 });
+  if (!profile || !canManageOperations(profile.role)) {
+    return NextResponse.json({ error: "Only the Team Leader can generate a schedule." }, { status: 403 });
   }
 
   const { data: orgSettings } = await supabase.from("org_settings").select("schedule_cadence").limit(1).maybeSingle();

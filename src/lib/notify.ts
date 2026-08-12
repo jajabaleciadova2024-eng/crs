@@ -40,6 +40,9 @@ export async function notifyLeaveStatusChange(leaveRequestId: string) {
   );
 }
 
+// Only Team Leaders can actually approve/reject (see 0005_restrict_oic_write_access.sql),
+// so only they get notified about new requests needing review — OIC still
+// sees all leave requests in the app, just can't act on them.
 export async function notifyApproversNewLeave(leaveRequestId: string) {
   const admin = createAdminClient();
 
@@ -59,7 +62,7 @@ export async function notifyApproversNewLeave(leaveRequestId: string) {
   const { data: approvers } = await admin
     .from("profiles")
     .select("id, email")
-    .in("role", ["team_leader", "oic"])
+    .eq("role", "team_leader")
     .eq("is_active", true);
   if (!approvers || approvers.length === 0) return;
 

@@ -1,7 +1,7 @@
 // The Supabase client is deliberately untyped (see src/lib/supabase/client.ts),
 // so joined-column access below is cast through `any` on purpose.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { requireProfile, isApprover } from "@/lib/auth";
+import { requireProfile, isApprover, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Panel, Pill, Avatar } from "@/components/ui";
 import LeaveRequestForm from "./LeaveRequestForm";
@@ -17,7 +17,10 @@ const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
 export default async function LeavePage() {
   const profile = await requireProfile();
   const supabase = await createClient();
-  const approver = isApprover(profile.role);
+  // canViewAll: sees everyone's requests, not just their own (Team Leader + OIC).
+  // canManage: can approve/reject (Team Leader only).
+  const canViewAll = isApprover(profile.role);
+  const canManage = canManageOperations(profile.role);
 
   const { data: orgSettings } = await supabase.from("org_settings").select("*").limit(1).maybeSingle();
 
@@ -27,38 +30,39 @@ export default async function LeavePage() {
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
 
-  const { data: requests } = approver ? await listQuery : await listQuery.eq("associate_id", profile.id);
+  const { data: requests } = canViewAll ? await listQuery : await listQuery.eq("associate_id", profile.id);
 
   const pendingCount = requests?.filter((r) => r.status === "pending").length ?? 0;
+  const colCount = 4 + (canViewAll ? 1 : 0) + (canManage ? 1 : 0);
 
   return (
     <>
       <header className="mb-6">
         <h1 className="font-serif text-2xl m-0 mb-1">Leave Requests</h1>
         <p className="text-sm text-[var(--muted)] m-0">
-          {approver ? "Review and act on requests from your team" : "File a request and track your leave history"}
+          {canViewAll ? "Track requests from your team" : "File a request and track your leave history"}
         </p>
       </header>
 
-      <div className={approver ? "grid grid-cols-1 gap-4" : "grid grid-cols-[1.3fr_1fr] gap-4 items-start"}>
+      <div className={canViewAll ? "grid grid-cols-1 gap-4" : "grid grid-cols-[1.3fr_1fr] gap-4 items-start"}>
         <Panel title="Queue" hint={`${pendingCount} pending`}>
           <div className="overflow-x-auto">
             <table className="w-full text-[13px] border-collapse">
               <thead>
                 <tr>
-                  {approver && <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Associate</th>}
+                  {canViewAll && <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Associate</th>}
                   <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Type</th>
                   <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Dates</th>
                   <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Reason</th>
                   <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
-                  {approver && <th className="py-2.5 border-b border-[var(--line)]" />}
+                  {canManage && <th className="py-2.5 border-b border-[var(--line)]" />}
                 </tr>
               </thead>
               <tbody>
                 {requests && requests.length > 0 ? (
                   requests.map((r: any) => (
                     <tr key={r.id}>
-                      {approver && (
+                      {canViewAll && (
                         <td className="py-2.5 border-b border-[var(--line)]">
                           <span className="flex items-center">
                             <Avatar firstName={r.profiles?.first_name ?? ""} lastName={r.profiles?.last_name ?? ""} />
@@ -74,7 +78,7 @@ export default async function LeavePage() {
                       <td className="py-2.5 border-b border-[var(--line)]">
                         <Pill tone={STATUS_TONE[r.status as LeaveStatus]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
                       </td>
-                      {approver && (
+                      {canManage && (
                         <td className="py-2.5 border-b border-[var(--line)]">
                           {r.status === "pending" && r.associate_id !== profile.id ? (
                             <ApprovalActions requestId={r.id} reviewerId={profile.id} />
@@ -85,7 +89,7 @@ export default async function LeavePage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={approver ? 6 : 4} className="py-4 text-[var(--muted)]">
+                    <td colSpan={colCount} className="py-4 text-[var(--muted)]">
                       No leave requests yet.
                     </td>
                   </tr>
@@ -95,7 +99,7 @@ export default async function LeavePage() {
           </div>
         </Panel>
 
-        {!approver && (
+        {!canViewAll && (
           <Panel title="File a request">
             <LeaveRequestForm requireReason={orgSettings?.require_leave_reason ?? true} />
           </Panel>

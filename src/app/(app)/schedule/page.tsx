@@ -1,7 +1,7 @@
 // The Supabase client is deliberately untyped (see src/lib/supabase/client.ts),
 // so joined-column access below is cast through `any` on purpose.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { requireProfile, isApprover } from "@/lib/auth";
+import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Panel, Pill } from "@/components/ui";
 import ReassignForm from "./ReassignForm";
@@ -19,7 +19,7 @@ function startOfWeek(date: Date) {
 export default async function SchedulePage() {
   const profile = await requireProfile();
   const supabase = await createClient();
-  const canManage = isApprover(profile.role);
+  const canManage = canManageOperations(profile.role);
 
   const thisWeekStart = startOfWeek(new Date()).toISOString().slice(0, 10);
 

@@ -10,7 +10,17 @@ export const ROLE_LABEL: Record<AppRole, string> = {
   associate: "Associate",
 };
 
+// "Approver" here means view-scope only: team_leader and oic both see
+// everyone's leave/schedule data, not just their own. It does NOT imply
+// write access — see canManageOperations below for that.
 export const APPROVER_ROLES: AppRole[] = ["team_leader", "oic"];
+
+// Write access to leave approve/reject, schedule generate/reassign, and
+// workstation management — Team Leader only. OIC has view-all visibility
+// (isApprover) but no longer any of these write actions.
+export function canManageOperations(role: AppRole) {
+  return role === "team_leader";
+}
 
 export const PREVIEW_ROLE_COOKIE = "preview_role";
 const PREVIEWABLE_ROLES: AppRole[] = ["oic", "associate"];

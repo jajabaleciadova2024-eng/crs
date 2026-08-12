@@ -21,7 +21,7 @@ export default async function TeamPage() {
       <Panel
         title="Roster"
         action={<AddMemberForm />}
-        footnote="New members receive an email invite to set their own password. Login accepts PSID or email."
+        footnote="New members receive an email invite to set their own password. Login accepts PSID or email. Tenure grouping (associates only) is manual — no auto-promotion by date, and it's not yet used by the schedule generator."
       >
         <div className="overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">
@@ -33,6 +33,7 @@ export default async function TeamPage() {
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Mobile</th>
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Role</th>
                 <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>
+                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Tenure</th>
                 <th className="py-2.5 border-b border-[var(--line)]" />
               </tr>
             </thead>
@@ -41,7 +42,7 @@ export default async function TeamPage() {
                 members.map((m) => <MemberRow key={m.id} member={m} isSelf={m.id === profile.id} />)
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-4 text-[var(--muted)]">
+                  <td colSpan={8} className="py-4 text-[var(--muted)]">
                     No members yet.
                   </td>
                 </tr>

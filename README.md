@@ -27,8 +27,11 @@ Highest → lowest authority:
    UI/UX aid: the underlying session and every API route's own permission
    check still use the real Team Leader role regardless of what's being
    previewed (see `requireProfileWithPreview` in `src/lib/auth.ts`).
-2. **OIC** — manage workstation assignments, approve/reject leave requests,
-   view all schedules/leave, own review preferences.
+2. **OIC** — view-only across the board beyond their own account: sees all
+   schedules and all leave requests (not just their own), but **cannot**
+   generate/reassign the schedule, add/edit workstations, or approve/reject
+   leave — those are Team Leader only as of `0005_restrict_oic_write_access.sql`.
+   Manages own account/notification settings.
 3. **Associate** — view own workstation assignment, file leave requests, view
    own leave history, manage own account/notification settings.
 
@@ -55,9 +58,9 @@ src/
       page.tsx             dashboard
       schedule/            weekly station × associate grid
       leave/                leave request queue + associate's own filing form
-      team/                 roster management (Team Leader only)
-      workstations/         station list CRUD (Team Leader/OIC)
-      settings/              account, notifications, org settings, review prefs, associate tenure groups
+      team/                 roster management + associate tenure grouping (Team Leader only)
+      workstations/         station list CRUD (Team Leader only)
+      settings/              account, notifications, org settings
     api/
       team/route.ts          server route: creates auth user + profile (service role)
       leave/route.ts          file a leave request + notify approvers
@@ -79,6 +82,7 @@ src/
   proxy.ts                   Next.js 16's replacement for middleware.ts
 supabase/migrations/0001_init.sql   full schema, RLS policies, helper functions
 supabase/migrations/0002_tenure_group.sql   adds profiles.tenure_group (new_hire/tenured)
+supabase/migrations/0005_restrict_oic_write_access.sql   narrows OIC to view-only (workstations/schedule/leave writes -> Team Leader only)
 scripts/seed.mjs                     one-off: seeds workstations + first Team Leader
 vercel.json                          Vercel Cron config (keep-alive)
 ```
@@ -88,20 +92,25 @@ vercel.json                          Vercel Cron config (keep-alive)
 See `supabase/migrations/0001_init.sql` for the full source of truth. Tables:
 
 - `profiles` — PSID, name, email, mobile, role, `is_immune`, `is_active`,
-  `tenure_group` (`new_hire` | `tenured`, manual, Team Leader only — see
-  Settings → Associate groups; not yet consumed by the auto-shuffle rule)
+  `tenure_group` (`new_hire` | `tenured`, associates only, manual, managed
+  from Team & Roles alongside role/immune — not yet consumed by the
+  auto-shuffle rule)
 - `workstations` — the rotating stations (Screener, Collecting Officer,
   Releasing Officer, PACD, Electronic Endorsement, Premium Annotation — seeded,
   but editable/expandable from `/workstations`)
 - `schedule_weeks` + `assignments` — one row per station per week. `/schedule`
   supports manual reassignment **and** auto-generation via "Generate next
-  week" (`POST /api/schedule/generate`, Team Leader/OIC only): fills the
-  current week if empty, otherwise generates the week after the latest one
-  on record (spaced by `org_settings.schedule_cadence`). Associates flagged
+  week" (`POST /api/schedule/generate`, Team Leader only — OIC can view the
+  schedule but not generate/reassign): fills the current week if empty,
+  otherwise generates the week after the latest one on record (spaced by
+  `org_settings.schedule_cadence`). Associates flagged
   `is_immune` keep their previous station; everyone else is shuffled across
   the remaining open stations. See `src/lib/schedule.ts` for the pure
   assignment logic (unit-tested).
-- `leave_requests` — type, date range, reason, status (pending/approved/rejected)
+- `leave_requests` — type, date range, reason, status (pending/approved/rejected).
+  OIC sees everyone's requests (view-only) but only Team Leader can
+  approve/reject (`leave_requests_update_team_leader_not_self` RLS policy,
+  double-checked in `/api/leave/[id]`).
 - `org_settings` — single row, Team-Leader-editable (leave types, schedule
   cadence, require-reason toggle, approver roles)
 - `access_requests` — self-service "Request access" submissions from the

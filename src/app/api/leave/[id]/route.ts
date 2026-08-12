@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { notifyLeaveStatusChange } from "@/lib/notify";
 
-// Approves/rejects a leave request as the signed-in Team Leader/OIC (update
-// respects the existing "leave_requests_update_leadership_not_self" RLS
-// policy — no admin client here), then notifies the requesting associate.
+// Approves/rejects a leave request as the signed-in Team Leader (update
+// respects the "leave_requests_update_team_leader_not_self" RLS policy — no
+// admin client here — but we check explicitly too for a clean error message
+// instead of a generic RLS failure), then notifies the requesting associate.
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -13,6 +14,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  const { data: callerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (callerProfile?.role !== "team_leader") {
+    return NextResponse.json({ error: "Only the Team Leader can approve or reject leave requests." }, { status: 403 });
   }
 
   const body = await request.json();

@@ -12,7 +12,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   { href: "/leave", label: "Leave Requests" },
   { href: "/team", label: "Team & Roles", roles: ["team_leader"] },
   { href: "/access-requests", label: "Access Requests", roles: ["team_leader"], badgeKey: "accessRequests" },
-  { href: "/workstations", label: "Workstations", roles: ["team_leader", "oic"] },
+  { href: "/workstations", label: "Workstations", roles: ["team_leader"] },
 ];
 
 // Settings + User Guide live at the bottom of the sidebar, just above the

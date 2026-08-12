@@ -1,4 +1,4 @@
-import { requireProfile, isApprover } from "@/lib/auth";
+import { requireProfile, canManageOperations } from "@/lib/auth";
 import { Panel } from "@/components/ui";
 
 type Role = "team_leader" | "oic" | "associate";
@@ -46,13 +46,13 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "How do I generate the next week's schedule?",
-        a: "Click \"Generate next week\" on the Weekly Schedule page. It fills in the current week if it's empty, or creates the next one after whatever's already scheduled. You can still manually reassign any station afterward.",
-        roles: ["team_leader", "oic"],
+        a: "Click \"Generate next week\" on the Weekly Schedule page. It fills in the current week if it's empty, or creates the next one after whatever's already scheduled. You can still manually reassign any station afterward. Team Leader only — OIC can view the schedule but not generate or reassign.",
+        roles: ["team_leader"],
       },
       {
         q: "How do I manually reassign a station?",
-        a: "On the Weekly Schedule page, use the dropdown next to any row to swap who's assigned to that station.",
-        roles: ["team_leader", "oic"],
+        a: "On the Weekly Schedule page, use the dropdown next to any row to swap who's assigned to that station. Team Leader only.",
+        roles: ["team_leader"],
       },
     ],
   },
@@ -66,12 +66,12 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "How do I approve or reject a request?",
-        a: "On the Leave Requests page, use the Approve/Reject buttons next to any pending request that isn't your own. You can't approve/reject your own leave.",
-        roles: ["team_leader", "oic"],
+        a: "On the Leave Requests page, use the Approve/Reject buttons next to any pending request that isn't your own. You can't approve/reject your own leave. Team Leader only — OIC sees everyone's requests but can't act on them.",
+        roles: ["team_leader"],
       },
       {
         q: "Will I be notified when something changes?",
-        a: "Yes, if you've left the relevant toggle on in Settings → Notifications: associates get emailed when their request's status changes; Team Leaders/OICs get emailed when a new request needs review.",
+        a: "Yes, if you've left the relevant toggle on in Settings → Notifications: associates get emailed when their request's status changes; the Team Leader gets emailed when a new request needs review.",
       },
     ],
   },
@@ -92,6 +92,10 @@ const SECTIONS: GuideSection[] = [
         a: "Use the Deactivate button on their row. Deactivated members are excluded from active-associate queries (like scheduling) but their history is preserved.",
       },
       {
+        q: "How do I mark an associate as Tenured or New Hire?",
+        a: "On Team & Roles, click Edit next to their row and set the Tenure dropdown, then Save. Manual only — no auto-promotion by date. Associates only (the field is blank for Team Leader/OIC rows). Doesn't affect scheduling yet, but is meant to feed a future auto-shuffle rule.",
+      },
+      {
         q: "How do I handle a \"Request access\" submission?",
         a: "Go to Access Requests (badge in the sidebar shows how many are waiting). Click Approve, assign a PSID, then Confirm — this always creates an Associate account and sends the same invite email as adding a member manually. To promote someone to OIC or Team Leader, do it from Team & Roles after their account exists. Reject just dismisses it, no email sent.",
       },
@@ -103,11 +107,11 @@ const SECTIONS: GuideSection[] = [
   },
   {
     title: "Workstations",
-    roles: ["team_leader", "oic"],
+    roles: ["team_leader"],
     items: [
       {
         q: "How do I add or edit a station?",
-        a: "Go to Workstations. You can add new stations or edit/deactivate existing ones. Deactivated stations are skipped by the auto-shuffle.",
+        a: "Go to Workstations. You can add new stations or edit/deactivate existing ones. Deactivated stations are skipped by the auto-shuffle. Team Leader only.",
       },
     ],
   },
@@ -117,11 +121,6 @@ const SECTIONS: GuideSection[] = [
       {
         q: "Where do I manage my notification preferences?",
         a: "Settings → Notifications. Toggle emails for leave status changes, schedule publishing, and (if you're an approver) new requests to review.",
-      },
-      {
-        q: "What's \"Associate groups\"?",
-        a: "A label (Tenured or New Hire) you can set per associate, managed manually — there's no automatic promotion by tenure date. It doesn't affect scheduling yet, but is meant to feed a future auto-shuffle rule.",
-        roles: ["team_leader"],
       },
       {
         q: "What's in Organization settings?",
@@ -139,7 +138,7 @@ const SECTIONS: GuideSection[] = [
 
 export default async function GuidePage() {
   const profile = await requireProfile();
-  const approver = isApprover(profile.role);
+  const canManage = canManageOperations(profile.role);
 
   const visibleSections = SECTIONS.map((section) => ({
     ...section,
@@ -151,7 +150,7 @@ export default async function GuidePage() {
       <header className="mb-6">
         <h1 className="font-serif text-2xl m-0 mb-1">User Guide</h1>
         <p className="text-sm text-[var(--muted)] m-0">
-          How to use CRS Naga — tailored to what {approver ? "you can manage" : "you can do"} as {profile.first_name}
+          How to use CRS Naga — tailored to what {canManage ? "you can manage" : "you can do"} as {profile.first_name}
           &apos;s role.
         </p>
       </header>
