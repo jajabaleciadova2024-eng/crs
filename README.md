@@ -199,6 +199,24 @@ npm test
 - **Supabase's free-tier invite email has a low rate limit** — a few failed
   seed attempts in a row will trip "email rate limit exceeded." Space out
   invite attempts if you hit this.
+- **Corporate email security scanners can silently break invite/reset links.**
+  Supabase's invite and password-reset links are one-time-use (`/verify`
+  consumes the token on first GET). Some corporate mail gateways (Microsoft
+  Defender for Office 365 "Safe Links", Proofpoint, etc.) auto-follow links
+  in incoming email to scan them *before* the recipient ever opens their
+  inbox — this consumes the one-time token, so the real user's click then
+  fails with `"Email link is invalid or has expired"` /
+  `"One-time token not found"` even though the email genuinely arrived and
+  nothing is misconfigured. Diagnose via Supabase → Authentication → Logs:
+  look for a `/verify` request completing (`user_signedup` or similar)
+  within seconds of the `user_invited`/reset email being sent, followed by a
+  second `/verify` failing — that gap is the signature of a scanner beating
+  the human to the link. **Fix**: the account is usually already
+  created/confirmed by that first scanner hit, so the affected person can
+  just use `/forgot-password` to set their own password instead of
+  re-clicking the dead invite link. If it keeps happening on the same
+  corporate domain, their IT admin needs to exclude Supabase's auth domain
+  from link-prefetching/scanning.
 - **Password reset redirect URLs must be allow-listed in Supabase.** The
   forgot-password flow (`/forgot-password` → email → `/reset-password`) calls
   `resetPasswordForEmail(email, { redirectTo: ".../reset-password" })`.

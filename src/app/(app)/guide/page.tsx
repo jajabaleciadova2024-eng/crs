@@ -87,6 +87,10 @@ const SECTIONS: GuideSection[] = [
         q: "How do I deactivate someone instead of deleting them?",
         a: "Use the Deactivate button on their row. Deactivated members are excluded from active-associate queries (like scheduling) but their history is preserved.",
       },
+      {
+        q: "A new member says their invite link is \"invalid or expired\" even though they just got the email — what happened?",
+        a: "Invite links are one-time-use. On some corporate email domains, the company's mail security (e.g. Microsoft Safe Links) auto-clicks links in incoming email to scan them before the person ever opens their inbox — that uses up the link. Their account is usually already created at that point, so just have them use \"Forgot password?\" on the login page to set their own password instead of re-sending the invite.",
+      },
     ],
   },
   {
