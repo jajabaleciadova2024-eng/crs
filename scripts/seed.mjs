@@ -81,8 +81,11 @@ async function main() {
     return;
   }
 
+  // See src/app/api/team/route.ts for why this points at /reset-password
+  // rather than "/" — the root is middleware-guarded and never sees the
+  // session token, which lands the invite on /login instead.
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(TEAM_LEADER.email, {
-    redirectTo: `${SITE_URL}/`,
+    redirectTo: `${SITE_URL}/reset-password`,
   });
   if (inviteError || !invited?.user) {
     console.error(`  ✗ Invite failed: ${inviteError?.message}`);

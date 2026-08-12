@@ -217,16 +217,22 @@ npm test
   re-clicking the dead invite link. If it keeps happening on the same
   corporate domain, their IT admin needs to exclude Supabase's auth domain
   from link-prefetching/scanning.
-- **Every redirectTo URL must be allow-listed in Supabase, including the
-  invite flow's.** `resetPasswordForEmail`/`inviteUserByEmail` both take a
-  `redirectTo`, and Supabase rejects any target not on its allow list with
-  `"requested path is invalid"` — this is what "error request path is
-  invalid" means if you see it right after accepting an invite. Both
-  `/api/team/route.ts` (member invites) and `scripts/seed.mjs` now pass an
-  explicit `redirectTo` (root `/`, via `NEXT_PUBLIC_SITE_URL` or the
-  request's own origin) instead of relying on Supabase's default Site URL.
-  Add all of these under Supabase → Authentication → URL Configuration →
-  Redirect URLs (wildcards supported):
+- **Invite/reset redirectTo must land on a public page, not `/`.** The auth
+  token from an invite or password-reset link arrives as a URL *fragment*
+  (`#access_token=...`), which browsers never send to the server. `/` is
+  guarded by `src/proxy.ts` middleware, which only runs server-side — it
+  never sees that fragment, sees no session, and bounces to `/login` before
+  client JS gets a chance to process the token. `/api/team/route.ts` and
+  `scripts/seed.mjs` both point `redirectTo` at `/reset-password` instead —
+  a public page that waits for the browser to turn the fragment into a real
+  session, then shows a "set password" form (works for both invites and
+  actual password resets).
+- **Every redirectTo URL must also be allow-listed in Supabase.**
+  `resetPasswordForEmail`/`inviteUserByEmail` both take a `redirectTo`, and
+  Supabase rejects any target not on its allow list with `"requested path is
+  invalid"` — this is what that error means if you see it right after
+  accepting an invite. Add all of these under Supabase → Authentication →
+  URL Configuration → Redirect URLs (wildcards supported):
   ```
   https://crs.jajabaleciado.com/**
   https://crs-brown.vercel.app/**

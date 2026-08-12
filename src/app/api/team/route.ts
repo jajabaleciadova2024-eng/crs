@@ -38,14 +38,17 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // Explicit redirectTo so the invite link lands somewhere predictable
-  // instead of relying on Supabase's configured default Site URL — but this
-  // still only works if that URL is on Supabase's Auth → URL Configuration
-  // → Redirect URLs allow list (see README gotchas), otherwise GoTrue
-  // rejects it with "requested path is invalid".
+  // redirectTo must land on a PUBLIC page that establishes the session from
+  // the URL fragment client-side before showing anything — "/" is guarded
+  // by middleware, which runs server-side and never sees the fragment, so
+  // it bounces to /login before the browser gets a chance to process the
+  // invite token. /reset-password already does exactly this (waits for the
+  // session, then shows a "set password" form) and works for invites too,
+  // not just recovery links. Must also be on Supabase's Auth → URL
+  // Configuration → Redirect URLs allow list (see README gotchas).
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${siteUrl}/`,
+    redirectTo: `${siteUrl}/reset-password`,
   });
   if (inviteError || !invited?.user) {
     return NextResponse.json(
