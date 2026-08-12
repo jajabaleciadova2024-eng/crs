@@ -4,11 +4,15 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// Reached via the link in the "reset password" email. Supabase's browser
-// client auto-detects the recovery tokens in the URL (detectSessionInUrl,
-// on by default) and turns them into a real (short-lived) session — we just
-// wait for that PASSWORD_RECOVERY event before showing the form, and error
-// out if it never arrives (expired/invalid link).
+// Reached via the link in either the "reset password" OR "invite" email —
+// both land here. Supabase's browser client auto-detects the token in the
+// URL (detectSessionInUrl, on by default) and turns it into a real
+// (short-lived) session, but which auth event fires depends on the link
+// type: password-reset links fire PASSWORD_RECOVERY, while invite links
+// just fire SIGNED_IN (there's no invite-specific event). We treat any
+// event that leaves us with a session as "ready" rather than special-casing
+// PASSWORD_RECOVERY, so both flows work. Error out only if no session shows
+// up within the grace period (genuinely expired/invalid link).
 export default function ResetPasswordForm() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -24,10 +28,8 @@ export default function ResetPasswordForm() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-      }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) setReady(true);
     });
 
     // If a session already exists by the time this mounts (event fired
@@ -41,7 +43,7 @@ export default function ResetPasswordForm() {
         if (!r) setInvalid(true);
         return r;
       });
-    }, 4000);
+    }, 8000);
 
     return () => {
       subscription.unsubscribe();
