@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 
 export default function RequestAccessModal({ onClose }: { onClose: () => void }) {
   const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
@@ -27,6 +28,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         first_name: firstName.trim(),
+        middle_name: middleName.trim() || null,
         last_name: lastName.trim(),
         email: email.trim(),
         mobile_number: mobile.trim() || null,
@@ -74,9 +76,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
               </button>
             </div>
             <p className="text-xs text-[var(--muted)] -mt-2 mb-1">
-              For associate accounts. Your Team Leader will review this and, if approved, invite you the same way any
-              new member is added. Team Leader/OIC accounts are set up directly by your Team Leader, not through this
-              form.
+              Your Team Leader will review this and reach out by email once it&apos;s approved.
             </p>
 
             <div className="grid grid-cols-2 gap-3">
@@ -90,14 +90,25 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Last name</label>
+                <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+                  Middle name <span className="normal-case font-normal">(optional)</span>
+                </label>
                 <input
-                  required
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                  value={middleName}
+                  onChange={(e) => setMiddleName(e.target.value)}
                   className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Last name</label>
+              <input
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              />
             </div>
 
             <div>

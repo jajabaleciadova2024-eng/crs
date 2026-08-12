@@ -87,6 +87,7 @@ export interface NotificationPrefs {
 export interface AccessRequest {
   id: string;
   first_name: string;
+  middle_name: string | null;
   last_name: string;
   email: string;
   mobile_number: string | null;
@@ -210,6 +211,7 @@ export interface Database {
         Row: AccessRequest;
         Insert: {
           first_name: string;
+          middle_name?: string | null;
           last_name: string;
           email: string;
           mobile_number?: string | null;
@@ -218,6 +220,7 @@ export interface Database {
         };
         Update: {
           first_name?: string;
+          middle_name?: string | null;
           last_name?: string;
           email?: string;
           mobile_number?: string | null;

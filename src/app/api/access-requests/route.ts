@@ -8,7 +8,7 @@ import { notifyLeadersNewAccessRequest } from "@/lib/notify";
 // id for the notification without an extra round trip).
 export async function POST(request: Request) {
   const body = await request.json();
-  const { first_name, last_name, email, mobile_number, message } = body ?? {};
+  const { first_name, middle_name, last_name, email, mobile_number, message } = body ?? {};
 
   if (!first_name || !last_name || !email) {
     return NextResponse.json({ error: "First name, last name, and email are required." }, { status: 400 });
@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     .from("access_requests")
     .insert({
       first_name,
+      middle_name: middle_name || null,
       last_name,
       email,
       mobile_number: mobile_number || null,

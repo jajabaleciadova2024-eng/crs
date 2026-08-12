@@ -47,6 +47,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const result = await inviteMember({
     psid,
     first_name: accessRequest.first_name,
+    middle_name: accessRequest.middle_name,
     last_name: accessRequest.last_name,
     email: accessRequest.email,
     mobile_number: accessRequest.mobile_number,
