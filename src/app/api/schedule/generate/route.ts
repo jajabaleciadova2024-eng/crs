@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
-import { generateAssignments } from "@/lib/schedule";
+import { generateAssignments, type StationQuota } from "@/lib/schedule";
 import { notifySchedulePublished } from "@/lib/notify";
 import { todayInManila, startOfWorkWeek, addDays } from "@/lib/scheduleDates";
 
@@ -10,7 +10,7 @@ import { todayInManila, startOfWorkWeek, addDays } from "@/lib/scheduleDates";
 // record (spaced by org_settings.schedule_cadence). Immune associates keep
 // their previous station; everyone else is reshuffled across the remaining
 // stations. Publishes a notification email afterward.
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -46,14 +46,24 @@ export async function POST() {
     return NextResponse.json({ error: `A schedule for the week of ${targetWeekStart} already exists.` }, { status: 400 });
   }
 
+  // Optional per-station headcount/tenure quotas from the "Generate next
+  // week" modal — see src/lib/schedule.ts for how these change the
+  // assignment algorithm. Omitted (or empty body) falls back to the
+  // original one-per-station, no-tenure-preference behavior.
+  const body = await request.json().catch(() => ({}));
+  const quotas: StationQuota[] | undefined = Array.isArray(body?.quotas) && body.quotas.length > 0 ? body.quotas : undefined;
+
   const { data: workstations } = await supabase.from("workstations").select("id").eq("is_active", true);
-  const { data: associates } = await supabase.from("profiles").select("id, is_immune").eq("is_active", true);
+  // Quota-driven tenure targeting only makes sense for associates — Team
+  // Leader/OIC don't rotate through stations by tenure group.
+  const { data: allActive } = await supabase.from("profiles").select("id, role, is_immune, tenure_group").eq("is_active", true);
+  const associates = quotas ? (allActive ?? []).filter((p) => p.role === "associate") : (allActive ?? []);
 
   const { data: previousAssignments } = latestWeek
     ? await supabase.from("assignments").select("workstation_id, associate_id").eq("schedule_week_id", latestWeek.id)
     : { data: [] };
 
-  const newAssignments = generateAssignments(workstations ?? [], associates ?? [], previousAssignments ?? []);
+  const newAssignments = generateAssignments(workstations ?? [], associates, previousAssignments ?? [], Math.random, quotas);
 
   const { data: newWeek, error: weekError } = await supabase
     .from("schedule_weeks")

@@ -46,7 +46,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "How do I generate the next week's schedule?",
-        a: "Click \"Generate next week\" on the Weekly Schedule page. It fills in the current week if it's empty, or creates the next one after whatever's already scheduled. You can still manually reassign any station afterward. Team Leader only — OIC can view the schedule but not generate or reassign.",
+        a: "Click \"Generate next week\" on the Weekly Schedule page — this opens a planning screen listing every station. Set each one's headcount and how many should be Tenured vs. New Hire; the totals at the bottom subtract live as you type so you can see how much of your team is allocated before committing. Click Generate to actually create it. It fills in the current week if it's empty, or creates the next one after whatever's already scheduled. You can still manually reassign any station afterward. Team Leader only — OIC can view the schedule but not generate or reassign.",
         roles: ["team_leader"],
       },
       {

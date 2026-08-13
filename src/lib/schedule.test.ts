@@ -71,3 +71,59 @@ describe("generateAssignments", () => {
     expect(generateAssignments([], [], [])).toEqual([]);
   });
 });
+
+describe("generateAssignments with quotas", () => {
+  it("fills a station's headcount with the requested tenured/new-hire split", () => {
+    const workstations = [{ id: "w1" }];
+    const associates = [
+      { id: "t1", is_immune: false, tenure_group: "tenured" as const },
+      { id: "t2", is_immune: false, tenure_group: "tenured" as const },
+      { id: "n1", is_immune: false, tenure_group: "new_hire" as const },
+    ];
+    const quotas = [{ workstation_id: "w1", headcount: 3, tenured: 2, newHire: 1 }];
+    const result = generateAssignments(workstations, associates, [], noShuffle, quotas);
+
+    expect(result).toHaveLength(3);
+    const ids = result.map((r) => r.associate_id).sort();
+    expect(ids).toEqual(["n1", "t1", "t2"]);
+  });
+
+  it("keeps an immune associate on their station, counting toward its headcount", () => {
+    const workstations = [{ id: "w1" }];
+    const associates = [
+      { id: "imm", is_immune: true, tenure_group: "tenured" as const },
+      { id: "t1", is_immune: false, tenure_group: "tenured" as const },
+    ];
+    const previous = [{ workstation_id: "w1", associate_id: "imm" }];
+    const quotas = [{ workstation_id: "w1", headcount: 2, tenured: 2, newHire: 0 }];
+    const result = generateAssignments(workstations, associates, previous, noShuffle, quotas);
+
+    expect(result).toContainEqual({ workstation_id: "w1", associate_id: "imm" });
+    expect(result).toContainEqual({ workstation_id: "w1", associate_id: "t1" });
+    expect(result).toHaveLength(2);
+  });
+
+  it("falls back to filling remaining headcount from anyone left, ignoring tenure, rather than leaving seats empty", () => {
+    const workstations = [{ id: "w1" }];
+    const associates = [{ id: "n1", is_immune: false, tenure_group: "new_hire" as const }];
+    // Quota asks for 2 tenured, but there are none — fallback should still
+    // seat the one available new-hire instead of leaving the seat empty.
+    const quotas = [{ workstation_id: "w1", headcount: 1, tenured: 2, newHire: 0 }];
+    const result = generateAssignments(workstations, associates, [], noShuffle, quotas);
+
+    expect(result).toEqual([{ workstation_id: "w1", associate_id: "n1" }]);
+  });
+
+  it("doesn't exceed a station's headcount even if tenured+newHire quota adds up to more", () => {
+    const workstations = [{ id: "w1" }];
+    const associates = [
+      { id: "t1", is_immune: false, tenure_group: "tenured" as const },
+      { id: "t2", is_immune: false, tenure_group: "tenured" as const },
+      { id: "n1", is_immune: false, tenure_group: "new_hire" as const },
+    ];
+    const quotas = [{ workstation_id: "w1", headcount: 1, tenured: 2, newHire: 1 }];
+    const result = generateAssignments(workstations, associates, [], noShuffle, quotas);
+
+    expect(result).toHaveLength(1);
+  });
+});

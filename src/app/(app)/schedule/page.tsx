@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, Pill } from "@/components/ui";
+import { Panel, Pill, Card } from "@/components/ui";
 import ReassignForm from "./ReassignForm";
 import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
@@ -25,12 +25,22 @@ export default async function SchedulePage() {
   // generated week if the Team Leader/OIC has already generated ahead.
   // latestWeek and associates are independent — run together; assignments
   // needs latestWeek's id first, so it follows in its own batch.
-  const [{ data: latestWeek }, { data: associates }] = await Promise.all([
+  const [{ data: latestWeek }, { data: associates }, { data: activeWorkstations }, { data: allActive }] = await Promise.all([
     supabase.from("schedule_weeks").select("*").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
     canManage
       ? supabase.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
       : Promise.resolve({ data: [] }),
+    canManage ? supabase.from("workstations").select("id, name").eq("is_active", true).order("name") : Promise.resolve({ data: [] }),
+    // Headcount/tenure totals for the stats strip + "Generate" quota modal
+    // — includes everyone active (Team Leader, OIC, associates) for the
+    // headcount total, per request; tenure only meaningfully applies to
+    // associates.
+    canManage ? supabase.from("profiles").select("role, tenure_group").eq("is_active", true) : Promise.resolve({ data: [] }),
   ]);
+
+  const totalMembers = allActive?.length ?? 0;
+  const totalTenured = (allActive ?? []).filter((p) => p.role === "associate" && p.tenure_group === "tenured").length;
+  const totalNewHire = (allActive ?? []).filter((p) => p.role === "associate" && p.tenure_group === "new_hire").length;
 
   const week = latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek : null;
   const weekStart = week?.week_start_date ?? thisWeekStart;
@@ -73,7 +83,7 @@ export default async function SchedulePage() {
     <>
       <header className="mb-6">
         <h1 className="font-serif text-2xl m-0 mb-1">Weekly Schedule</h1>
-        <p className="text-sm text-[var(--muted)] m-0">One associate per station, Monday–Friday (Philippine time), regenerated every week</p>
+        <p className="text-sm text-[var(--muted)] m-0">Monday–Friday (Philippine time), regenerated every week — station headcount is configurable when generating</p>
       </header>
 
       <Panel
@@ -82,7 +92,12 @@ export default async function SchedulePage() {
           canManage && (
             <div className="flex items-center gap-2">
               {week && <ClearScheduleButton scheduleWeekId={week.id} weekStart={weekStart} />}
-              <GenerateButton />
+              <GenerateButton
+                workstations={activeWorkstations ?? []}
+                totalMembers={totalMembers}
+                totalTenured={totalTenured}
+                totalNewHire={totalNewHire}
+              />
             </div>
           )
         }
@@ -92,6 +107,13 @@ export default async function SchedulePage() {
             : "“On leave” flags approved leave overlapping this work week."
         }
       >
+        {canManage && (
+          <div className="grid grid-cols-3 gap-2.5 mb-4">
+            <Card label="Total headcount" value={String(totalMembers)} sub="Team Leader, OIC & associates" />
+            <Card label="Tenured associates" value={String(totalTenured)} sub="Available to assign" />
+            <Card label="New Hire associates" value={String(totalNewHire)} sub="Available to assign" />
+          </div>
+        )}
         {holidays.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-1.5">
             {holidays.map((h) => (

@@ -40,7 +40,9 @@ export default async function DashboardPage() {
 
   const leaveQuery = supabase
     .from("leave_requests")
-    .select("*, profiles(first_name, last_name)")
+    // Must disambiguate: leave_requests has two FKs to profiles
+    // (associate_id, reviewed_by) — see /leave/page.tsx for the full note.
+    .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name)")
     .order("created_at", { ascending: false })
     .limit(5);
 

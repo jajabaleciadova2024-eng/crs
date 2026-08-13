@@ -14,7 +14,9 @@ export default async function LeaveHistoryPage() {
     supabase.from("org_settings").select("leave_type_configs").limit(1).maybeSingle(),
     supabase
       .from("leave_requests")
-      .select("id, leave_type, start_date, end_date, reviewed_at, profiles(first_name, last_name)")
+      // Must disambiguate: leave_requests has two FKs to profiles
+      // (associate_id, reviewed_by) — see /leave/page.tsx for the full note.
+      .select("id, leave_type, start_date, end_date, reviewed_at, profiles!leave_requests_associate_id_fkey(first_name, last_name)")
       .eq("status", "approved")
       .order("start_date", { ascending: false }),
   ]);

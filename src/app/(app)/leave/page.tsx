@@ -16,7 +16,11 @@ export default async function LeavePage() {
 
   const listQuery = supabase
     .from("leave_requests")
-    .select("*, profiles(first_name, last_name), leave_request_ranges(start_date, end_date)")
+    // leave_requests has two FKs to profiles (associate_id, reviewed_by) —
+    // must name which one, otherwise PostgREST errors with "more than one
+    // relationship was found" and the whole query returns null (this was
+    // silently emptying the queue for every account).
+    .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name), leave_request_ranges(start_date, end_date)")
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
 

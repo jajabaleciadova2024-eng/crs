@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pill, Avatar, Button } from "@/components/ui";
 import EditLeaveRequestForm from "./EditLeaveRequestForm";
@@ -113,8 +113,8 @@ export default function LeaveQueueTable({
           const isEditing = editingId === r.id;
 
           return (
-            <>
-              <tr key={r.id}>
+            <Fragment key={r.id}>
+              <tr>
                 {canViewAll && (
                   <td className="py-2.5 border-b border-[var(--line)]">
                     <span className="flex items-center">
@@ -188,7 +188,7 @@ export default function LeaveQueueTable({
                   </td>
                 </tr>
               )}
-            </>
+            </Fragment>
           );
         })}
       </tbody>

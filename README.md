@@ -88,6 +88,8 @@ supabase/migrations/0002_tenure_group.sql   adds profiles.tenure_group (new_hire
 supabase/migrations/0005_restrict_oic_write_access.sql   narrows OIC to view-only (workstations/schedule/leave writes -> Team Leader only)
 supabase/migrations/0006_leave_overhaul.sql   leave_type -> text, org_settings.leave_type_configs, leave_request_ranges, document_url, flagged_conflict, self edit/cancel RLS
 supabase/migrations/0007_leave_documents_storage.sql   document_url -> document_path, creates the private leave-documents Storage bucket
+supabase/migrations/0008_access_requests_psid.sql   adds access_requests.psid
+supabase/migrations/0009_multi_per_station.sql   allows >1 associate per workstation per week (drops the old 1-per-station unique constraint)
 scripts/seed.mjs                     one-off: seeds workstations + first Team Leader
 vercel.json                          Vercel Cron config (keep-alive)
 ```
@@ -103,20 +105,31 @@ See `supabase/migrations/0001_init.sql` for the full source of truth. Tables:
 - `workstations` — the rotating stations (Screener, Collecting Officer,
   Releasing Officer, PACD, Electronic Endorsement, Premium Annotation — seeded,
   but editable/expandable from `/workstations`)
-- `schedule_weeks` + `assignments` — one row per station per week. `/schedule`
-  supports manual reassignment **and** auto-generation via "Generate next
-  week" (`POST /api/schedule/generate`, Team Leader only — OIC can view the
-  schedule but not generate/reassign): fills the current week if empty,
-  otherwise generates the week after the latest one on record (spaced by
-  `org_settings.schedule_cadence`). Associates flagged
-  `is_immune` keep their previous station; everyone else is shuffled across
-  the remaining open stations. See `src/lib/schedule.ts` for the pure
-  assignment logic (unit-tested). `/schedule` also shows an "On leave" flag
-  on any assigned associate with approved leave overlapping the displayed
-  week — visibility only, Team Leader decides whether/how to reassign via
-  the same manual control (see Known gaps for what this doesn't do yet).
-- `leave_requests` — type (free text, see `leave_type_configs` below), a
-  primary date range (`start_date`/`end_date`), reason, status
+- `schedule_weeks` + `assignments` — one row per associate-station
+  assignment per week; a station can now have more than one associate
+  (`0009_multi_per_station.sql`), an associate is still limited to one
+  station per week. `/schedule` supports manual reassignment **and**
+  auto-generation via "Generate next week" (`POST /api/schedule/generate`,
+  Team Leader only — OIC can view the schedule but not generate/reassign),
+  which opens a planning modal for per-station headcount + tenured/new-hire
+  targets before generating: fills the current week if empty, otherwise
+  generates the week after the latest one on record (spaced by
+  `org_settings.schedule_cadence`). Associates flagged `is_immune` keep
+  their previous station (counting toward its headcount); remaining seats
+  fill from the tenured/new-hire pools per the quota, then any still-open
+  seats from whoever's left. See `src/lib/schedule.ts` for the pure
+  assignment logic (unit-tested, both the legacy no-quota path and the
+  quota path). `/schedule` also shows an "On leave" flag on any assigned
+  associate with approved leave overlapping the displayed week —
+  visibility only, Team Leader decides whether/how to reassign via the
+  same manual control.
+- `leave_requests` — **has two FKs to `profiles`** (`associate_id` and
+  `reviewed_by`) — any query embedding `profiles(...)` on this table
+  **must** disambiguate with `profiles!leave_requests_associate_id_fkey(...)`
+  (or `..._reviewed_by_fkey`), otherwise PostgREST errors
+  (`PGRST201`) and the query returns `null` — see the Known gaps entry
+  above for the bug this caused. Type (free text, see `leave_type_configs`
+  below), a primary date range (`start_date`/`end_date`), reason, status
   (pending/approved/rejected), plus:
   - `flagged_conflict` — set at submission time if a Vacation-behavior
     type overlapped another org-wide pending/approved request on any date
@@ -242,6 +255,36 @@ npm test
 
 ## Known gaps / next steps
 
+- **Leave queue appearing empty on every account**: ✅ fixed a real bug —
+  `leave_requests` has two foreign keys to `profiles` (`associate_id` and
+  `reviewed_by`). Every query embedding `profiles(first_name, last_name)`
+  was ambiguous about which FK to follow; PostgREST refused the query
+  entirely (`PGRST201: more than one relationship was found`) and returned
+  `null`, which the app treated as "no requests" — silently emptying the
+  queue for every account (Team Leader's global view happened to still work
+  for approving because... actually it hit the exact same bug too; the
+  fix is the same one-liner in three places). Fixed by naming the FK
+  explicitly: `profiles!leave_requests_associate_id_fkey(...)` in
+  `src/app/(app)/leave/page.tsx`, `leave/history/page.tsx`, and the
+  Dashboard. Verified live against a real associate account (generated a
+  magiclink session server-side with the admin client, ran the exact query
+  as them) before and after the fix.
+- **Per-station headcount + tenure quotas when generating**: ✅ done.
+  "Generate next week" now opens a planning modal (`GenerateButton.tsx`)
+  listing every active workstation with Headcount/Tenured/New Hire number
+  inputs, live-subtracting against total active headcount (Team Leader +
+  OIC + associates) and total tenured/new-hire associates as you type.
+  `src/lib/schedule.ts`'s `generateAssignments` now accepts optional
+  `quotas`: immune associates are seated first (counting toward their
+  station's headcount), then tenured/new-hire pools fill each station's
+  targets, then any still-open seats get filled from whoever's left
+  regardless of tenure (coverage over a strict-but-empty seat). Calling it
+  without quotas keeps the original one-per-station behavior unchanged
+  (existing tests untouched). Required allowing more than one associate
+  per station per week — `0009_multi_per_station.sql` drops the old
+  1-per-station unique constraint (an associate can still only be on one
+  station per week). `/schedule` also shows a persistent headcount/tenure
+  stats strip (Team Leader only).
 - **Schedule week = Philippine Monday–Friday, with regular holidays flagged**:
   ✅ done. `src/lib/scheduleDates.ts` computes "today"/week boundaries in
   Asia/Manila (fixed UTC+8, no DST) rather than the server's own clock —
