@@ -11,6 +11,7 @@ import RotationSettingsPanel from "./RotationSettingsPanel";
 import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange } from "@/lib/scheduleDates";
 import { holidaysInRange } from "@/lib/phHolidays";
 import { formatFullName } from "@/lib/format";
+import { compareStationNames } from "@/lib/stationOrder";
 
 function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string) {
   return aStart <= bEnd && bStart <= aEnd;
@@ -46,6 +47,12 @@ export default async function SchedulePage() {
       : Promise.resolve({ data: [] }),
   ]);
 
+  // Team Leader's standing station order (Screener, Collecting Officer,
+  // Premium Annotation, Releasing Officer, PACD, Electronic Endorsement),
+  // not the DB's alphabetical order — feeds the Generate modal's station
+  // table and immune-placement dropdown.
+  const sortedWorkstations = [...(activeWorkstations ?? [])].sort((a, b) => compareStationNames(a.name, b.name));
+
   const totalMembers = allActive?.length ?? 0;
   const totalTenured = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "tenured").length;
   const totalNewHire = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "new_hire").length;
@@ -63,13 +70,18 @@ export default async function SchedulePage() {
   const weekEnd = endOfWorkWeek(weekStart);
   const holidays = holidaysInRange(weekStart, weekEnd);
 
-  const { data: assignments } = week
+  const { data: rawAssignments } = week
     ? await supabase
         .from("assignments")
         .select(`*, workstations(name), profiles(first_name, last_name, avatar_url${canManage ? ", is_immune" : ""})`)
         .eq("schedule_week_id", week.id)
-        .order("workstation_id")
     : { data: [] };
+
+  // workstation_id is a UUID (arbitrary order) — sort by the Team
+  // Leader's standing station order instead, same as the dashboard.
+  const assignments = rawAssignments
+    ? [...rawAssignments].sort((a: any, b: any) => compareStationNames(a.workstations?.name ?? "", b.workstations?.name ?? ""))
+    : rawAssignments;
 
   // "On leave" flag: approved leave overlapping this work week, for
   // whoever's assigned — visibility only, TL decides whether/how to
@@ -107,7 +119,7 @@ export default async function SchedulePage() {
             <div className="flex items-center gap-2">
               {week && <ClearScheduleButton scheduleWeekId={week.id} weekStart={weekStart} />}
               <GenerateButton
-                workstations={activeWorkstations ?? []}
+                workstations={sortedWorkstations}
                 totalMembers={totalMembers}
                 totalTenured={totalTenured}
                 totalNewHire={totalNewHire}

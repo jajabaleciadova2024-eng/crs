@@ -7,6 +7,7 @@ import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek, formatWeekRange } from "@/lib/scheduleDates";
 import { toTitleCase, formatFullName } from "@/lib/format";
+import { compareStationNames } from "@/lib/stationOrder";
 import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
 
 const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
@@ -124,7 +125,7 @@ export default async function DashboardPage() {
                 if (!groups.has(name)) groups.set(name, { name, people: [] });
                 groups.get(name)!.people.push(a);
               }
-              const sortedGroups = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
+              const sortedGroups = Array.from(groups.values()).sort((a, b) => compareStationNames(a.name, b.name));
 
               return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
