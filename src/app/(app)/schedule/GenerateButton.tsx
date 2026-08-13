@@ -116,7 +116,10 @@ export default function GenerateButton({
               <h2 className="font-serif text-xl text-[var(--ink)] m-0 mb-1">Plan next week&apos;s coverage</h2>
               <p className="text-sm text-[var(--muted)] m-0">
                 Headcount per station is fixed (set on Workstations) — Tenured/New Hire are pre-filled per your usual
-                split, adjust as needed. OIC is included and eligible for seating too.
+                split, adjust as needed. OIC is included and eligible for seating too. Required Tenured per station is
+                filled first; any station seats still open after that (including New Hire targets short on New Hires)
+                get filled by whoever&apos;s left over, tenured or not — every station&apos;s fixed headcount takes
+                priority over an exact tenure-label match.
               </p>
             </div>
 

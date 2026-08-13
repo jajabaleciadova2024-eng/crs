@@ -77,6 +77,7 @@ export default async function AccessRequestsPage() {
               <tr>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Name</th>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Email</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Mobile</th>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
               </tr>
             </thead>
@@ -88,6 +89,7 @@ export default async function AccessRequestsPage() {
                       {formatFullName(r.first_name, r.last_name)}
                     </td>
                     <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.email}</td>
+                    <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.mobile_number ?? "—"}</td>
                     <td className="py-2.5 border-b border-[var(--line)]">
                       <Pill tone={STATUS_TONE[r.status as AccessRequestStatus]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
                     </td>
@@ -95,7 +97,7 @@ export default async function AccessRequestsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="py-4 text-[var(--muted)]">
+                  <td colSpan={4} className="py-4 text-[var(--muted)]">
                     No decisions yet.
                   </td>
                 </tr>
