@@ -141,20 +141,7 @@ export default function LeaveRequestForm({
           ))}
         </select>
       </div>
-      <div>
-        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-          Reason {requireReason ? "" : "(optional)"}
-        </label>
-        <input
-          type="text"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="Brief note"
-          className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
-        />
-      </div>
-
-      <div className="col-span-2 flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
           Date(s) — add more if they&apos;re not consecutive
         </label>
@@ -165,7 +152,7 @@ export default function LeaveRequestForm({
               value={r.start_date}
               onChange={(e) => updateRange(i, "start_date", e.target.value)}
               {...datePickerOnlyProps}
-              className="flex-1 px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm cursor-pointer"
+              className="flex-1 min-w-0 px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm cursor-pointer"
             />
             <span className="text-[var(--muted)] text-xs">to</span>
             <input
@@ -173,7 +160,7 @@ export default function LeaveRequestForm({
               value={r.end_date}
               onChange={(e) => updateRange(i, "end_date", e.target.value)}
               {...datePickerOnlyProps}
-              className="flex-1 px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm cursor-pointer"
+              className="flex-1 min-w-0 px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm cursor-pointer"
             />
             {ranges.length > 1 && (
               <button
@@ -190,6 +177,19 @@ export default function LeaveRequestForm({
         <button type="button" onClick={addRange} className="text-xs font-bold text-[var(--accent-strong)] self-start">
           + Add another date range
         </button>
+      </div>
+
+      <div className="col-span-2">
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+          Reason {requireReason ? "" : "(optional)"}
+        </label>
+        <input
+          type="text"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Brief note"
+          className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+        />
       </div>
 
       {selectedConfig?.behavior === "vacation_conflict" && conflict && (

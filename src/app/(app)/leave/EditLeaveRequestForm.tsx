@@ -122,46 +122,46 @@ export default function EditLeaveRequestForm({
             ))}
           </select>
         </div>
-        <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">
-            Reason {requireReason ? "" : "(optional)"}
-          </label>
-          <input
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="w-full px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm"
-          />
+        <div className="flex flex-col gap-1.5">
+          {ranges.map((r, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                type="date"
+                value={r.start_date}
+                onChange={(e) => updateRange(i, "start_date", e.target.value)}
+                {...datePickerOnlyProps}
+                className="flex-1 min-w-0 px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm cursor-pointer"
+              />
+              <span className="text-[var(--muted)] text-xs">to</span>
+              <input
+                type="date"
+                value={r.end_date}
+                onChange={(e) => updateRange(i, "end_date", e.target.value)}
+                {...datePickerOnlyProps}
+                className="flex-1 min-w-0 px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm cursor-pointer"
+              />
+              {ranges.length > 1 && (
+                <button type="button" onClick={() => removeRange(i)} aria-label="Remove date range" className="text-[var(--muted)] text-lg leading-none px-1">
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={addRange} className="text-xs font-bold text-[var(--accent-strong)] self-start">
+            + Add another date range
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        {ranges.map((r, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <input
-              type="date"
-              value={r.start_date}
-              onChange={(e) => updateRange(i, "start_date", e.target.value)}
-              {...datePickerOnlyProps}
-              className="px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm cursor-pointer"
-            />
-            <span className="text-[var(--muted)] text-xs">to</span>
-            <input
-              type="date"
-              value={r.end_date}
-              onChange={(e) => updateRange(i, "end_date", e.target.value)}
-              {...datePickerOnlyProps}
-              className="px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm cursor-pointer"
-            />
-            {ranges.length > 1 && (
-              <button type="button" onClick={() => removeRange(i)} aria-label="Remove date range" className="text-[var(--muted)] text-lg leading-none px-1">
-                ×
-              </button>
-            )}
-          </div>
-        ))}
-        <button type="button" onClick={addRange} className="text-xs font-bold text-[var(--accent-strong)] self-start">
-          + Add another date range
-        </button>
+      <div>
+        <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">
+          Reason {requireReason ? "" : "(optional)"}
+        </label>
+        <input
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="w-full px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm"
+        />
       </div>
 
       {selectedConfig?.behavior === "vacation_conflict" && conflict && (
