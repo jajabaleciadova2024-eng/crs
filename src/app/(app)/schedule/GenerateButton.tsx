@@ -111,18 +111,28 @@ export default function GenerateButton({
     const immune_placements = immuneMembers.map((m) => ({ associate_id: m.id, workstation_id: immunePlacements[m.id] }));
 
     startTransition(async () => {
-      const res = await fetch("/api/schedule/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quotas, immune_placements }),
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        setError(body.error ?? "Couldn't generate the schedule.");
-        return;
+      // Wrapped in try/catch: an unparseable response (e.g. a raw crash
+      // page instead of JSON) or a network failure would otherwise throw
+      // inside this async callback with nothing to catch it — the button
+      // would just silently do nothing, no error shown, no schedule
+      // created, indistinguishable from the request never having been
+      // sent at all.
+      try {
+        const res = await fetch("/api/schedule/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ quotas, immune_placements }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(body.error ?? `Couldn't generate the schedule (server responded ${res.status}).`);
+          return;
+        }
+        setOpen(false);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? `Couldn't reach the server: ${err.message}` : "Couldn't reach the server.");
       }
-      setOpen(false);
-      router.refresh();
     });
   }
 

@@ -34,18 +34,22 @@ export default function ReassignForm({
   function handleSave() {
     setError(null);
     startTransition(async () => {
-      const res = await fetch("/api/schedule/reassign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignment_id: assignmentId, associate_id: selected }),
-      });
-      if (!res.ok) {
+      try {
+        const res = await fetch("/api/schedule/reassign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ assignment_id: assignmentId, associate_id: selected }),
+        });
         const body = await res.json().catch(() => ({}));
-        setError(body.error ?? "Couldn't reassign that station.");
-        return;
+        if (!res.ok) {
+          setError(body.error ?? `Couldn't reassign that station (server responded ${res.status}).`);
+          return;
+        }
+        setOpen(false);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? `Couldn't reach the server: ${err.message}` : "Couldn't reach the server.");
       }
-      setOpen(false);
-      router.refresh();
     });
   }
 

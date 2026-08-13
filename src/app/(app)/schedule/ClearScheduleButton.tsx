@@ -13,18 +13,22 @@ export default function ClearScheduleButton({ scheduleWeekId, weekStart }: { sch
   function clear() {
     setError(null);
     startTransition(async () => {
-      const res = await fetch("/api/schedule/clear", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schedule_week_id: scheduleWeekId }),
-      });
-      if (!res.ok) {
+      try {
+        const res = await fetch("/api/schedule/clear", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ schedule_week_id: scheduleWeekId }),
+        });
         const body = await res.json().catch(() => ({}));
-        setError(body.error ?? "Couldn't clear the schedule.");
-        return;
+        if (!res.ok) {
+          setError(body.error ?? `Couldn't clear the schedule (server responded ${res.status}).`);
+          return;
+        }
+        setConfirming(false);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? `Couldn't reach the server: ${err.message}` : "Couldn't reach the server.");
       }
-      setConfirming(false);
-      router.refresh();
     });
   }
 

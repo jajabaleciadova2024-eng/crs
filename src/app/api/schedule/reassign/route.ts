@@ -12,31 +12,39 @@ import { canManageOperations } from "@/lib/auth";
 // cached "This week's assignments" panel showing whoever used to be
 // there.
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+    }
+
+    const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    if (profileError) {
+      return NextResponse.json({ error: `Couldn't load your profile: ${profileError.message}` }, { status: 500 });
+    }
+    if (!profile || !canManageOperations(profile.role)) {
+      return NextResponse.json({ error: "Only the Team Leader can reassign a station." }, { status: 403 });
+    }
+
+    const { assignment_id, associate_id } = await request.json();
+    if (!assignment_id || !associate_id) {
+      return NextResponse.json({ error: "Missing assignment_id or associate_id." }, { status: 400 });
+    }
+
+    const { error } = await supabase.from("assignments").update({ associate_id }).eq("id", assignment_id);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    revalidatePath("/");
+    revalidatePath("/schedule");
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error.";
+    return NextResponse.json({ error: `Unexpected error while reassigning: ${message}` }, { status: 500 });
   }
-
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (!profile || !canManageOperations(profile.role)) {
-    return NextResponse.json({ error: "Only the Team Leader can reassign a station." }, { status: 403 });
-  }
-
-  const { assignment_id, associate_id } = await request.json();
-  if (!assignment_id || !associate_id) {
-    return NextResponse.json({ error: "Missing assignment_id or associate_id." }, { status: 400 });
-  }
-
-  const { error } = await supabase.from("assignments").update({ associate_id }).eq("id", assignment_id);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  revalidatePath("/");
-  revalidatePath("/schedule");
-
-  return NextResponse.json({ ok: true });
 }
