@@ -16,9 +16,15 @@ export default function SignOutButton() {
   return (
     <button
       onClick={handleSignOut}
-      className="text-xs font-semibold text-[var(--muted)] hover:text-[var(--ink)] text-left"
+      title="Sign out"
+      aria-label="Sign out"
+      className="p-1.5 -mr-1 rounded-md text-[var(--muted)] hover:text-[var(--bad)] hover:bg-[var(--bad-soft)] shrink-0"
     >
-      Sign out
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <path d="M16 17l5-5-5-5" />
+        <path d="M21 12H9" />
+      </svg>
     </button>
   );
 }

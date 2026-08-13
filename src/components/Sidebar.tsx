@@ -1,43 +1,135 @@
-import Link from "next/link";
+import type { ReactNode } from "react";
 import type { AppRole, Profile } from "@/lib/database.types";
 import { ROLE_LABEL } from "@/lib/auth";
 import { formatFullName } from "@/lib/format";
 import SignOutButton from "@/components/SignOutButton";
 import PreviewRoleSwitcher from "@/components/PreviewRoleSwitcher";
+import NavLink from "@/components/NavLink";
 
-type NavItem = { href: string; label: string; roles?: Profile["role"][]; badgeKey?: "accessRequests" | "pendingLeave" };
+type NavItem = {
+  href: string;
+  label: string;
+  roles?: Profile["role"][];
+  badgeKey?: "accessRequests" | "pendingLeave";
+  icon: ReactNode;
+};
 
-const MAIN_NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Dashboard" },
-  { href: "/schedule", label: "Weekly Schedule" },
-  { href: "/leave", label: "Leave Requests", badgeKey: "pendingLeave" },
-  { href: "/team", label: "Team & Roles", roles: ["team_leader"] },
-  { href: "/access-requests", label: "Access Requests", roles: ["team_leader"], badgeKey: "accessRequests" },
-  { href: "/workstations", label: "Workstations", roles: ["team_leader"] },
-];
-
-// Settings + User Guide live at the bottom of the sidebar, just above the
-// signed-in user row, separate from the main app navigation above.
-const BOTTOM_NAV_ITEMS: NavItem[] = [
-  { href: "/settings", label: "Settings" },
-  { href: "/guide", label: "User Guide" },
-];
-
-function NavLink({ item, badgeCount }: { item: NavItem; badgeCount: number }) {
+// Small stroke-icon helper — self-contained (no icon library), consistent
+// 18px/1.8-stroke look across every nav item.
+function Icon({ children }: { children: ReactNode }) {
   return (
-    <Link
-      href={item.href}
-      className="px-3 py-2 rounded-md text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--ink)] flex items-center justify-between transition-colors"
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
     >
-      {item.label}
-      {badgeCount > 0 && (
-        <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold" style={{ boxShadow: "var(--shadow-xs)" }}>
-          {badgeCount}
-        </span>
-      )}
-    </Link>
+      {children}
+    </svg>
   );
 }
+
+// Single ordered nav list — Settings and User Guide used to live in a
+// visually separate bottom section; they're full nav items now, same as
+// everything else. Order is: day-to-day operational pages first, Team
+// Leader admin pages next, account/help last.
+const NAV_ITEMS: NavItem[] = [
+  {
+    href: "/",
+    label: "Dashboard",
+    icon: (
+      <Icon>
+        <path d="M3 11.5 12 4l9 7.5" />
+        <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
+      </Icon>
+    ),
+  },
+  {
+    href: "/schedule",
+    label: "Weekly Schedule",
+    icon: (
+      <Icon>
+        <rect x="3.5" y="5" width="17" height="16" rx="2" />
+        <path d="M3.5 9.5h17" />
+        <path d="M8 3v4M16 3v4" />
+      </Icon>
+    ),
+  },
+  {
+    href: "/leave",
+    label: "Leave Requests",
+    badgeKey: "pendingLeave",
+    icon: (
+      <Icon>
+        <rect x="5" y="4" width="14" height="17" rx="2" />
+        <path d="M9 3.5h6a1 1 0 0 1 1 1V6H8V4.5a1 1 0 0 1 1-1Z" />
+        <path d="M8.5 12h7M8.5 15.5h5" />
+      </Icon>
+    ),
+  },
+  {
+    href: "/team",
+    label: "Team & Roles",
+    roles: ["team_leader"],
+    icon: (
+      <Icon>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+        <circle cx="17" cy="8.5" r="2.3" />
+        <path d="M15.6 12.2c2.6.3 4.6 2.3 4.9 5" />
+      </Icon>
+    ),
+  },
+  {
+    href: "/access-requests",
+    label: "Access Requests",
+    roles: ["team_leader"],
+    badgeKey: "accessRequests",
+    icon: (
+      <Icon>
+        <circle cx="9" cy="8" r="3.2" />
+        <path d="M3 20a6 6 0 0 1 12 0" />
+        <path d="M17 8v6M20 11h-6" />
+      </Icon>
+    ),
+  },
+  {
+    href: "/workstations",
+    label: "Workstations",
+    roles: ["team_leader"],
+    icon: (
+      <Icon>
+        <rect x="3.5" y="4.5" width="17" height="11" rx="1.5" />
+        <path d="M9 20h6M12 15.5V20" />
+      </Icon>
+    ),
+  },
+  {
+    href: "/settings",
+    label: "Settings",
+    icon: (
+      <Icon>
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 13.5a7.7 7.7 0 0 0 0-3l1.9-1.4-2-3.4-2.2.8a7.7 7.7 0 0 0-2.6-1.5L16 2.5h-8l-.5 2.5a7.7 7.7 0 0 0-2.6 1.5l-2.2-.8-2 3.4L2.6 10.5a7.7 7.7 0 0 0 0 3l-1.9 1.4 2 3.4 2.2-.8a7.7 7.7 0 0 0 2.6 1.5l.5 2.5h4l.5-2.5a7.7 7.7 0 0 0 2.6-1.5l2.2.8 2-3.4Z" />
+      </Icon>
+    ),
+  },
+  {
+    href: "/guide",
+    label: "User Guide",
+    icon: (
+      <Icon>
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 0 4 21.5Z" />
+        <path d="M4 5.5v14A2.5 2.5 0 0 1 6.5 17H19" />
+      </Icon>
+    ),
+  },
+];
 
 export default function Sidebar({
   profile,
@@ -50,34 +142,39 @@ export default function Sidebar({
   pendingLeaveRequests?: number;
   realRole?: AppRole;
 }) {
+  const initials = `${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase();
+
   return (
-    <aside className="border-r border-[var(--line)] px-4 py-6 flex flex-col gap-6 h-full w-[220px] overflow-y-auto shrink-0 bg-[var(--paper)]">
-      <div>
-        <div className="font-serif text-[18px] font-bold text-[var(--ink)] tracking-tight">CRS Naga</div>
-        <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] mt-0.5">
-          Field Operations
+    <aside className="px-3 py-6 flex flex-col gap-6 h-full w-full overflow-y-auto overflow-x-hidden shrink-0 bg-[var(--paper)]">
+      <div className="px-1 flex items-center gap-2 group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:px-0">
+        <span className="hidden group-data-[collapsed=true]/sidebar:flex w-8 h-8 rounded-md bg-[var(--accent)] text-white items-center justify-center font-serif font-bold text-sm shrink-0">
+          CN
         </span>
+        <div className="group-data-[collapsed=true]/sidebar:hidden">
+          <div className="font-serif text-[18px] font-bold text-[var(--ink)] tracking-tight leading-tight">CRS Naga</div>
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] mt-0.5">
+            Field Operations
+          </span>
+        </div>
       </div>
 
       <nav className="flex flex-col gap-0.5">
-        {MAIN_NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile.role)).map((item) => {
+        {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile.role)).map((item) => {
           const badgeCount =
             item.badgeKey === "accessRequests" ? pendingAccessRequests : item.badgeKey === "pendingLeave" ? pendingLeaveRequests : 0;
-          return <NavLink key={item.href} item={item} badgeCount={badgeCount} />;
+          return <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} badgeCount={badgeCount} />;
         })}
       </nav>
 
       <div className="mt-auto flex flex-col gap-3">
-        {realRole === "team_leader" && <PreviewRoleSwitcher currentRole={profile.role} />}
-
-        <nav className="flex flex-col gap-0.5">
-          {BOTTOM_NAV_ITEMS.map((item) => (
-            <NavLink key={item.href} item={item} badgeCount={0} />
-          ))}
-        </nav>
+        {realRole === "team_leader" && (
+          <div className="group-data-[collapsed=true]/sidebar:hidden">
+            <PreviewRoleSwitcher currentRole={profile.role} />
+          </div>
+        )}
       </div>
 
-      <div className="border-t border-[var(--line)] pt-4 flex items-center gap-2.5">
+      <div className="border-t border-[var(--line)] pt-4 flex items-center gap-2.5 group-data-[collapsed=true]/sidebar:justify-center">
         {profile.avatar_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -87,16 +184,18 @@ export default function Sidebar({
           />
         ) : (
           <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-[11px] font-bold shrink-0 ring-1 ring-[var(--accent-soft)]">
-            {`${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase()}
+            {initials}
           </span>
         )}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 group-data-[collapsed=true]/sidebar:hidden">
           <div className="text-[12.5px] font-semibold text-[var(--ink)] truncate">
             {formatFullName(profile.first_name, profile.last_name)}
           </div>
           <div className="text-[10.5px] text-[var(--muted)]">{ROLE_LABEL[profile.role]}</div>
         </div>
-        <SignOutButton />
+        <div className="group-data-[collapsed=true]/sidebar:hidden">
+          <SignOutButton />
+        </div>
       </div>
     </aside>
   );
