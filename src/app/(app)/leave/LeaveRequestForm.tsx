@@ -199,8 +199,9 @@ export default function LeaveRequestForm({
       {selectedConfig?.behavior === "auto_approve_document" && (
         <div className="col-span-2 flex flex-col gap-2">
           <p className="text-sm text-[var(--muted)] bg-[var(--accent-soft)] rounded px-3 py-2 m-0">
-            {selectedConfig.label} requests typically don&apos;t need review. Attach your supporting document (e.g.
-            medical certificate) now, or upload it later from the queue below — either works.
+            {selectedConfig.label} requests are Pre-approved, so you can file now even without the document in hand.
+            But the Team Leader can&apos;t actually approve it until a supporting document (e.g. medical certificate)
+            is uploaded — attach it now, or later from the queue below.
           </p>
           <div>
             <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">

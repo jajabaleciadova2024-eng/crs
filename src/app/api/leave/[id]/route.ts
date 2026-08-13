@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { notifyLeaveStatusChange } from "@/lib/notify";
+import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
 
 // Approves/rejects a leave request as the signed-in Team Leader (update
 // respects the "leave_requests_update_team_leader_not_self" RLS policy — no
@@ -25,6 +26,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { status } = body ?? {};
   if (status !== "approved" && status !== "rejected") {
     return NextResponse.json({ error: "Status must be 'approved' or 'rejected'." }, { status: 400 });
+  }
+
+  // Pre-approved types (Sick/Bereavement) can be filed before the document
+  // is in hand, but can't actually be approved until it's uploaded —
+  // enforced here too, not just by disabling the button client-side, since
+  // this route can be hit directly.
+  if (status === "approved") {
+    const { data: leaveRequest } = await supabase.from("leave_requests").select("leave_type, document_path").eq("id", id).single();
+    if (leaveRequest) {
+      const { data: orgSettings } = await supabase.from("org_settings").select("leave_type_configs").limit(1).maybeSingle();
+      const configs: LeaveTypeConfig[] = orgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
+      const typeConfig = findLeaveTypeConfig(configs, leaveRequest.leave_type);
+      if (typeConfig?.behavior === "auto_approve_document" && !leaveRequest.document_path) {
+        return NextResponse.json({ error: "This request needs a supporting document uploaded before it can be approved." }, { status: 400 });
+      }
+    }
   }
 
   const { error } = await supabase

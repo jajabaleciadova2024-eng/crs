@@ -99,7 +99,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "Do Sick/Bereavement requests need approval?",
-        a: "They still show as Pending so the Team Leader can see them, but they're flagged \"Auto-approved type\" — no action is expected. Upload your supporting document (medical certificate, proof of the event, etc.) from the Document column on your row, any time after filing. Documents are private — only you and the Team Leader can view or download them, and they're auto-deleted after a while to keep storage tidy (ask your Team Leader if you need it back after that).",
+        a: "Yes. They're flagged \"Pre-approved\" and can be filed before you have the document in hand, but the Team Leader's Approve button stays disabled until you've uploaded a supporting document (medical certificate, proof of the event, etc.) from the Document column on your row — approve without one just isn't possible. Documents are private — only you and the Team Leader can view or download them, and they're auto-deleted after a while to keep storage tidy (ask your Team Leader if you need it back after that).",
       },
       {
         q: "Will I be notified when something changes?",
@@ -161,7 +161,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "How do I add or change a leave type?",
-        a: "Settings → Organization settings → Leave types. Add a type, rename any of them, or change a type's \"behavior\": Standard review (default), Vacation-style (1 person/day conflict checking), or Auto-approved (needs a document). Renaming an existing type keeps its history intact — only newly-added types get a fresh key.",
+        a: "Settings → Organization settings → Leave types. Add a type, rename any of them, or change a type's \"behavior\": Standard review (default), Vacation-style (1 person/day conflict checking), or Pre-approved (can be filed without a document, but approval is held until one is uploaded). Renaming an existing type keeps its history intact — only newly-added types get a fresh key.",
         roles: ["team_leader"],
       },
       {

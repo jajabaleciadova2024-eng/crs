@@ -2,8 +2,13 @@
 // editable by the Team Leader from Settings. Each type has a "behavior"
 // that drives special handling elsewhere in the app:
 //   - "review": standard flow, Team Leader approves/rejects manually.
-//   - "auto_approve_document": e.g. Sick/Bereavement — no review needed,
-//     but the associate should upload supporting documentation.
+//   - "auto_approve_document": e.g. Sick/Bereavement — labeled "Pre-approved"
+//     since the associate can file it before they have the document in
+//     hand, but the Team Leader still has to click Approve, and can't do so
+//     until a supporting document has been uploaded (enforced both client-
+//     side — the Approve button stays disabled — and server-side in the
+//     PATCH /api/leave/[id] route). If the document never shows up, the
+//     Team Leader rejects it instead.
 //   - "vacation_conflict": e.g. Vacation — org-wide "1 person on leave per
 //     day" conflict checking against everyone else's requests of this
 //     behavior, with a soft warning (not a hard block) if a date collides.
@@ -26,7 +31,7 @@ export const DEFAULT_LEAVE_TYPE_CONFIGS: LeaveTypeConfig[] = [
 
 export const BEHAVIOR_LABEL: Record<LeaveTypeBehavior, string> = {
   review: "Standard review",
-  auto_approve_document: "Auto-approved (needs document)",
+  auto_approve_document: "Pre-approved (approval held until document uploaded)",
   vacation_conflict: "Vacation-style (1 person/day, conflict check)",
 };
 

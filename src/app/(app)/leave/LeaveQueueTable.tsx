@@ -106,6 +106,10 @@ export default function LeaveQueueTable({
           const typeConfig = leaveTypeConfigs.find((c) => c.key === r.leave_type);
           const isOwn = r.associate_id === viewerId;
           const isEditing = editingId === r.id;
+          // Pre-approved types (Sick/Bereavement) can be filed before the
+          // document is in hand, but can't actually be approved until it's
+          // uploaded and the Team Leader has had a chance to check it.
+          const needsDocument = typeConfig?.behavior === "auto_approve_document" && !r.document_path;
 
           return (
             <Fragment key={r.id}>
@@ -121,7 +125,7 @@ export default function LeaveQueueTable({
                 <td className="py-2.5 border-b border-[var(--line)]">
                   <div className="flex items-center gap-1.5">
                     <span className="capitalize">{typeConfig?.label ?? r.leave_type}</span>
-                    {typeConfig?.behavior === "auto_approve_document" && <Pill tone="accent">Auto-approved type</Pill>}
+                    {typeConfig?.behavior === "auto_approve_document" && <Pill tone="accent">Pre-approved</Pill>}
                     {r.flagged_conflict && <Pill tone="warn">Possible conflict</Pill>}
                   </div>
                 </td>
@@ -157,13 +161,22 @@ export default function LeaveQueueTable({
                     </div>
                   )}
                   {!isOwn && canManage && r.status === "pending" && (
-                    <div className="flex gap-1.5">
-                      <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => decide(r.id, "approved")}>
-                        Approve
-                      </Button>
-                      <Button style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => decide(r.id, "rejected")}>
-                        Reject
-                      </Button>
+                    <div className="flex flex-col gap-1 items-start">
+                      <div className="flex gap-1.5">
+                        <Button
+                          variant="primary"
+                          style={{ padding: "5px 10px" }}
+                          disabled={pendingId === r.id || needsDocument}
+                          title={needsDocument ? "Waiting on a supporting document before this can be approved." : undefined}
+                          onClick={() => decide(r.id, "approved")}
+                        >
+                          Approve
+                        </Button>
+                        <Button style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => decide(r.id, "rejected")}>
+                          Reject
+                        </Button>
+                      </div>
+                      {needsDocument && <span className="text-[10.5px] text-[var(--muted)]">Awaiting document</span>}
                     </div>
                   )}
                 </td>
