@@ -21,7 +21,6 @@ export default async function WorkstationsPage() {
             <thead>
               <tr>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Description</th>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Headcount</th>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
                 <th className="py-2.5 border-b border-[var(--line)]" />
@@ -32,7 +31,7 @@ export default async function WorkstationsPage() {
                 workstations.map((w) => <WorkstationRow key={w.id} workstation={w} />)
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-4 text-[var(--muted)]">
+                  <td colSpan={4} className="py-4 text-[var(--muted)]">
                     No workstations yet.
                   </td>
                 </tr>

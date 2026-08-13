@@ -8,7 +8,6 @@ import { Button } from "@/components/ui";
 export default function AddWorkstationForm() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [headcount, setHeadcount] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -27,7 +26,6 @@ export default function AddWorkstationForm() {
     const supabase = createClient();
     const { error: insertError } = await supabase.from("workstations").insert({
       name: name.trim(),
-      description: description.trim() || null,
       headcount,
     });
     setSubmitting(false);
@@ -38,7 +36,6 @@ export default function AddWorkstationForm() {
     }
 
     setName("");
-    setDescription("");
     setHeadcount(1);
     setOpen(false);
     router.refresh();
@@ -62,14 +59,6 @@ export default function AddWorkstationForm() {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Description (optional)</label>
-            <input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
               className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
             />
           </div>

@@ -9,7 +9,6 @@ import type { Workstation } from "@/lib/database.types";
 export default function WorkstationRow({ workstation }: { workstation: Workstation }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(workstation.name);
-  const [description, setDescription] = useState(workstation.description ?? "");
   const [headcount, setHeadcount] = useState(workstation.headcount);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -17,7 +16,7 @@ export default function WorkstationRow({ workstation }: { workstation: Workstati
   function save() {
     startTransition(async () => {
       const supabase = createClient();
-      await supabase.from("workstations").update({ name, description: description || null, headcount }).eq("id", workstation.id);
+      await supabase.from("workstations").update({ name, headcount }).eq("id", workstation.id);
       setEditing(false);
       router.refresh();
     });
@@ -42,17 +41,6 @@ export default function WorkstationRow({ workstation }: { workstation: Workstati
           />
         ) : (
           workstation.name
-        )}
-      </td>
-      <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
-        {editing ? (
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="text-sm border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)] w-full"
-          />
-        ) : (
-          workstation.description ?? "—"
         )}
       </td>
       <td className="py-2.5 border-b border-[var(--line)]">
