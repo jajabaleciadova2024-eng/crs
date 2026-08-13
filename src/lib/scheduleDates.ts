@@ -42,3 +42,28 @@ export function startOfWorkWeek(dateStr: string = todayInManila()): string {
 export function endOfWorkWeek(weekStartDateStr: string): string {
   return addDays(weekStartDateStr, 4);
 }
+
+// The Monday (00:00 Manila) that starts the leave Queue's current display
+// window: decided (approved/rejected) requests stay visible in the Queue
+// through the weekend and only roll over into History once Monday 8am
+// Manila time has passed. Before 8am on a Monday, last week's decisions
+// haven't rolled over yet, so the boundary is still the previous Monday.
+export function currentQueueWeekStart(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: MANILA_TZ,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const dateStr = `${get("year")}-${get("month")}-${get("day")}`;
+  const hour = Number(get("hour"));
+
+  const weekStart = startOfWorkWeek(dateStr);
+  if (dateStr === weekStart && hour < 8) {
+    return addDays(weekStart, -7);
+  }
+  return weekStart;
+}

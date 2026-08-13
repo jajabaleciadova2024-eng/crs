@@ -9,17 +9,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   let pendingAccessRequests = 0;
   let pendingLeaveRequests = 0;
-  // Both are Team-Leader-only actionable counts — only the Team Leader can
-  // approve access requests or leave requests, so only they get the badge.
+  const supabase = await createClient();
+
+  // Access requests are Team-Leader-only actionable — only they get that badge.
   if (canManageOperations(profile.role)) {
-    const supabase = await createClient();
     const [{ count: accessCount }, { count: leaveCount }] = await Promise.all([
       supabase.from("access_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
     ]);
     pendingAccessRequests = accessCount ?? 0;
-    pendingLeaveRequests = leaveCount ?? 0;
+    pendingLeaveRequests += leaveCount ?? 0;
   }
+
+  // Everyone (including the Team Leader, for their own filed requests) also
+  // gets a badge for their own leave requests the TL just decided on, which
+  // they haven't opened the Leave Requests page to see yet.
+  const { count: unseenDecisions } = await supabase
+    .from("leave_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("associate_id", profile.id)
+    .eq("seen_by_associate", false);
+  pendingLeaveRequests += unseenDecisions ?? 0;
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">

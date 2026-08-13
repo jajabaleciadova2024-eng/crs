@@ -29,7 +29,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { error } = await supabase
     .from("leave_requests")
-    .update({ status, reviewed_by: user.id, reviewed_at: new Date().toISOString() })
+    .update({ status, reviewed_by: user.id, reviewed_at: new Date().toISOString(), seen_by_associate: false })
     .eq("id", id);
 
   if (error) {

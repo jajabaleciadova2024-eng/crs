@@ -4,12 +4,13 @@ import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pill, Avatar, Button } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
+import { formatLeaveRanges, type LeaveDateRange } from "@/lib/leaveFormat";
 import EditLeaveRequestForm from "./EditLeaveRequestForm";
 import DocumentUpload, { DocumentLinks } from "./DocumentUpload";
 import type { LeaveStatus } from "@/lib/database.types";
 import type { LeaveTypeConfig } from "@/lib/leaveTypes";
 
-type Range = { start_date: string; end_date: string };
+type Range = LeaveDateRange;
 
 export type QueueRequest = {
   id: string;
@@ -30,14 +31,6 @@ const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   approved: "good",
   rejected: "bad",
 };
-
-// Lists every date/range in full — a Team Leader approving leave needs the
-// exact dates, not a truncated "+N more" summary.
-function formatRanges(primary: Range, extra: Range[]) {
-  const all = [primary, ...extra];
-  const label = (r: Range) => (r.start_date === r.end_date ? r.start_date : `${r.start_date} – ${r.end_date}`);
-  return all.map(label).join(", ");
-}
 
 export default function LeaveQueueTable({
   requests,
@@ -132,7 +125,7 @@ export default function LeaveQueueTable({
                     {r.flagged_conflict && <Pill tone="warn">Possible conflict</Pill>}
                   </div>
                 </td>
-                <td className="py-2.5 border-b border-[var(--line)]">{formatRanges({ start_date: r.start_date, end_date: r.end_date }, r.leave_request_ranges)}</td>
+                <td className="py-2.5 border-b border-[var(--line)]">{formatLeaveRanges({ start_date: r.start_date, end_date: r.end_date }, r.leave_request_ranges)}</td>
                 <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.reason ?? "—"}</td>
                 <td className="py-2.5 border-b border-[var(--line)]">
                   <Pill tone={STATUS_TONE[r.status]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>

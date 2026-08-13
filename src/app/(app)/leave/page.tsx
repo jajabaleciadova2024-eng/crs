@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireProfile, isApprover, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { currentQueueWeekStart } from "@/lib/scheduleDates";
 import { Panel } from "@/components/ui";
 import LeaveRequestForm from "./LeaveRequestForm";
 import LeaveQueueTable from "./LeaveQueueTable";
@@ -14,6 +16,13 @@ export default async function LeavePage() {
   const canViewAll = isApprover(profile.role);
   const canManage = canManageOperations(profile.role);
 
+  // The Queue mirrors History in every way except its time window: pending
+  // requests always show here, but decided (approved/rejected) ones only
+  // stay in the Queue through the current week -- they roll over into
+  // History once Monday 8am (Manila) has passed. This keeps the Queue from
+  // filling up with old decided requests while still giving everyone a few
+  // days to see how a recent request was decided.
+  const weekStart = currentQueueWeekStart();
   const listQuery = supabase
     .from("leave_requests")
     // leave_requests has two FKs to profiles (associate_id, reviewed_by) —
@@ -21,6 +30,7 @@ export default async function LeavePage() {
     // relationship was found" and the whole query returns null (this was
     // silently emptying the queue for every account).
     .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name), leave_request_ranges(start_date, end_date)")
+    .or(`status.eq.pending,reviewed_at.gte.${weekStart}`)
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
 
@@ -32,6 +42,15 @@ export default async function LeavePage() {
 
   const pendingCount = requests?.filter((r) => r.status === "pending").length ?? 0;
 
+  // Viewing this page acknowledges any of the viewer's own requests that
+  // have since been decided, clearing their sidebar badge -- unconditional
+  // (not scoped to what's currently in the Queue window) since a decided
+  // request can age out of the Queue into History before the owner checks.
+  // Run via the admin client since RLS only lets an owner update their OWN
+  // request while it's still pending, not after it's been decided.
+  const admin = createAdminClient();
+  await admin.from("leave_requests").update({ seen_by_associate: true }).eq("associate_id", profile.id).eq("seen_by_associate", false);
+
   return (
     <>
       <header className="mb-6">
@@ -42,11 +61,9 @@ export default async function LeavePage() {
               {canViewAll ? "Track requests from your team" : "File a request and track your leave history"}
             </p>
           </div>
-          {profile.role === "team_leader" && (
-            <Link href="/leave/history" className="text-xs font-bold text-[var(--accent-strong)]">
-              View history →
-            </Link>
-          )}
+          <Link href="/leave/history" className="text-xs font-bold text-[var(--accent-strong)]">
+            View history →
+          </Link>
         </div>
       </header>
 
