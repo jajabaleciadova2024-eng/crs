@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui";
 
 export default function DocumentUpload({ requestId, hasDocument }: { requestId: string; hasDocument: boolean }) {
   const [uploading, setUploading] = useState(false);
@@ -36,14 +37,15 @@ export default function DocumentUpload({ requestId, hasDocument }: { requestId: 
   return (
     <div className="flex flex-col gap-1 items-start">
       <input ref={inputRef} type="file" onChange={handleFile} disabled={uploading} className="hidden" />
-      <button
+      <Button
         type="button"
+        variant="primary"
+        style={{ padding: "5px 10px" }}
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        className="text-xs font-bold text-[var(--accent-strong)] disabled:opacity-50"
       >
         {uploading ? "Uploading…" : "Upload document"}
-      </button>
+      </Button>
       {error && <span className="text-[11px] text-[var(--bad)]">{error}</span>}
     </div>
   );
