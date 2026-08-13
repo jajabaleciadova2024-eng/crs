@@ -3,7 +3,7 @@ import { requireProfile, isApprover, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { currentQueueWeekStart } from "@/lib/scheduleDates";
-import { Panel } from "@/components/ui";
+import { Panel, PageHeader } from "@/components/ui";
 import LeaveRequestForm from "./LeaveRequestForm";
 import LeaveQueueTable from "./LeaveQueueTable";
 import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
@@ -70,18 +70,16 @@ export default async function LeavePage() {
 
   return (
     <>
-      <header className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-serif text-2xl m-0 mb-1">Leave Requests</h1>
-            <p className="text-sm text-[var(--muted)] m-0">
-              {canFile && canViewAll
-                ? "File your own request, and track requests from the whole team"
-                : canFile
-                  ? "File a request and track your leave history"
-                  : "Track requests from your team"}
-            </p>
-          </div>
+      <PageHeader
+        title="Leave Requests"
+        subtitle={
+          canFile && canViewAll
+            ? "File your own request, and track requests from the whole team"
+            : canFile
+              ? "File a request and track your leave history"
+              : "Track requests from your team"
+        }
+        action={
           <div className="flex items-center gap-3">
             <Link href="/leave/calendar" className="text-xs font-bold text-[var(--accent-strong)]">
               View calendar →
@@ -90,8 +88,8 @@ export default async function LeavePage() {
               View history →
             </Link>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-4">
         {canFile && (

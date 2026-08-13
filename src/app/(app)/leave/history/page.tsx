@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireProfile, isApprover } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { currentQueueWeekStart } from "@/lib/scheduleDates";
-import { Panel, Pill } from "@/components/ui";
+import { Panel, Pill, PageHeader } from "@/components/ui";
 import { getPayPeriod } from "@/lib/payPeriod";
 import { formatLeaveRanges } from "@/lib/leaveFormat";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, type LeaveTypeConfig } from "@/lib/leaveTypes";
@@ -66,19 +66,15 @@ export default async function LeaveHistoryPage() {
 
   return (
     <>
-      <header className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-serif text-2xl m-0 mb-1">Leave History</h1>
-            <p className="text-sm text-[var(--muted)] m-0">
-              Decided leave, grouped by semi-monthly period (1st–15th, 16th–end of month) — rolls over from the Queue every Monday
-            </p>
-          </div>
+      <PageHeader
+        title="Leave History"
+        subtitle="Decided leave, grouped by semi-monthly period (1st–15th, 16th–end of month) — rolls over from the Queue every Monday"
+        action={
           <Link href="/leave" className="text-xs font-bold text-[var(--accent-strong)]">
             ← Back to Leave Requests
           </Link>
-        </div>
-      </header>
+        }
+      />
 
       {periods.size === 0 ? (
         <Panel title="No decided leave yet">

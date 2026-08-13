@@ -38,6 +38,7 @@ export interface Workstation {
   id: string;
   name: string;
   description: string | null;
+  headcount: number;
   is_active: boolean;
   created_at: string;
 }
@@ -155,8 +156,8 @@ export interface Database {
       };
       workstations: {
         Row: Workstation;
-        Insert: { name: string; description?: string | null; is_active?: boolean };
-        Update: { name?: string; description?: string | null; is_active?: boolean };
+        Insert: { name: string; description?: string | null; headcount?: number; is_active?: boolean };
+        Update: { name?: string; description?: string | null; headcount?: number; is_active?: boolean };
         Relationships: [];
       };
       schedule_weeks: {

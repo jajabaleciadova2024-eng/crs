@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { requireProfileWithPreview, ROLE_LABEL, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import Sidebar from "@/components/Sidebar";
@@ -50,7 +51,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           realRole={realRole}
         />
       </SidebarShell>
-      <main className="flex-1 min-w-0 px-4 md:px-10 py-5 md:py-8 pb-16 max-w-[1000px] w-full">
+      <main
+        className="flex-1 min-w-0 px-4 md:px-10 py-5 md:py-8 pb-16 max-w-[1000px] w-full"
+        // Sticky page headers (PageHeader in ui.tsx) sit right below the
+        // preview banner when it's showing — this offset gives them room
+        // to stack instead of overlapping once both are pinned. 0 when not
+        // previewing, so the header sticks flush at the very top as usual.
+        style={{ "--sticky-header-offset": previewing ? "44px" : "0px" } as CSSProperties}
+      >
         {previewing && <PreviewBanner label={ROLE_LABEL[profile.role]} />}
         {children}
       </main>

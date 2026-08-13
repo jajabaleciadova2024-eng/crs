@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel } from "@/components/ui";
+import { Panel, PageHeader } from "@/components/ui";
 import { getLeaveCalendarRequests } from "@/lib/leaveCalendarData";
 import { buildLeaveDayMap } from "@/lib/leaveCalendar";
 import { todayInManila } from "@/lib/scheduleDates";
@@ -26,17 +26,15 @@ export default async function LeaveCalendarPage() {
 
   return (
     <>
-      <header className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-serif text-2xl m-0 mb-1">Leave Calendar</h1>
-            <p className="text-sm text-[var(--muted)] m-0">Every pending or approved leave request, org-wide</p>
-          </div>
+      <PageHeader
+        title="Leave Calendar"
+        subtitle="Every pending or approved leave request, org-wide"
+        action={
           <Link href="/leave" className="text-xs font-bold text-[var(--accent-strong)]">
             ← Back to Leave Requests
           </Link>
-        </div>
-      </header>
+        }
+      />
 
       <Panel title="Calendar">
         <LeaveCalendar dayMap={dayMap} leaveTypeConfigs={leaveTypeConfigs} today={today} />

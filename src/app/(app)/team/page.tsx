@@ -1,6 +1,6 @@
 import { requireProfile, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel } from "@/components/ui";
+import { Panel, PageHeader } from "@/components/ui";
 import AddMemberForm from "./AddMemberForm";
 import MemberRow from "./MemberRow";
 
@@ -22,10 +22,7 @@ export default async function TeamPage() {
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="font-serif text-2xl m-0 mb-1">Team &amp; Roles</h1>
-        <p className="text-sm text-[var(--muted)] m-0">Add, remove, and assign roles for members — Team Leader only</p>
-      </header>
+      <PageHeader title="Team & Roles" subtitle="Add, remove, and assign roles for members — Team Leader only" />
 
       <Panel
         title="Roster"

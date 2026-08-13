@@ -1,5 +1,41 @@
 import type { ReactNode } from "react";
 
+// Sticky title bar used at the top of every page inside the app shell —
+// stays pinned to the viewport while the page's content scrolls under it,
+// same as the sidebar. `top` accounts for the mobile hamburger bar (which
+// is itself sticky at the very top on small screens, see SidebarShell) so
+// the two don't overlap; desktop has no such bar, so it sticks flush at 0.
+// Pass `children` instead of title/subtitle/action for a fully custom
+// header layout (e.g. the dashboard's profile-photo header) while still
+// getting the same sticky chrome.
+export function PageHeader({
+  title,
+  subtitle,
+  action,
+  children,
+}: {
+  title?: string;
+  subtitle?: ReactNode;
+  action?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <header
+      className="sticky top-[calc(52px+var(--sticky-header-offset,0px))] md:top-[var(--sticky-header-offset,0px)] z-20 -mx-4 md:-mx-10 px-4 md:px-10 py-4 md:py-5 mb-6 bg-[var(--paper)]/95 backdrop-blur-sm border-b border-[var(--line)]"
+    >
+      {children ?? (
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            {title && <h1 className="font-serif text-2xl m-0 mb-1">{title}</h1>}
+            {subtitle && <p className="text-sm text-[var(--muted)] m-0">{subtitle}</p>}
+          </div>
+          {action}
+        </div>
+      )}
+    </header>
+  );
+}
+
 export function Panel({
   title,
   hint,

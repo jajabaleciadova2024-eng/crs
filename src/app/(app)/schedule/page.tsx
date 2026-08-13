@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, Pill, Card } from "@/components/ui";
+import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import ReassignForm from "./ReassignForm";
 import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
@@ -32,7 +32,9 @@ export default async function SchedulePage() {
     canManage
       ? supabase.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
       : Promise.resolve({ data: [] }),
-    canManage ? supabase.from("workstations").select("id, name").eq("is_active", true).order("name") : Promise.resolve({ data: [] }),
+    canManage
+      ? supabase.from("workstations").select("id, name, headcount").eq("is_active", true).order("name")
+      : Promise.resolve({ data: [] }),
     // Headcount/tenure totals for the stats strip + "Generate" quota modal
     // — includes everyone active (Team Leader, OIC, associates) for the
     // headcount total, per request; tenure only meaningfully applies to
@@ -91,10 +93,10 @@ export default async function SchedulePage() {
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="font-serif text-2xl m-0 mb-1">Weekly Schedule</h1>
-        <p className="text-sm text-[var(--muted)] m-0">Monday–Friday (Philippine time), regenerated every week — station headcount is configurable when generating</p>
-      </header>
+      <PageHeader
+        title="Weekly Schedule"
+        subtitle="Monday–Friday (Philippine time), regenerated every week — station headcount is fixed on Workstations"
+      />
 
       <Panel
         title={`Week of ${weekStart} – ${weekEnd}`}

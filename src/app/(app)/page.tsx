@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, isApprover, ROLE_LABEL } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, Pill, Card } from "@/components/ui";
+import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek } from "@/lib/scheduleDates";
 import { toTitleCase, formatFullName } from "@/lib/format";
@@ -60,7 +60,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <header className="mb-8">
+      <PageHeader>
         <div className="flex items-center gap-5">
           <ProfilePhotoFrame
             firstName={profile.first_name}
@@ -76,7 +76,7 @@ export default async function DashboardPage() {
             </p>
           </div>
         </div>
-      </header>
+      </PageHeader>
 
       <div className={`grid grid-cols-2 ${profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-3"} gap-3 mb-8`}>
         <Card label="Stations manned" value={`${stationsManned} / ${totalStations}`} sub={week ? "This week's coverage" : "No schedule published yet"} />

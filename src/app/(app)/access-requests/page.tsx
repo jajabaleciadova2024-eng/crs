@@ -1,6 +1,6 @@
 import { requireProfile, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, Pill } from "@/components/ui";
+import { Panel, Pill, PageHeader } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
 import ReviewForm from "./ReviewForm";
 import type { AccessRequestStatus } from "@/lib/database.types";
@@ -23,12 +23,7 @@ export default async function AccessRequestsPage() {
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="font-serif text-2xl m-0 mb-1">Access Requests</h1>
-        <p className="text-sm text-[var(--muted)] m-0">
-          People who asked for an account from the sign-in page — Team Leader only
-        </p>
-      </header>
+      <PageHeader title="Access Requests" subtitle="People who asked for an account from the sign-in page — Team Leader only" />
 
       <Panel
         title="Pending"

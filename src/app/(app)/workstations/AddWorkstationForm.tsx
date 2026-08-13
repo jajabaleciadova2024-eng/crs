@@ -9,6 +9,7 @@ export default function AddWorkstationForm() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [headcount, setHeadcount] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function AddWorkstationForm() {
     const { error: insertError } = await supabase.from("workstations").insert({
       name: name.trim(),
       description: description.trim() || null,
+      headcount,
     });
     setSubmitting(false);
 
@@ -37,6 +39,7 @@ export default function AddWorkstationForm() {
 
     setName("");
     setDescription("");
+    setHeadcount(1);
     setOpen(false);
     router.refresh();
   }
@@ -69,6 +72,19 @@ export default function AddWorkstationForm() {
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
             />
+          </div>
+          <div>
+            <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Headcount</label>
+            <input
+              type="number"
+              min={1}
+              value={headcount}
+              onChange={(e) => setHeadcount(Math.max(1, Number(e.target.value)))}
+              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+            />
+            <p className="text-xs text-[var(--muted)] mt-1 m-0">
+              Fixed seats at this station — the &quot;Generate next week&quot; modal uses this as a guide, not an editable number.
+            </p>
           </div>
 
           {error && (

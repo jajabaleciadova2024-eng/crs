@@ -1,5 +1,5 @@
 import { requireProfile, canManageOperations } from "@/lib/auth";
-import { Panel } from "@/components/ui";
+import { Panel, PageHeader } from "@/components/ui";
 
 type Role = "team_leader" | "oic" | "associate";
 type GuideItem = { q: string; a: string; roles?: Role[] }; // omit roles = everyone
@@ -184,13 +184,15 @@ export default async function GuidePage() {
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="font-serif text-2xl m-0 mb-1">User Guide</h1>
-        <p className="text-sm text-[var(--muted)] m-0">
-          How to use CRS Naga — tailored to what {canManage ? "you can manage" : "you can do"} as {profile.first_name}
-          &apos;s role.
-        </p>
-      </header>
+      <PageHeader
+        title="User Guide"
+        subtitle={
+          <>
+            How to use CRS Naga — tailored to what {canManage ? "you can manage" : "you can do"} as {profile.first_name}
+            &apos;s role.
+          </>
+        }
+      />
 
       {visibleSections.map((section) => (
         <Panel key={section.title} title={section.title}>

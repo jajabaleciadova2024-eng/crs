@@ -2,11 +2,14 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Button, Pill } from "@/components/ui";
 
-type Workstation = { id: string; name: string };
+type Workstation = { id: string; name: string; headcount: number };
 type ImmuneMember = { id: string; name: string };
-type QuotaRow = { headcount: number; tenured: number; newHire: number };
+// Headcount is fixed per station (set on the Workstations page) — this
+// modal only lets the Team Leader decide how to split that fixed number
+// into Tenured vs. New Hire, not change the number itself.
+type QuotaRow = { tenured: number; newHire: number };
 
 export default function GenerateButton({
   workstations,
@@ -23,23 +26,23 @@ export default function GenerateButton({
 }) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<Record<string, QuotaRow>>(() =>
-    Object.fromEntries(workstations.map((w) => [w.id, { headcount: 1, tenured: 0, newHire: 0 }]))
+    Object.fromEntries(workstations.map((w) => [w.id, { tenured: 0, newHire: 0 }]))
   );
   const [immunePlacements, setImmunePlacements] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  const fixedHeadcount = useMemo(() => workstations.reduce((sum, w) => sum + w.headcount, 0), [workstations]);
+
   const totals = useMemo(() => {
-    let headcount = 0;
     let tenured = 0;
     let newHire = 0;
     for (const r of Object.values(rows)) {
-      headcount += r.headcount;
       tenured += r.tenured;
       newHire += r.newHire;
     }
-    return { headcount, tenured, newHire };
+    return { tenured, newHire };
   }, [rows]);
 
   const unplacedImmune = immuneMembers.filter((m) => !immunePlacements[m.id]);
@@ -57,7 +60,7 @@ export default function GenerateButton({
 
     const quotas = workstations.map((w) => ({
       workstation_id: w.id,
-      headcount: rows[w.id]?.headcount ?? 1,
+      headcount: w.headcount,
       tenured: rows[w.id]?.tenured ?? 0,
       newHire: rows[w.id]?.newHire ?? 0,
     }));
@@ -95,8 +98,8 @@ export default function GenerateButton({
             <div>
               <h2 className="font-serif text-xl text-[var(--ink)] m-0 mb-1">Plan next week&apos;s coverage</h2>
               <p className="text-sm text-[var(--muted)] m-0">
-                Set how many associates each station needs, and how many of those should be Tenured vs. New Hire.
-                OIC is included and eligible for seating too.
+                Headcount per station is fixed (set on Workstations) — just decide how many of each station&apos;s
+                seats should go to Tenured vs. New Hire. OIC is included and eligible for seating too.
               </p>
             </div>
 
@@ -142,47 +145,50 @@ export default function GenerateButton({
                   </tr>
                 </thead>
                 <tbody>
-                  {workstations.map((w) => (
-                    <tr key={w.id}>
-                      <td className="py-2 border-b border-[var(--line)]">{w.name}</td>
-                      <td className="py-2 border-b border-[var(--line)]">
-                        <input
-                          type="number"
-                          min={0}
-                          value={rows[w.id]?.headcount ?? 0}
-                          onChange={(e) => updateRow(w.id, "headcount", Number(e.target.value))}
-                          className="w-16 text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)]"
-                        />
-                      </td>
-                      <td className="py-2 border-b border-[var(--line)]">
-                        <input
-                          type="number"
-                          min={0}
-                          value={rows[w.id]?.tenured ?? 0}
-                          onChange={(e) => updateRow(w.id, "tenured", Number(e.target.value))}
-                          className="w-16 text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)]"
-                        />
-                      </td>
-                      <td className="py-2 border-b border-[var(--line)]">
-                        <input
-                          type="number"
-                          min={0}
-                          value={rows[w.id]?.newHire ?? 0}
-                          onChange={(e) => updateRow(w.id, "newHire", Number(e.target.value))}
-                          className="w-16 text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)]"
-                        />
-                      </td>
-                    </tr>
-                  ))}
+                  {workstations.map((w) => {
+                    const assigned = (rows[w.id]?.tenured ?? 0) + (rows[w.id]?.newHire ?? 0);
+                    const overAssigned = assigned > w.headcount;
+                    return (
+                      <tr key={w.id}>
+                        <td className="py-2 border-b border-[var(--line)]">{w.name}</td>
+                        <td className="py-2 border-b border-[var(--line)]">
+                          <Pill tone="accent">
+                            {w.headcount} seat{w.headcount === 1 ? "" : "s"}
+                          </Pill>
+                          {overAssigned && (
+                            <div className="text-[10px] text-[var(--bad)] font-bold mt-1">Exceeds fixed headcount</div>
+                          )}
+                        </td>
+                        <td className="py-2 border-b border-[var(--line)]">
+                          <input
+                            type="number"
+                            min={0}
+                            value={rows[w.id]?.tenured ?? 0}
+                            onChange={(e) => updateRow(w.id, "tenured", Number(e.target.value))}
+                            className="w-16 text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)]"
+                          />
+                        </td>
+                        <td className="py-2 border-b border-[var(--line)]">
+                          <input
+                            type="number"
+                            min={0}
+                            value={rows[w.id]?.newHire ?? 0}
+                            onChange={(e) => updateRow(w.id, "newHire", Number(e.target.value))}
+                            className="w-16 text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)]"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-[var(--paper)] rounded-md p-3 border border-[var(--line)] text-[13px]">
               <div>
-                <div className="text-[10.5px] uppercase tracking-wider text-[var(--muted)] mb-0.5">Headcount planned</div>
-                <div className={totals.headcount > totalMembers ? "text-[var(--bad)] font-bold" : "font-bold"}>
-                  {totals.headcount} / {totalMembers}
+                <div className="text-[10.5px] uppercase tracking-wider text-[var(--muted)] mb-0.5">Fixed headcount</div>
+                <div className={fixedHeadcount > totalMembers ? "text-[var(--bad)] font-bold" : "font-bold"}>
+                  {fixedHeadcount} / {totalMembers}
                 </div>
               </div>
               <div>

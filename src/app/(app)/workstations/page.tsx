@@ -1,6 +1,6 @@
 import { requireProfile, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel } from "@/components/ui";
+import { Panel, PageHeader } from "@/components/ui";
 import AddWorkstationForm from "./AddWorkstationForm";
 import WorkstationRow from "./WorkstationRow";
 
@@ -13,10 +13,7 @@ export default async function WorkstationsPage() {
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="font-serif text-2xl m-0 mb-1">Workstations</h1>
-        <p className="text-sm text-[var(--muted)] m-0">The functional stations associates rotate through</p>
-      </header>
+      <PageHeader title="Workstations" subtitle="The functional stations associates rotate through" />
 
       <Panel title="Active stations" action={<AddWorkstationForm />}>
         <div className="overflow-x-auto">
@@ -25,6 +22,7 @@ export default async function WorkstationsPage() {
               <tr>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Description</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Headcount</th>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
                 <th className="py-2.5 border-b border-[var(--line)]" />
               </tr>
@@ -34,7 +32,7 @@ export default async function WorkstationsPage() {
                 workstations.map((w) => <WorkstationRow key={w.id} workstation={w} />)
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-4 text-[var(--muted)]">
+                  <td colSpan={5} className="py-4 text-[var(--muted)]">
                     No workstations yet.
                   </td>
                 </tr>
