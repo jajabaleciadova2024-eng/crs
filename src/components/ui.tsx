@@ -1,13 +1,20 @@
 import type { ReactNode } from "react";
 
-// Sticky title bar used at the top of every page inside the app shell —
-// stays pinned to the viewport while the page's content scrolls under it,
-// same as the sidebar. `top` accounts for the mobile hamburger bar (which
-// is itself sticky at the very top on small screens, see SidebarShell) so
-// the two don't overlap; desktop has no such bar, so it sticks flush at 0.
-// Pass `children` instead of title/subtitle/action for a fully custom
-// header layout (e.g. the dashboard's profile-photo header) while still
-// getting the same sticky chrome.
+// Title bar pinned to the top of every page inside the app shell — stays
+// in view while the page's content scrolls under it, same as the sidebar.
+// Deliberately `position: fixed`, not `sticky`: same reasoning as the
+// sidebar (see SidebarShell's top comment) — `sticky` was empirically
+// unreliable in this app's layout, while `fixed` has no containing-block
+// ambiguity to get wrong. `left`/`width` track the sidebar's own
+// `--sidebar-width` custom property so the header's horizontal bounds
+// always match <main>'s, and an invisible clone directly below reserves
+// the header's real (possibly-wrapping) height in the normal document
+// flow, since the visible fixed copy is removed from it. `top` accounts
+// for the mobile hamburger bar (itself sticky at the very top on small
+// screens, see SidebarShell) so the two don't overlap; desktop has no
+// such bar, so it sticks flush at 0. Pass `children` instead of
+// title/subtitle/action for a fully custom header layout (e.g. the
+// dashboard's profile-photo header) while still getting the same chrome.
 export function PageHeader({
   title,
   subtitle,
@@ -19,18 +26,30 @@ export function PageHeader({
   action?: ReactNode;
   children?: ReactNode;
 }) {
+  const content = children ?? (
+    <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div>
+        {title && <h1 className="font-serif text-2xl m-0 mb-1">{title}</h1>}
+        {subtitle && <p className="text-sm text-[var(--muted)] m-0">{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  );
+
   return (
-    <header className="sticky top-[52px] md:top-0 z-20 -mx-4 md:-mx-10 px-4 md:px-10 py-4 md:py-5 mb-6 bg-[var(--paper)]/95 backdrop-blur-sm border-b border-[var(--line)]">
-      {children ?? (
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            {title && <h1 className="font-serif text-2xl m-0 mb-1">{title}</h1>}
-            {subtitle && <p className="text-sm text-[var(--muted)] m-0">{subtitle}</p>}
-          </div>
-          {action}
-        </div>
-      )}
-    </header>
+    <>
+      {/* Space-reserving clone — invisible but still laid out, so the
+          fixed header (removed from flow) doesn't cause content below it
+          to jump up underneath it. Same content/width as the visible
+          copy so its height always matches, however long a given page's
+          title/subtitle/action ends up being. */}
+      <div aria-hidden="true" className="invisible px-4 md:px-10 py-4 md:py-5 mb-6 border-b border-transparent">
+        {content}
+      </div>
+      <header className="fixed z-20 top-[calc(52px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-4 md:px-10 py-4 md:py-5 bg-[var(--paper)]/95 backdrop-blur-sm border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out">
+        {content}
+      </header>
+    </>
   );
 }
 

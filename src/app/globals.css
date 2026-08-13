@@ -233,16 +233,28 @@ tbody tr:hover {
   }
 }
 
+/* No `both`/`forwards` fill-mode on any of these: none of them use an
+   animation-delay, so "backwards" fill never had a visible effect to
+   begin with — but "forwards" does, and it's a trap. It permanently
+   leaves the animation's ending `transform` value (translateY(0) /
+   scale(1) — visually a no-op) applied to the element indefinitely after
+   the animation finishes. A `transform` on an ancestor makes it the
+   containing block for any `position: fixed` descendant instead of the
+   viewport — which silently confined every modal opened from inside a
+   Panel (.animate-fade-in-up is on every Panel) to the Panel's own box,
+   clipped by its overflow-hidden, instead of popping out over the whole
+   page. Dropping the fill-mode lets the element's transform revert to
+   its normal (unset) value once the 0.2–0.25s animation completes. */
 .animate-fade-in-up {
-  animation: fadeInUp 0.25s ease-out both;
+  animation: fadeInUp 0.25s ease-out;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.2s ease-out both;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.2s ease-out both;
+  animation: scaleIn 0.2s ease-out;
 }
 
 /* ── Selection color ───────────────────────────────────────────── */

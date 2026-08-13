@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { requireProfileWithPreview, ROLE_LABEL, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import Sidebar from "@/components/Sidebar";
@@ -52,6 +53,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </SidebarShell>
       <main
         className="flex-1 min-w-0 px-4 md:px-10 py-5 md:py-8 pb-16 max-w-[1000px] w-full md:ml-[var(--sidebar-width,220px)] transition-[margin-left] duration-200 ease-out"
+        // PageHeader (fixed) shifts down by this much while the preview
+        // banner (also fixed, see PreviewBanner.tsx) is showing above it,
+        // so the two don't overlap. Approximate — the banner can wrap to
+        // two lines on narrow viewports — but good enough for a
+        // Team-Leader-only testing aid, not the primary layout.
+        style={{ "--preview-offset": previewing ? "40px" : "0px" } as CSSProperties}
       >
         {previewing && <PreviewBanner label={ROLE_LABEL[profile.role]} />}
         {children}
