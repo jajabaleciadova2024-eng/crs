@@ -1,6 +1,7 @@
 // The Supabase client is deliberately untyped (see src/lib/supabase/client.ts),
 // so joined-column access below is cast through `any` on purpose.
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Link from "next/link";
 import { requireProfile, isApprover, ROLE_LABEL } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Panel, Pill, Card, PageHeader } from "@/components/ui";
@@ -43,9 +44,16 @@ export default async function DashboardPage() {
   // this was a big chunk of page-load delay (6+ round-trips one after
   // another). Assignments/recent-leave depend on the first batch's results
   // (week id, role), so they go in a second parallel batch.
-  const [{ data: week }, { data: activeWorkstations }, { count: pendingCount }, { count: immuneCount }, { count: pendingAccessCount }] =
+  const [{ data: week }, { data: latestWeekRow }, { data: activeWorkstations }, { count: pendingCount }, { count: immuneCount }, { count: pendingAccessCount }] =
     await Promise.all([
       supabase.from("schedule_weeks").select("*").eq("week_start_date", weekStart).maybeSingle(),
+      // Dashboard only ever shows the CURRENT week's assignments above —
+      // but generating always produces the UPCOMING week's schedule (see
+      // /api/schedule/generate), which never shows here until that week
+      // arrives. Fetching the latest week on record separately lets us
+      // surface a "View next week's schedule" link when one's already
+      // been generated, instead of it just being invisible until then.
+      supabase.from("schedule_weeks").select("week_start_date").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("workstations").select("id").eq("is_active", true),
       supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       // Immune is a Team-Leader-only scheduling concern — not shown to OIC/associates.
@@ -74,6 +82,8 @@ export default async function DashboardPage() {
 
   const stationsManned = assignments?.length ?? 0;
   const totalStations = activeWorkstations?.length ?? 0;
+  const nextWeekStart =
+    latestWeekRow && latestWeekRow.week_start_date > weekStart ? latestWeekRow.week_start_date : null;
 
   return (
     <>
@@ -110,7 +120,21 @@ export default async function DashboardPage() {
         <Card label="Your role" value={ROLE_LABEL[profile.role]} sub={profile.psid} />
       </div>
 
-      <Panel title="This week's assignments" hint={week ? formatWeekRange(week.week_start_date) : "Not yet generated"}>
+      <Panel
+        title="This week's assignments"
+        action={
+          <div className="flex items-center gap-3">
+            {nextWeekStart && (
+              <Link href="/schedule" className="text-xs font-bold text-[var(--accent-strong)] hover:underline whitespace-nowrap">
+                View {formatWeekRange(nextWeekStart)} →
+              </Link>
+            )}
+            <span className="text-xs text-[var(--muted)] font-medium whitespace-nowrap">
+              {week ? formatWeekRange(week.week_start_date) : "Not yet generated"}
+            </span>
+          </div>
+        }
+      >
         {assignments && assignments.length > 0
           ? (() => {
               // Group by workstation so multiple people at the same
