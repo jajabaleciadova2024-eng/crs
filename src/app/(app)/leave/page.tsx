@@ -61,9 +61,14 @@ export default async function LeavePage() {
               {canViewAll ? "Track requests from your team" : "File a request and track your leave history"}
             </p>
           </div>
-          <Link href="/leave/history" className="text-xs font-bold text-[var(--accent-strong)]">
-            View history →
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/leave/calendar" className="text-xs font-bold text-[var(--accent-strong)]">
+              View calendar →
+            </Link>
+            <Link href="/leave/history" className="text-xs font-bold text-[var(--accent-strong)]">
+              View history →
+            </Link>
+          </div>
         </div>
       </header>
 
