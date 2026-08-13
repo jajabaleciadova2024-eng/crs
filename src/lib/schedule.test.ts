@@ -154,6 +154,35 @@ describe("generateAssignments with quotas", () => {
     expect(result).toEqual([]);
   });
 
+  it("seats multiple immune members placed at the same station, up to its full headcount", () => {
+    // Regression: two Team-Leader-chosen immune members sent to the same
+    // 2-seat station both need to land there, not get silently bumped
+    // elsewhere by the later tenured/new-hire/fallback fill steps.
+    const workstations = [{ id: "w1" }, { id: "w2" }];
+    const associates = [
+      { id: "imm1", is_immune: true, tenure_group: "tenured" as const },
+      { id: "imm2", is_immune: true, tenure_group: "new_hire" as const },
+      { id: "other1", is_immune: false, tenure_group: "tenured" as const },
+      { id: "other2", is_immune: false, tenure_group: "new_hire" as const },
+    ];
+    const quotas = [
+      { workstation_id: "w1", headcount: 2, tenured: 1, newHire: 1 },
+      { workstation_id: "w2", headcount: 2, tenured: 1, newHire: 1 },
+    ];
+    const immunePlacements = [
+      { associate_id: "imm1", workstation_id: "w1" },
+      { associate_id: "imm2", workstation_id: "w1" },
+    ];
+    const result = generateAssignments(workstations, associates, [], noShuffle, quotas, immunePlacements);
+
+    expect(result).toContainEqual({ workstation_id: "w1", associate_id: "imm1" });
+    expect(result).toContainEqual({ workstation_id: "w1", associate_id: "imm2" });
+    // w1's headcount (2) is fully spent on the two immune placements —
+    // the tenured/new-hire targets for w1 must NOT push anyone else in
+    // on top of them.
+    expect(result.filter((r) => r.workstation_id === "w1")).toHaveLength(2);
+  });
+
   it("treats OIC the same as an associate for the targeted new-hire slot (Team Leader wants tenure applied to OIC too)", () => {
     const workstations = [{ id: "w1" }];
     const associates = [
