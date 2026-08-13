@@ -28,7 +28,10 @@ export default async function LeavePage() {
   // the associate can still upload after rejection, and once they do, the
   // Team Leader needs it back in view to re-review/approve, not buried in
   // History (document_path is only ever set for that behavior type, so
-  // this can't accidentally surface other rejected requests).
+  // this can't accidentally surface other rejected requests). A FINAL
+  // rejection (final_rejection = true) ends that cycle -- it rolls into
+  // History on the normal week-based schedule like anything else, even
+  // with a document attached.
   const weekStart = currentQueueWeekStart();
   const listQuery = supabase
     .from("leave_requests")
@@ -37,7 +40,7 @@ export default async function LeavePage() {
     // relationship was found" and the whole query returns null (this was
     // silently emptying the queue for every account).
     .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name), leave_request_ranges(start_date, end_date)")
-    .or(`status.eq.pending,reviewed_at.gte.${weekStart},and(status.eq.rejected,document_path.not.is.null)`)
+    .or(`status.eq.pending,reviewed_at.gte.${weekStart},and(status.eq.rejected,document_path.not.is.null,final_rejection.eq.false)`)
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
 

@@ -23,7 +23,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const body = await request.json();
-  const { status, note } = body ?? {};
+  const { status, note, final } = body ?? {};
   if (status !== "approved" && status !== "rejected") {
     return NextResponse.json({ error: "Status must be 'approved' or 'rejected'." }, { status: 400 });
   }
@@ -58,6 +58,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       reviewed_at: new Date().toISOString(),
       seen_by_associate: false,
       review_note: status === "rejected" ? String(note).trim() : null,
+      // A final rejection ends the reject -> re-upload -> re-review cycle
+      // for good (see 0012_leave_final_rejection.sql) -- reset to false
+      // on approval too, so a fresh cycle starts clean if this row is
+      // ever reused.
+      final_rejection: status === "rejected" && Boolean(final),
     })
     .eq("id", id);
 

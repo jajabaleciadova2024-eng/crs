@@ -71,6 +71,7 @@ export interface LeaveRequest {
   flagged_conflict: boolean;
   seen_by_associate: boolean;
   review_note: string | null;
+  final_rejection: boolean;
   created_at: string;
 }
 
@@ -183,6 +184,7 @@ export interface Database {
           flagged_conflict?: boolean;
           seen_by_associate?: boolean;
           review_note?: string | null;
+          final_rejection?: boolean;
         };
         Update: {
           associate_id?: string;
@@ -198,6 +200,7 @@ export interface Database {
           flagged_conflict?: boolean;
           seen_by_associate?: boolean;
           review_note?: string | null;
+          final_rejection?: boolean;
         };
         Relationships: [];
       };

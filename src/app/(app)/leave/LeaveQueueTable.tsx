@@ -23,6 +23,7 @@ export type QueueRequest = {
   document_path: string | null;
   flagged_conflict: boolean;
   review_note: string | null;
+  final_rejection: boolean;
   leave_request_ranges: Range[];
   profiles: { first_name: string; last_name: string } | null;
 };
@@ -50,7 +51,7 @@ export default function LeaveQueueTable({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectingRequest, setRejectingRequest] = useState<QueueRequest | null>(null);
   const [rejectNote, setRejectNote] = useState("");
   const [rejectError, setRejectError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -58,13 +59,13 @@ export default function LeaveQueueTable({
 
   const colCount = 4 + (canViewAll ? 1 : 0) + 2; // Type, Dates, Reason, Status + Associate? + Actions/Document
 
-  function decide(id: string, status: "approved" | "rejected", note?: string) {
+  function decide(id: string, status: "approved" | "rejected", note?: string, final?: boolean) {
     setPendingId(id);
     startTransition(async () => {
       const res = await fetch(`/api/leave/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, note }),
+        body: JSON.stringify({ status, note, final }),
       });
       setPendingId(null);
 
@@ -74,7 +75,7 @@ export default function LeaveQueueTable({
           setRejectError(body.error ?? "Couldn't reject that request.");
           return;
         }
-        setRejectingId(null);
+        setRejectingRequest(null);
         setRejectNote("");
         setRejectError(null);
       }
@@ -82,9 +83,12 @@ export default function LeaveQueueTable({
     });
   }
 
-  function submitReject() {
-    if (!rejectingId || !rejectNote.trim()) return;
-    decide(rejectingId, "rejected", rejectNote.trim());
+  // Reopenable: can still flip back to Approve/Reject later if a new
+  // document comes in. Final: ends the cycle for good, regardless of what
+  // gets uploaded afterward -- see 0012_leave_final_rejection.sql.
+  function submitReject(final: boolean) {
+    if (!rejectingRequest || !rejectNote.trim()) return;
+    decide(rejectingRequest.id, "rejected", rejectNote.trim(), final);
   }
 
   function cancelRequest(id: string) {
@@ -137,7 +141,10 @@ export default function LeaveQueueTable({
           // can still upload after rejection (see DocumentUpload below),
           // so the Team Leader needs a way back to Approve/Reject once
           // that happens.
-          const isReopenedForReview = typeConfig?.behavior === "auto_approve_document" && r.status === "rejected" && Boolean(r.document_path);
+          // A final rejection ends that cycle for good -- it never reopens,
+          // no matter what gets uploaded afterward.
+          const isReopenedForReview =
+            typeConfig?.behavior === "auto_approve_document" && r.status === "rejected" && Boolean(r.document_path) && !r.final_rejection;
 
           return (
             <Fragment key={r.id}>
@@ -161,6 +168,9 @@ export default function LeaveQueueTable({
                 <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.reason ?? "—"}</td>
                 <td className="py-2.5 border-b border-[var(--line)]">
                   <Pill tone={STATUS_TONE[r.status]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
+                  {r.status === "rejected" && r.final_rejection && (
+                    <div className="text-[10.5px] font-bold text-[var(--bad)] mt-1">Final — closed</div>
+                  )}
                   {r.status === "rejected" && r.review_note && (
                     <div className="text-[10.5px] text-[var(--muted)] mt-1 max-w-[180px]">{r.review_note}</div>
                   )}
@@ -172,7 +182,7 @@ export default function LeaveQueueTable({
                         requestId={r.id}
                         hasDocument={Boolean(r.document_path)}
                         canDownload={canManage}
-                        canReplace={r.status === "rejected"}
+                        canReplace={r.status === "rejected" && !r.final_rejection}
                       />
                     ) : canManage && r.document_path ? (
                       <DocumentLinks requestId={r.id} canDownload={canManage} />
@@ -215,7 +225,7 @@ export default function LeaveQueueTable({
                           style={{ padding: "5px 10px" }}
                           disabled={pendingId === r.id}
                           onClick={() => {
-                            setRejectingId(r.id);
+                            setRejectingRequest(r);
                             setRejectNote("");
                             setRejectError(null);
                           }}
@@ -249,41 +259,62 @@ export default function LeaveQueueTable({
       </tbody>
     </table>
 
-    {rejectingId && (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50" onClick={() => setRejectingId(null)}>
-        <div
-          className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-md p-6 flex flex-col gap-3"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <h2 className="font-serif text-xl text-[var(--ink)] m-0">Reject this request?</h2>
-          <p className="text-sm text-[var(--muted)] m-0">
-            Add a short note so the associate knows why — it&apos;s included in their notification.
-          </p>
-          <textarea
-            value={rejectNote}
-            onChange={(e) => setRejectNote(e.target.value)}
-            rows={3}
-            placeholder="e.g. Overlaps another approved Vacation request"
-            className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-none"
-            autoFocus
-          />
-          {rejectError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{rejectError}</p>}
-          <div className="flex justify-end gap-2 mt-1">
-            <Button style={{ padding: "7px 14px" }} disabled={pendingId === rejectingId} onClick={() => setRejectingId(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              style={{ padding: "7px 14px", background: "var(--bad)", borderColor: "var(--bad)" }}
-              disabled={pendingId === rejectingId || !rejectNote.trim()}
-              onClick={submitReject}
-            >
-              {pendingId === rejectingId ? "Rejecting…" : "Reject request"}
-            </Button>
+    {rejectingRequest && (() => {
+      const rejectingTypeConfig = leaveTypeConfigs.find((c) => c.key === rejectingRequest.leave_type);
+      const isReopenableType = rejectingTypeConfig?.behavior === "auto_approve_document";
+      const busy = pendingId === rejectingRequest.id;
+      return (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50" onClick={() => setRejectingRequest(null)}>
+          <div
+            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-md p-6 flex flex-col gap-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-serif text-xl text-[var(--ink)] m-0">Reject this request?</h2>
+            <p className="text-sm text-[var(--muted)] m-0">
+              Add a short note so the associate knows why — it&apos;s included in their notification.
+            </p>
+            <textarea
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+              rows={3}
+              placeholder="e.g. Overlaps another approved Vacation request"
+              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-none"
+              autoFocus
+            />
+            {isReopenableType && (
+              <p className="text-[11.5px] text-[var(--muted)] m-0">
+                <strong className="text-[var(--ink)]">Reject</strong> lets them re-upload and come back for another review.{" "}
+                <strong className="text-[var(--ink)]">Reject — Final</strong> closes it for good, even if they upload again.
+              </p>
+            )}
+            {rejectError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{rejectError}</p>}
+            <div className="flex justify-end gap-2 mt-1 flex-wrap">
+              <Button style={{ padding: "7px 14px" }} disabled={busy} onClick={() => setRejectingRequest(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                style={{ padding: "7px 14px", background: "var(--bad)", borderColor: "var(--bad)" }}
+                disabled={busy || !rejectNote.trim()}
+                onClick={() => submitReject(false)}
+              >
+                {busy ? "Rejecting…" : "Reject"}
+              </Button>
+              {isReopenableType && (
+                <Button
+                  variant="primary"
+                  style={{ padding: "7px 14px", background: "var(--ink)", borderColor: "var(--ink)" }}
+                  disabled={busy || !rejectNote.trim()}
+                  onClick={() => submitReject(true)}
+                >
+                  {busy ? "Rejecting…" : "Reject — Final"}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      );
+    })()}
     </>
   );
 }
