@@ -8,7 +8,7 @@ import ReassignForm from "./ReassignForm";
 import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
 import RotationSettingsPanel from "./RotationSettingsPanel";
-import { todayInManila, startOfWorkWeek, endOfWorkWeek } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange } from "@/lib/scheduleDates";
 import { holidaysInRange } from "@/lib/phHolidays";
 import { formatFullName } from "@/lib/format";
 
@@ -101,7 +101,7 @@ export default async function SchedulePage() {
       />
 
       <Panel
-        title={`Week of ${weekStart} – ${weekEnd}`}
+        title={`Week of ${formatWeekRange(weekStart)}`}
         action={
           canManage && (
             <div className="flex items-center gap-2">

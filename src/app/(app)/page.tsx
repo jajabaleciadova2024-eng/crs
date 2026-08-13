@@ -5,7 +5,7 @@ import { requireProfile, isApprover, ROLE_LABEL } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
-import { todayInManila, startOfWorkWeek } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, formatWeekRange } from "@/lib/scheduleDates";
 import { toTitleCase, formatFullName } from "@/lib/format";
 import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
 
@@ -14,6 +14,22 @@ const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   approved: "good",
   rejected: "bad",
 };
+
+// Rotating accent per workstation group in "This week's assignments" below
+// — theme-independent so each station reads as visually distinct at a
+// glance regardless of light/dark mode, mixed at low opacity into
+// var(--paper-raised) for the card background so it stays legible either
+// way.
+const STATION_ACCENTS = [
+  "#6366f1", // indigo
+  "#ec4899", // pink
+  "#f59e0b", // amber
+  "#10b981", // emerald
+  "#06b6d4", // cyan
+  "#8b5cf6", // violet
+  "#ef4444", // red
+  "#84cc16", // lime
+];
 
 export default async function DashboardPage() {
   const profile = await requireProfile();
@@ -93,35 +109,71 @@ export default async function DashboardPage() {
         <Card label="Your role" value={ROLE_LABEL[profile.role]} sub={profile.psid} />
       </div>
 
-      <Panel title="This week's assignments" hint={week ? week.week_start_date : "Not yet generated"}>
-        {assignments && assignments.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {assignments.map((a) => {
-              const isOwn = a.associate_id === profile.id;
+      <Panel title="This week's assignments" hint={week ? formatWeekRange(week.week_start_date) : "Not yet generated"}>
+        {assignments && assignments.length > 0
+          ? (() => {
+              // Group by workstation so multiple people at the same
+              // station (multi-per-station is supported) show together
+              // under one heading instead of the station name repeating
+              // across separate cards — each group gets a rotating accent
+              // color so stations stay visually distinguishable at a
+              // glance instead of one flat, same-looking grid.
+              const groups = new Map<string, { name: string; people: typeof assignments }>();
+              for (const a of assignments) {
+                const name = (a as any).workstations?.name ?? "Unassigned station";
+                if (!groups.has(name)) groups.set(name, { name, people: [] });
+                groups.get(name)!.people.push(a);
+              }
+              const sortedGroups = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
+
               return (
-                <div
-                  key={a.id}
-                  className={`border rounded-lg p-3.5 transition-colors ${
-                    isOwn ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--line)] bg-[var(--paper)] hover:border-[var(--accent)]"
-                  }`}
-                  style={{ boxShadow: isOwn ? "var(--shadow-sm)" : undefined }}
-                >
-                  <div className={`text-[10px] uppercase tracking-wider font-semibold ${isOwn ? "text-[var(--accent-strong)]" : "text-[var(--muted)]"}`}>
-                    {(a as any).workstations?.name}
-                    {isOwn ? " — your station" : ""}
-                  </div>
-                  <div className="font-serif text-base mt-1.5">
-                    {formatFullName((a as any).profiles?.first_name, (a as any).profiles?.last_name)}
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {sortedGroups.map((group, i) => {
+                    const accent = STATION_ACCENTS[i % STATION_ACCENTS.length];
+                    const hasOwn = group.people.some((a) => a.associate_id === profile.id);
+                    return (
+                      <div
+                        key={group.name}
+                        className="rounded-lg p-3.5 border transition-colors"
+                        style={{
+                          borderColor: hasOwn ? accent : "var(--line)",
+                          background: `color-mix(in srgb, ${accent} 7%, var(--paper-raised))`,
+                          boxShadow: hasOwn ? "var(--shadow-sm)" : undefined,
+                        }}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: accent }} aria-hidden="true" />
+                          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--ink)] truncate">
+                            {group.name}
+                          </span>
+                          {group.people.length > 1 && (
+                            <span className="text-[10px] text-[var(--muted)] ml-auto shrink-0 tabular-nums">
+                              {group.people.length} assigned
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          {group.people.map((a) => {
+                            const isOwn = a.associate_id === profile.id;
+                            return (
+                              <div key={a.id} className={`font-serif text-[15px] leading-snug ${isOwn ? "font-bold text-[var(--accent-strong)]" : ""}`}>
+                                {formatFullName((a as any).profiles?.first_name, (a as any).profiles?.last_name)}
+                                {isOwn && <span className="font-sans text-[10px] font-semibold ml-1.5">(you)</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-[var(--muted)] py-3">
-            No schedule has been generated for this week yet.
-          </p>
-        )}
+            })()
+          : (
+            <p className="text-sm text-[var(--muted)] py-3">
+              No schedule has been generated for this week yet.
+            </p>
+          )}
       </Panel>
 
       <Panel title={approver ? "Recent leave activity" : "Your recent leave activity"} hint="Last 5 requests">

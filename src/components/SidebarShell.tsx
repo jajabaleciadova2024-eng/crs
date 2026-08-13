@@ -86,12 +86,19 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
 
   return (
     <>
-      {/* Mobile top bar — sticky, blurred, and slightly translucent so
-          content peeking through underneath reads as "there's more
-          above" rather than a flat wall. */}
-      <div
-        className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--paper)]/85 backdrop-blur-md"
-      >
+      {/* Mobile top bar — position:fixed, not sticky (same reasoning as
+          the sidebar and PageHeader above: sticky was empirically
+          unreliable in this app's layout, "moving"/scrolling out of view
+          when it shouldn't). Being fixed pulls it out of normal flow, so
+          an invisible spacer directly below reserves its height so page
+          content doesn't jump up underneath it. Blurred + slightly
+          translucent so content peeking through underneath reads as
+          "there's more above" rather than a flat wall. */}
+      <div aria-hidden="true" className="md:hidden flex items-center justify-between px-4 py-3 invisible">
+        <span className="font-serif text-[17px] font-bold tracking-tight">CRS Naga</span>
+        <span className="inline-flex w-10 h-10" />
+      </div>
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--paper)]/85 backdrop-blur-md">
         <span className="font-serif text-[17px] font-bold text-[var(--ink)] tracking-tight">CRS Naga</span>
         <button
           type="button"

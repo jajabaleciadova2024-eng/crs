@@ -43,6 +43,33 @@ export function endOfWorkWeek(weekStartDateStr: string): string {
   return addDays(weekStartDateStr, 4);
 }
 
+const MONTH_LABEL = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+// Human-friendly display for the Monday–Friday work week starting at
+// `weekStartDateStr` — e.g. "August 10–14, 2026", or "August 31 –
+// September 4, 2026" when the week crosses a month (or year) boundary.
+export function formatWeekRange(weekStartDateStr: string): string {
+  const start = toDate(weekStartDateStr);
+  const end = toDate(endOfWorkWeek(weekStartDateStr));
+  const startMonth = MONTH_LABEL[start.getUTCMonth()];
+  const endMonth = MONTH_LABEL[end.getUTCMonth()];
+  const startDay = start.getUTCDate();
+  const endDay = end.getUTCDate();
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+
+  if (startYear !== endYear) {
+    return `${startMonth} ${startDay}, ${startYear} – ${endMonth} ${endDay}, ${endYear}`;
+  }
+  if (startMonth !== endMonth) {
+    return `${startMonth} ${startDay} – ${endMonth} ${endDay}, ${endYear}`;
+  }
+  return `${startMonth} ${startDay}–${endDay}, ${endYear}`;
+}
+
 // The Monday (00:00 Manila) that starts the leave Queue's current display
 // window: decided (approved/rejected) requests stay visible in the Queue
 // through the weekend and only roll over into History once Monday 8am
