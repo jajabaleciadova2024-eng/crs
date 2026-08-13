@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Pill, Button } from "@/components/ui";
@@ -16,6 +16,50 @@ const ROLE_TONE: Record<AppRole, "warn" | "accent"> = {
   associate: "accent",
 };
 const ROLE_LABEL: Record<AppRole, string> = { team_leader: "Team Leader", oic: "OIC", associate: "Associate" };
+
+// Compact icon button for the roster row's action rail — four full text
+// buttons (Edit/Reset password/Deactivate/Remove) per row was wrapping
+// onto two lines and looking cluttered; icons + a title tooltip keep it
+// to one row without losing the label (still available on hover/focus,
+// and to screen readers via aria-label).
+function IconButton({
+  label,
+  onClick,
+  disabled,
+  tone = "default",
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: "default" | "danger";
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center w-8 h-8 rounded-md border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+        tone === "danger"
+          ? "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--bad)] hover:bg-[var(--bad-soft)] hover:border-[var(--bad)]"
+          : "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)]"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {children}
+    </svg>
+  );
+}
 
 export default function MemberRow({ member, isSelf }: { member: Profile; isSelf: boolean }) {
   const [editing, setEditing] = useState(false);
@@ -106,28 +150,56 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
               </Button>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
-              <Button style={{ padding: "5px 10px" }} onClick={() => setEditing(true)}>
-                Edit
-              </Button>
-              <Button style={{ padding: "5px 10px" }} disabled={pending || resetSent} onClick={sendReset}>
-                {resetSent ? "Reset link sent" : "Reset password"}
-              </Button>
+            <div className="flex gap-1.5">
+              <IconButton label="Edit" onClick={() => setEditing(true)}>
+                <Icon>
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </Icon>
+              </IconButton>
+              <IconButton
+                label={resetSent ? "Reset link sent" : "Reset password"}
+                onClick={sendReset}
+                disabled={pending || resetSent}
+              >
+                {resetSent ? (
+                  <Icon>
+                    <path d="M20 6 9 17l-5-5" />
+                  </Icon>
+                ) : (
+                  <Icon>
+                    <circle cx="7.5" cy="15.5" r="4.5" />
+                    <path d="M10.6 12.4 19 4l2 2-2 2 2 2-3 3-2-2-3.4 3.4" />
+                  </Icon>
+                )}
+              </IconButton>
               {!isSelf && (
                 <>
-                  <Button style={{ padding: "5px 10px" }} disabled={pending} onClick={toggleActive}>
-                    {member.is_active ? "Deactivate" : "Reactivate"}
-                  </Button>
-                  <Button
-                    style={{ padding: "5px 10px", color: "var(--bad)" }}
+                  <IconButton
+                    label={member.is_active ? "Deactivate" : "Reactivate"}
+                    onClick={toggleActive}
+                    disabled={pending}
+                  >
+                    <Icon>
+                      <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                      <line x1="12" y1="2" x2="12" y2="12" />
+                    </Icon>
+                  </IconButton>
+                  <IconButton
+                    label="Remove"
+                    tone="danger"
                     disabled={pending}
                     onClick={() => {
                       setRemoveError(null);
                       setConfirmingRemove(true);
                     }}
                   >
-                    Remove
-                  </Button>
+                    <Icon>
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </Icon>
+                  </IconButton>
                 </>
               )}
             </div>
