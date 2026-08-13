@@ -59,6 +59,11 @@ const SECTIONS: GuideSection[] = [
         a: "On the Weekly Schedule page, use the dropdown next to any row to swap who's assigned to that station. Team Leader only.",
         roles: ["team_leader"],
       },
+      {
+        q: "How do I clear a generated schedule and start over?",
+        a: "Click \"Clear schedule\" next to \"Generate next week\" — you'll get a warning before it deletes every assignment for that week. This can't be undone. Team Leader only.",
+        roles: ["team_leader"],
+      },
     ],
   },
   {

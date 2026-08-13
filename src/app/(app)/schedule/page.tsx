@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Panel, Pill } from "@/components/ui";
 import ReassignForm from "./ReassignForm";
 import GenerateButton from "./GenerateButton";
+import ClearScheduleButton from "./ClearScheduleButton";
 
 function startOfWeek(date: Date) {
   const d = new Date(date);
@@ -87,7 +88,14 @@ export default async function SchedulePage() {
 
       <Panel
         title={`Week of ${weekStart}`}
-        action={canManage && <GenerateButton />}
+        action={
+          canManage && (
+            <div className="flex items-center gap-2">
+              {week && <ClearScheduleButton scheduleWeekId={week.id} weekStart={weekStart} />}
+              <GenerateButton />
+            </div>
+          )
+        }
         footnote={
           canManage
             ? "Immune associates keep their previous station; everyone else is reshuffled across the remaining stations. “On leave” flags approved leave overlapping this week — reassign manually if needed."
