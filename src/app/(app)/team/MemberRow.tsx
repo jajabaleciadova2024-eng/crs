@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Pill, Button, Avatar } from "@/components/ui";
+import { formatFullName } from "@/lib/format";
 import type { AppRole, Profile, TenureGroup } from "@/lib/database.types";
 
 const ROLE_TONE: Record<AppRole, "good" | "warn" | "accent"> = {
@@ -46,7 +47,7 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
       <td className="py-2.5 border-b border-[var(--line)]">
         <span className="flex items-center">
           <Avatar firstName={member.first_name} lastName={member.last_name} />
-          {member.first_name} {member.last_name}
+          {formatFullName(member.first_name, member.last_name)}
         </span>
       </td>
       <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.email}</td>

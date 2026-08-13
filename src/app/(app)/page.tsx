@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Panel, Pill, Card, Avatar } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek } from "@/lib/scheduleDates";
+import { toTitleCase, formatFullName } from "@/lib/format";
 
 const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   pending: "warn",
@@ -59,9 +60,9 @@ export default async function DashboardPage() {
   return (
     <>
       <header className="mb-5.5 mb-6">
-        <h1 className="font-serif text-2xl m-0 mb-1">Good day, {profile.first_name}</h1>
+        <h1 className="font-serif text-2xl m-0 mb-1">Good day, {toTitleCase(profile.first_name)}</h1>
         <p className="text-sm text-[var(--muted)] m-0">
-          Week of {weekStart} · {totalStations} stations · signed in as {profile.first_name} {profile.last_name}
+          Week of {weekStart} · {totalStations} stations · signed in as {formatFullName(profile.first_name, profile.last_name)}
         </p>
       </header>
 
@@ -97,7 +98,7 @@ export default async function DashboardPage() {
                     {isOwn ? " — your station" : ""}
                   </div>
                   <div className="font-serif text-base mt-1">
-                    {(a as any).profiles?.first_name} {(a as any).profiles?.last_name}
+                    {formatFullName((a as any).profiles?.first_name, (a as any).profiles?.last_name)}
                   </div>
                 </div>
               );
@@ -129,7 +130,7 @@ export default async function DashboardPage() {
                       <td className="py-2.5 border-b border-[var(--line)]">
                         <span className="flex items-center">
                           <Avatar firstName={(r as any).profiles?.first_name ?? ""} lastName={(r as any).profiles?.last_name ?? ""} />
-                          {(r as any).profiles?.first_name} {(r as any).profiles?.last_name}
+                          {formatFullName((r as any).profiles?.first_name, (r as any).profiles?.last_name)}
                         </span>
                       </td>
                     )}

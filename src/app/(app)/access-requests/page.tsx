@@ -1,6 +1,7 @@
 import { requireProfile, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Panel, Pill } from "@/components/ui";
+import { formatFullName } from "@/lib/format";
 import ReviewForm from "./ReviewForm";
 import type { AccessRequestStatus } from "@/lib/database.types";
 
@@ -52,7 +53,7 @@ export default async function AccessRequestsPage() {
                   <tr key={r.id}>
                     <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.psid ?? "—"}</td>
                     <td className="py-2.5 border-b border-[var(--line)]">
-                      {r.first_name} {r.last_name}
+                      {formatFullName(r.first_name, r.last_name)}
                     </td>
                     <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.email}</td>
                     <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.mobile_number ?? "—"}</td>
@@ -89,7 +90,7 @@ export default async function AccessRequestsPage() {
                 recent.map((r) => (
                   <tr key={r.id}>
                     <td className="py-2.5 border-b border-[var(--line)]">
-                      {r.first_name} {r.last_name}
+                      {formatFullName(r.first_name, r.last_name)}
                     </td>
                     <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.email}</td>
                     <td className="py-2.5 border-b border-[var(--line)]">

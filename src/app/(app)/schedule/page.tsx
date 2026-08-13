@@ -9,6 +9,7 @@ import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
 import { todayInManila, startOfWorkWeek, endOfWorkWeek } from "@/lib/scheduleDates";
 import { holidaysInRange } from "@/lib/phHolidays";
+import { formatFullName } from "@/lib/format";
 
 function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string) {
   return aStart <= bEnd && bStart <= aEnd;
@@ -149,7 +150,7 @@ export default async function SchedulePage() {
                   <tr key={a.id}>
                     <td className="py-2.5 border-b border-[var(--line)]">{a.workstations?.name}</td>
                     <td className="py-2.5 border-b border-[var(--line)]">
-                      {a.profiles?.first_name} {a.profiles?.last_name}
+                      {formatFullName(a.profiles?.first_name, a.profiles?.last_name)}
                     </td>
                     {canManage && (
                       <td className="py-2.5 border-b border-[var(--line)]">

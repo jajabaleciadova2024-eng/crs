@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Panel, Avatar } from "@/components/ui";
 import { getPayPeriod } from "@/lib/payPeriod";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, type LeaveTypeConfig } from "@/lib/leaveTypes";
+import { formatFullName } from "@/lib/format";
 
 export default async function LeaveHistoryPage() {
   const profile = await requireProfile();
@@ -76,7 +77,7 @@ export default async function LeaveHistoryPage() {
                         <td className="py-2.5 border-b border-[var(--line)]">
                           <span className="flex items-center">
                             <Avatar firstName={p?.first_name ?? ""} lastName={p?.last_name ?? ""} />
-                            {p?.first_name} {p?.last_name}
+                            {formatFullName(p?.first_name, p?.last_name)}
                           </span>
                         </td>
                         <td className="py-2.5 border-b border-[var(--line)] capitalize">{typeLabel}</td>

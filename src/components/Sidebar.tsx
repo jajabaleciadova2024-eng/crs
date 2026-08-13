@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { AppRole, Profile } from "@/lib/database.types";
 import { ROLE_LABEL } from "@/lib/auth";
+import { formatFullName } from "@/lib/format";
 import SignOutButton from "@/components/SignOutButton";
 import PreviewRoleSwitcher from "@/components/PreviewRoleSwitcher";
 
@@ -80,7 +81,7 @@ export default function Sidebar({
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-[12.5px] font-semibold text-[var(--ink)] truncate">
-            {profile.first_name} {profile.last_name}
+            {formatFullName(profile.first_name, profile.last_name)}
           </div>
           <div className="text-[11px] text-[var(--muted)]">{ROLE_LABEL[profile.role]}</div>
         </div>

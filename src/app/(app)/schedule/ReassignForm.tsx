@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
+import { formatFullName } from "@/lib/format";
 import type { Profile } from "@/lib/database.types";
 
 export default function ReassignForm({
@@ -49,7 +50,7 @@ export default function ReassignForm({
       >
         {associates.map((a) => (
           <option key={a.id} value={a.id}>
-            {a.first_name} {a.last_name}
+            {formatFullName(a.first_name, a.last_name)}
           </option>
         ))}
       </select>

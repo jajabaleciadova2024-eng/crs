@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
+import { toTitleCase, formatFullName } from "@/lib/format";
 
 // Notification triggers, called server-side after the relevant DB write.
 // Each one uses the service-role client to look up target emails/prefs
@@ -34,7 +35,7 @@ export async function notifyLeaveStatusChange(leaveRequestId: string) {
   await sendEmail(
     profile.email,
     `Your ${leave.leave_type} leave request was ${leave.status}`,
-    `<p>Hi ${profile.first_name},</p>
+    `<p>Hi ${toTitleCase(profile.first_name)},</p>
      <p>Your leave request (${leave.leave_type}, ${leave.start_date} to ${leave.end_date}) was
      <strong>${leave.status}</strong>.</p>`
   );
@@ -82,8 +83,8 @@ export async function notifyApproversNewLeave(leaveRequestId: string) {
 
   await sendEmail(
     recipients,
-    `New leave request from ${requester?.first_name ?? "an associate"}`,
-    `<p>${requester?.first_name ?? ""} ${requester?.last_name ?? ""} filed a
+    `New leave request from ${requester?.first_name ? toTitleCase(requester.first_name) : "an associate"}`,
+    `<p>${formatFullName(requester?.first_name, requester?.last_name)} filed a
      ${leave.leave_type} leave request (${leave.start_date} to ${leave.end_date})
      awaiting your review.</p>`
   );
@@ -106,8 +107,8 @@ export async function notifyLeadersNewAccessRequest(accessRequestId: string) {
 
   await sendEmail(
     leaders.map((l) => l.email),
-    `New access request from ${req.first_name} ${req.last_name}`,
-    `<p>${req.first_name} ${req.last_name} (${req.email}) requested access to CRS Naga.</p>
+    `New access request from ${formatFullName(req.first_name, req.last_name)}`,
+    `<p>${formatFullName(req.first_name, req.last_name)} (${req.email}) requested access to CRS Naga.</p>
      <p>Review it from the app's Access Requests page.</p>`
   );
 }

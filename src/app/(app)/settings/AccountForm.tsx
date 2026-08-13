@@ -4,11 +4,12 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui";
+import { toTitleCase } from "@/lib/format";
 import type { Profile } from "@/lib/database.types";
 
 export default function AccountForm({ profile }: { profile: Profile }) {
-  const [firstName, setFirstName] = useState(profile.first_name);
-  const [lastName, setLastName] = useState(profile.last_name);
+  const [firstName, setFirstName] = useState(toTitleCase(profile.first_name));
+  const [lastName, setLastName] = useState(toTitleCase(profile.last_name));
   const [mobile, setMobile] = useState(profile.mobile_number ?? "");
   const [saving, setSaving] = useState(false);
   const [resetSent, setResetSent] = useState(false);

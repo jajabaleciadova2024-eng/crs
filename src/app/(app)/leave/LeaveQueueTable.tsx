@@ -3,6 +3,7 @@
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pill, Avatar, Button } from "@/components/ui";
+import { formatFullName } from "@/lib/format";
 import EditLeaveRequestForm from "./EditLeaveRequestForm";
 import DocumentUpload, { DocumentLinks } from "./DocumentUpload";
 import type { LeaveStatus } from "@/lib/database.types";
@@ -119,7 +120,7 @@ export default function LeaveQueueTable({
                   <td className="py-2.5 border-b border-[var(--line)]">
                     <span className="flex items-center">
                       <Avatar firstName={r.profiles?.first_name ?? ""} lastName={r.profiles?.last_name ?? ""} />
-                      {r.profiles?.first_name} {r.profiles?.last_name}
+                      {formatFullName(r.profiles?.first_name, r.profiles?.last_name)}
                     </span>
                   </td>
                 )}
