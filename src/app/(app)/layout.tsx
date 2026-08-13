@@ -15,7 +15,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (canManageOperations(profile.role)) {
     const [{ count: accessCount }, { count: leaveCount }] = await Promise.all([
       supabase.from("access_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      // Must match the Queue's own "needs action" filter (see leave/page.tsx)
+      // — plain pending requests, PLUS rejected pre-approved-type requests
+      // that got reopened for re-review because the associate uploaded a
+      // document since being rejected. Counting only status=pending here
+      // silently dropped the badge for that reopened case even though the
+      // Queue shows live Approve/Reject buttons for it.
+      supabase
+        .from("leave_requests")
+        .select("id", { count: "exact", head: true })
+        .or("status.eq.pending,and(status.eq.rejected,document_path.not.is.null,final_rejection.eq.false)"),
     ]);
     pendingAccessRequests = accessCount ?? 0;
     pendingLeaveRequests += leaveCount ?? 0;
