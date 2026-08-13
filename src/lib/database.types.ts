@@ -26,6 +26,7 @@ export interface Profile {
   last_name: string;
   email: string;
   mobile_number: string | null;
+  avatar_url: string | null;
   role: AppRole;
   is_immune: boolean;
   is_active: boolean;
@@ -130,6 +131,7 @@ export interface Database {
           last_name: string;
           email: string;
           mobile_number?: string | null;
+          avatar_url?: string | null;
           role?: AppRole;
           is_immune?: boolean;
           is_active?: boolean;
@@ -143,6 +145,7 @@ export interface Database {
           last_name?: string;
           email?: string;
           mobile_number?: string | null;
+          avatar_url?: string | null;
           role?: AppRole;
           is_immune?: boolean;
           is_active?: boolean;

@@ -33,9 +33,10 @@ export default function ClearScheduleButton({ scheduleWeekId, weekStart }: { sch
       <Button onClick={() => setConfirming(true)}>Clear schedule</Button>
 
       {confirming && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50" onClick={() => setConfirming(false)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setConfirming(false)}>
           <div
-            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-md p-6 flex flex-col gap-3"
+            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in"
+            style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-serif text-xl text-[var(--ink)] m-0">Clear this week&apos;s schedule?</h2>

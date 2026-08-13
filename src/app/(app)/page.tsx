@@ -7,6 +7,7 @@ import { Panel, Pill, Card, Avatar } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek } from "@/lib/scheduleDates";
 import { toTitleCase, formatFullName } from "@/lib/format";
+import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
 
 const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   pending: "warn",
@@ -43,13 +44,13 @@ export default async function DashboardPage() {
     .from("leave_requests")
     // Must disambiguate: leave_requests has two FKs to profiles
     // (associate_id, reviewed_by) — see /leave/page.tsx for the full note.
-    .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name)")
+    .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url)")
     .order("created_at", { ascending: false })
     .limit(5);
 
   const [{ data: assignments }, { data: recentLeave }] = await Promise.all([
     week
-      ? supabase.from("assignments").select("*, workstations(name), profiles(first_name, last_name)").eq("schedule_week_id", week.id)
+      ? supabase.from("assignments").select("*, workstations(name), profiles(first_name, last_name, avatar_url)").eq("schedule_week_id", week.id)
       : Promise.resolve({ data: null }),
     approver ? leaveQuery : leaveQuery.eq("associate_id", profile.id),
   ]);
@@ -59,14 +60,25 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <header className="mb-5.5 mb-6">
-        <h1 className="font-serif text-2xl m-0 mb-1">Good day, {toTitleCase(profile.first_name)}</h1>
-        <p className="text-sm text-[var(--muted)] m-0">
-          Week of {weekStart} · {totalStations} stations · signed in as {formatFullName(profile.first_name, profile.last_name)}
-        </p>
+      <header className="mb-8">
+        <div className="flex items-center gap-5">
+          <ProfilePhotoFrame
+            firstName={profile.first_name}
+            lastName={profile.last_name}
+            avatarUrl={profile.avatar_url}
+          />
+          <div>
+            <h1 className="font-serif text-2xl md:text-[28px] m-0 mb-1 tracking-tight">
+              Good day, {toTitleCase(profile.first_name)}
+            </h1>
+            <p className="text-sm text-[var(--muted)] m-0">
+              Week of {weekStart} · {totalStations} stations · {ROLE_LABEL[profile.role]}
+            </p>
+          </div>
+        </div>
       </header>
 
-      <div className={`grid grid-cols-2 ${profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-3"} gap-3 mb-5.5 mb-6`}>
+      <div className={`grid grid-cols-2 ${profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-3"} gap-3 mb-8`}>
         <Card label="Stations manned" value={`${stationsManned} / ${totalStations}`} sub={week ? "This week's coverage" : "No schedule published yet"} />
         <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} />
         {profile.role === "team_leader" && <Card label="Immune this cycle" value={String(immuneCount ?? 0)} sub="Excluded from shuffle" />}
@@ -83,29 +95,35 @@ export default async function DashboardPage() {
 
       <Panel title="This week's assignments" hint={week ? week.week_start_date : "Not yet generated"}>
         {assignments && assignments.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {assignments.map((a) => {
               const isOwn = a.associate_id === profile.id;
               return (
                 <div
                   key={a.id}
-                  className={`border rounded-md p-3 ${
-                    isOwn ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--line)] bg-[var(--paper)]"
+                  className={`border rounded-lg p-3.5 transition-colors ${
+                    isOwn ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--line)] bg-[var(--paper)] hover:border-[var(--accent)]"
                   }`}
+                  style={{ boxShadow: isOwn ? "var(--shadow-sm)" : undefined }}
                 >
-                  <div className={`text-[11px] uppercase tracking-wide ${isOwn ? "text-[var(--accent-strong)]" : "text-[var(--muted)]"}`}>
+                  <div className={`text-[10px] uppercase tracking-wider font-semibold ${isOwn ? "text-[var(--accent-strong)]" : "text-[var(--muted)]"}`}>
                     {(a as any).workstations?.name}
                     {isOwn ? " — your station" : ""}
                   </div>
-                  <div className="font-serif text-base mt-1">
-                    {formatFullName((a as any).profiles?.first_name, (a as any).profiles?.last_name)}
+                  <div className="font-serif text-base mt-1.5 flex items-center gap-2">
+                    <Avatar
+                      firstName={(a as any).profiles?.first_name ?? ""}
+                      lastName={(a as any).profiles?.last_name ?? ""}
+                      avatarUrl={(a as any).profiles?.avatar_url}
+                    />
+                    <span>{formatFullName((a as any).profiles?.first_name, (a as any).profiles?.last_name)}</span>
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="text-sm text-[var(--muted)] py-2">
+          <p className="text-sm text-[var(--muted)] py-3">
             No schedule has been generated for this week yet.
           </p>
         )}
@@ -116,10 +134,10 @@ export default async function DashboardPage() {
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>
-                {approver && <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Associate</th>}
-                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Type</th>
-                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Dates</th>
-                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
+                {approver && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-3 border-b border-[var(--line)]">Associate</th>}
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-3 border-b border-[var(--line)]">Type</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-3 border-b border-[var(--line)]">Dates</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-3 border-b border-[var(--line)]">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -127,25 +145,29 @@ export default async function DashboardPage() {
                 recentLeave.map((r) => (
                   <tr key={r.id}>
                     {approver && (
-                      <td className="py-2.5 border-b border-[var(--line)]">
+                      <td className="py-3 border-b border-[var(--line)]">
                         <span className="flex items-center">
-                          <Avatar firstName={(r as any).profiles?.first_name ?? ""} lastName={(r as any).profiles?.last_name ?? ""} />
+                          <Avatar
+                            firstName={(r as any).profiles?.first_name ?? ""}
+                            lastName={(r as any).profiles?.last_name ?? ""}
+                            avatarUrl={(r as any).profiles?.avatar_url}
+                          />
                           {formatFullName((r as any).profiles?.first_name, (r as any).profiles?.last_name)}
                         </span>
                       </td>
                     )}
-                    <td className="py-2.5 border-b border-[var(--line)] capitalize">{r.leave_type}</td>
-                    <td className="py-2.5 border-b border-[var(--line)]">
+                    <td className="py-3 border-b border-[var(--line)] capitalize">{r.leave_type}</td>
+                    <td className="py-3 border-b border-[var(--line)]">
                       {r.start_date === r.end_date ? r.start_date : `${r.start_date} – ${r.end_date}`}
                     </td>
-                    <td className="py-2.5 border-b border-[var(--line)]">
+                    <td className="py-3 border-b border-[var(--line)]">
                       <Pill tone={STATUS_TONE[r.status as LeaveStatus]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={approver ? 4 : 3} className="py-4 text-[var(--muted)]">
+                  <td colSpan={approver ? 4 : 3} className="py-6 text-[var(--muted)] text-center">
                     No leave activity yet.
                   </td>
                 </tr>

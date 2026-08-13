@@ -27,11 +27,11 @@ function NavLink({ item, badgeCount }: { item: NavItem; badgeCount: number }) {
   return (
     <Link
       href={item.href}
-      className="px-2.5 py-2 rounded text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--paper-raised)] hover:text-[var(--ink)] flex items-center justify-between"
+      className="px-3 py-2 rounded-md text-[13px] font-semibold text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--ink)] flex items-center justify-between transition-colors"
     >
       {item.label}
       {badgeCount > 0 && (
-        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--accent)] text-white text-[10.5px] font-bold">
+        <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold" style={{ boxShadow: "var(--shadow-xs)" }}>
           {badgeCount}
         </span>
       )}
@@ -50,13 +50,11 @@ export default function Sidebar({
   pendingLeaveRequests?: number;
   realRole?: AppRole;
 }) {
-  const initials = `${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase();
-
   return (
-    <aside className="border-r border-[var(--line)] px-4 py-6 flex flex-col gap-6 h-full w-[216px] overflow-y-auto shrink-0 bg-[var(--paper)]">
+    <aside className="border-r border-[var(--line)] px-4 py-6 flex flex-col gap-6 h-full w-[220px] overflow-y-auto shrink-0 bg-[var(--paper)]">
       <div>
-        <div className="font-serif text-[17px] font-bold text-[var(--ink)]">CRS Naga</div>
-        <span className="block text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)] mt-0.5">
+        <div className="font-serif text-[18px] font-bold text-[var(--ink)] tracking-tight">CRS Naga</div>
+        <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] mt-0.5">
           Field Operations
         </span>
       </div>
@@ -80,14 +78,23 @@ export default function Sidebar({
       </div>
 
       <div className="border-t border-[var(--line)] pt-4 flex items-center gap-2.5">
-        <span className="w-7 h-7 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-[11px] font-bold shrink-0">
-          {initials}
-        </span>
+        {profile.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profile.avatar_url}
+            alt=""
+            className="w-8 h-8 rounded-full object-cover ring-1 ring-[var(--accent-soft)] shrink-0"
+          />
+        ) : (
+          <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-[11px] font-bold shrink-0 ring-1 ring-[var(--accent-soft)]">
+            {`${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase()}
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <div className="text-[12.5px] font-semibold text-[var(--ink)] truncate">
             {formatFullName(profile.first_name, profile.last_name)}
           </div>
-          <div className="text-[11px] text-[var(--muted)]">{ROLE_LABEL[profile.role]}</div>
+          <div className="text-[10.5px] text-[var(--muted)]">{ROLE_LABEL[profile.role]}</div>
         </div>
         <SignOutButton />
       </div>

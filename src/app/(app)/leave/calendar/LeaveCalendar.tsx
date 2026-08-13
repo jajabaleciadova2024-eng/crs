@@ -38,12 +38,12 @@ export default function LeaveCalendar({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <Button style={{ padding: "5px 10px" }} onClick={() => shiftMonth(-1)}>
+      <div className="flex items-center justify-between mb-4">
+        <Button style={{ padding: "6px 12px" }} onClick={() => shiftMonth(-1)}>
           ← Prev
         </Button>
         <div className="flex items-center gap-3">
-          <span className="font-serif text-base">
+          <span className="font-serif text-lg tracking-tight">
             {MONTH_LABEL[month - 1]} {year}
           </span>
           <button
@@ -53,28 +53,28 @@ export default function LeaveCalendar({
               setMonth(Number(today.slice(5, 7)));
               setSelectedDate(null);
             }}
-            className="text-[11px] font-bold text-[var(--accent-strong)]"
+            className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline"
           >
             Today
           </button>
         </div>
-        <Button style={{ padding: "5px 10px" }} onClick={() => shiftMonth(1)}>
+        <Button style={{ padding: "6px 12px" }} onClick={() => shiftMonth(1)}>
           Next →
         </Button>
       </div>
 
-      <div className="flex items-center gap-3 mb-3 text-[11px] text-[var(--muted)]">
-        <span className="inline-flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full" style={{ background: "var(--warn)" }} /> Pending
+      <div className="flex items-center gap-4 mb-4 text-[11px] text-[var(--muted)]">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--warn)" }} /> Pending
         </span>
-        <span className="inline-flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full" style={{ background: "var(--good)" }} /> Approved
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--good)" }} /> Approved
         </span>
       </div>
 
       <div className="grid grid-cols-7 gap-1">
         {WEEKDAY_LABELS.map((label) => (
-          <div key={label} className="text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold text-center py-1">
+          <div key={label} className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold text-center py-1.5">
             {label}
           </div>
         ))}
@@ -90,14 +90,18 @@ export default function LeaveCalendar({
               type="button"
               onClick={() => setSelectedDate(entries.length > 0 ? date : null)}
               disabled={entries.length === 0}
-              className={`flex flex-col items-start gap-1 rounded border px-1.5 py-1.5 min-h-[64px] text-left transition-colors ${
-                isSelected ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--line)]"
-              } ${inMonth ? "bg-[var(--paper)]" : "bg-[var(--paper-raised)] opacity-50"} ${
-                entries.length > 0 ? "cursor-pointer hover:border-[var(--accent)]" : "cursor-default"
+              className={`flex flex-col items-start gap-1 rounded-md border px-2 py-2 min-h-[68px] text-left transition-all ${
+                isSelected ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-sm" : "border-[var(--line)]"
+              } ${inMonth ? "bg-[var(--paper)]" : "bg-[var(--paper-raised)] opacity-40"} ${
+                entries.length > 0 ? "cursor-pointer hover:border-[var(--accent)] hover:shadow-sm" : "cursor-default"
               }`}
             >
               <span
-                className={`text-[11.5px] ${isToday ? "font-bold text-[var(--accent-strong)]" : "text-[var(--muted)]"}`}
+                className={`text-[11.5px] leading-none ${
+                  isToday
+                    ? "font-bold text-white bg-[var(--accent)] w-[22px] h-[22px] rounded-full flex items-center justify-center"
+                    : "text-[var(--muted)]"
+                }`}
               >
                 {Number(date.slice(8, 10))}
               </span>
@@ -109,7 +113,7 @@ export default function LeaveCalendar({
                     style={{ background: e.status === "approved" ? "var(--good)" : "var(--warn)" }}
                   />
                 ))}
-                {entries.length > 4 && <span className="text-[9.5px] text-[var(--muted)]">+{entries.length - 4}</span>}
+                {entries.length > 4 && <span className="text-[9px] text-[var(--muted)] font-medium">+{entries.length - 4}</span>}
               </div>
             </button>
           );
@@ -117,18 +121,18 @@ export default function LeaveCalendar({
       </div>
 
       {selectedDate && (
-        <div className="mt-4 border-t border-[var(--line)] pt-3">
-          <div className="text-xs font-bold mb-2">
+        <div className="mt-5 border-t border-[var(--line)] pt-4 animate-fade-in-up">
+          <div className="text-xs font-bold mb-3 text-[var(--ink)]">
             On leave — {selectedDate}
           </div>
           {selectedEntries.length === 0 ? (
             <p className="text-sm text-[var(--muted)] m-0">No one is on leave this day.</p>
           ) : (
-            <ul className="flex flex-col gap-1.5 m-0 p-0 list-none">
+            <ul className="flex flex-col gap-2 m-0 p-0 list-none">
               {selectedEntries.map((e, i) => (
-                <li key={`${e.id}-${i}`} className="flex items-center gap-2 text-sm">
-                  <span>{e.name}</span>
-                  <span className="text-[var(--muted)] capitalize">{typeLabel(e.leaveType)}</span>
+                <li key={`${e.id}-${i}`} className="flex items-center gap-2.5 text-sm bg-[var(--paper)] rounded-md px-3 py-2 border border-[var(--line)]">
+                  <span className="font-medium">{e.name}</span>
+                  <span className="text-[var(--muted)] capitalize text-xs">{typeLabel(e.leaveType)}</span>
                   <Pill tone={e.status === "approved" ? "good" : "warn"}>{e.status === "approved" ? "Approved" : "Pending"}</Pill>
                 </li>
               ))}

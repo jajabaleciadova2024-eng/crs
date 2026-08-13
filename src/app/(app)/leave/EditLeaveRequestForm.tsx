@@ -108,7 +108,7 @@ export default function EditLeaveRequestForm({
     <div className="flex flex-col gap-2.5 bg-[var(--paper)] rounded-md p-3 border border-[var(--line)]">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <div>
-          <label className="block text-[10.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1">Leave type</label>
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">Leave type</label>
           <select
             value={leaveType}
             onChange={(e) => setLeaveType(e.target.value)}
@@ -122,7 +122,7 @@ export default function EditLeaveRequestForm({
           </select>
         </div>
         <div>
-          <label className="block text-[10.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1">
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">
             Reason {requireReason ? "" : "(optional)"}
           </label>
           <input

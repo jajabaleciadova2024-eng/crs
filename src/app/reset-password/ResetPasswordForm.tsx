@@ -102,7 +102,7 @@ export default function ResetPasswordForm() {
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+                <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   New password
                 </label>
                 <input
@@ -116,7 +116,7 @@ export default function ResetPasswordForm() {
                 />
               </div>
               <div>
-                <label htmlFor="confirm" className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+                <label htmlFor="confirm" className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Confirm password
                 </label>
                 <input

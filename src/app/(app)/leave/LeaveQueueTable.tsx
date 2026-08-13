@@ -25,7 +25,7 @@ export type QueueRequest = {
   review_note: string | null;
   final_rejection: boolean;
   leave_request_ranges: Range[];
-  profiles: { first_name: string; last_name: string } | null;
+  profiles: { first_name: string; last_name: string; avatar_url?: string | null } | null;
 };
 
 const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
@@ -117,12 +117,12 @@ export default function LeaveQueueTable({
     <table className="w-full text-[13px] border-collapse">
       <thead>
         <tr>
-          {canViewAll && <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Associate</th>}
-          <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Type</th>
-          <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Dates</th>
-          <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Reason</th>
-          <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
-          <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Document</th>
+          {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Associate</th>}
+          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Type</th>
+          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Dates</th>
+          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Reason</th>
+          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
+          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Document</th>
           <th className="py-2.5 border-b border-[var(--line)]" />
         </tr>
       </thead>
@@ -152,7 +152,7 @@ export default function LeaveQueueTable({
                 {canViewAll && (
                   <td className="py-2.5 border-b border-[var(--line)]">
                     <span className="flex items-center">
-                      <Avatar firstName={r.profiles?.first_name ?? ""} lastName={r.profiles?.last_name ?? ""} />
+                      <Avatar firstName={r.profiles?.first_name ?? ""} lastName={r.profiles?.last_name ?? ""} avatarUrl={r.profiles?.avatar_url} />
                       {formatFullName(r.profiles?.first_name, r.profiles?.last_name)}
                     </span>
                   </td>
@@ -264,9 +264,10 @@ export default function LeaveQueueTable({
       const isReopenableType = rejectingTypeConfig?.behavior === "auto_approve_document";
       const busy = pendingId === rejectingRequest.id;
       return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50" onClick={() => setRejectingRequest(null)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setRejectingRequest(null)}>
           <div
-            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-md p-6 flex flex-col gap-3"
+            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in"
+            style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-serif text-xl text-[var(--ink)] m-0">Reject this request?</h2>
@@ -303,11 +304,11 @@ export default function LeaveQueueTable({
               {isReopenableType && (
                 <Button
                   variant="primary"
-                  style={{ padding: "7px 14px", background: "var(--ink)", borderColor: "var(--ink)" }}
+                  style={{ padding: "7px 14px", background: "var(--bad-strong)", borderColor: "var(--bad-strong)" }}
                   disabled={busy || !rejectNote.trim()}
                   onClick={() => submitReject(true)}
                 >
-                  {busy ? "Rejecting…" : "Reject — Final"}
+                  {busy ? "Rejecting…" : "⛔ Reject — Final"}
                 </Button>
               )}
             </div>

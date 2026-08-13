@@ -13,9 +13,14 @@
   --warn-soft: #f6e6d1;
   --bad: #a13e3e;
   --bad-soft: #f5dede;
+  --bad-strong: #6e2020;
   --good: #659287;
   --good-soft: #d3e6da;
   --radius: 6px;
+  --shadow-xs: 0 1px 2px rgba(34,51,44,0.04);
+  --shadow-sm: 0 1px 3px rgba(34,51,44,0.06), 0 1px 2px rgba(34,51,44,0.04);
+  --shadow-md: 0 4px 12px rgba(34,51,44,0.07), 0 1px 3px rgba(34,51,44,0.05);
+  --shadow-lg: 0 8px 24px rgba(34,51,44,0.09), 0 2px 6px rgba(34,51,44,0.04);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -32,8 +37,13 @@
     --warn-soft: #3a2e1a;
     --bad: #e08080;
     --bad-soft: #3a2222;
+    --bad-strong: #ff6b6b;
     --good: #88bda4;
     --good-soft: #1f3a2f;
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.12);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.16), 0 1px 2px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.12);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.24), 0 2px 6px rgba(0,0,0,0.12);
   }
 }
 
@@ -50,8 +60,13 @@
   --warn-soft: #3a2e1a;
   --bad: #e08080;
   --bad-soft: #3a2222;
+  --bad-strong: #ff6b6b;
   --good: #88bda4;
   --good-soft: #1f3a2f;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.12);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.16), 0 1px 2px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.24), 0 2px 6px rgba(0,0,0,0.12);
 }
 
 :root[data-theme="light"] {
@@ -67,8 +82,13 @@
   --warn-soft: #f6e6d1;
   --bad: #a13e3e;
   --bad-soft: #f5dede;
+  --bad-strong: #6e2020;
   --good: #659287;
   --good-soft: #d3e6da;
+  --shadow-xs: 0 1px 2px rgba(34,51,44,0.04);
+  --shadow-sm: 0 1px 3px rgba(34,51,44,0.06), 0 1px 2px rgba(34,51,44,0.04);
+  --shadow-md: 0 4px 12px rgba(34,51,44,0.07), 0 1px 3px rgba(34,51,44,0.05);
+  --shadow-lg: 0 8px 24px rgba(34,51,44,0.09), 0 2px 6px rgba(34,51,44,0.04);
 }
 
 * {
@@ -89,7 +109,9 @@ body {
   color: var(--ink);
   font-family: "Segoe UI", system-ui, sans-serif;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 img,
@@ -104,4 +126,128 @@ svg {
 
 table {
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Smooth interactive transitions ────────────────────────────── */
+
+button,
+[role="button"] {
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease,
+    transform 0.1s ease;
+  cursor: pointer;
+}
+
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+a {
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+input,
+select,
+textarea {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ── Focus-visible rings ───────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ── Table row hover ───────────────────────────────────────────── */
+
+tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+tbody tr:hover {
+  background-color: color-mix(in srgb, var(--accent-soft) 40%, transparent);
+}
+
+/* ── Scrollbar styling ─────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+/* ── Animation keyframes ───────────────────────────────────────── */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.25s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out both;
+}
+
+/* ── Selection color ───────────────────────────────────────────── */
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
 }

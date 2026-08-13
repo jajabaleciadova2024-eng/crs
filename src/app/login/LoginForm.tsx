@@ -56,18 +56,19 @@ export default function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--paper)] px-4">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm animate-fade-in-up">
         <div className="mb-8 text-center">
-          <h1 className="font-serif text-2xl text-[var(--ink)]">CRS Naga</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">Field Operations</p>
+          <h1 className="font-serif text-3xl text-[var(--ink)] tracking-tight">CRS Naga</h1>
+          <p className="text-sm text-[var(--muted)] mt-1.5 font-medium">Field Operations</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-md p-6 flex flex-col gap-4"
+          className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-7 flex flex-col gap-4"
+          style={{ boxShadow: "var(--shadow-md)" }}
         >
           <div>
-            <label htmlFor="identifier" className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+            <label htmlFor="identifier" className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
               PSID or Email
             </label>
             <input
@@ -78,16 +79,16 @@ export default function LoginForm() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               placeholder=""
-              className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className="w-full px-3 py-2.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+              <label htmlFor="password" className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)]">
                 Password
               </label>
-              <Link href="/forgot-password" className="text-xs font-bold text-[var(--accent-strong)]">
+              <Link href="/forgot-password" className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline">
                 Forgot password?
               </Link>
             </div>
@@ -97,12 +98,12 @@ export default function LoginForm() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className="w-full px-3 py-2.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
             />
           </div>
 
           {error && (
-            <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
+            <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-md px-3 py-2.5 animate-fade-in-up">
               {error}
             </p>
           )}
@@ -110,7 +111,8 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-1 w-full py-2.5 rounded bg-[var(--accent)] text-white text-sm font-bold hover:bg-[var(--accent-strong)] disabled:opacity-50"
+            className="mt-1 w-full py-2.5 rounded-md bg-[var(--accent)] text-white text-sm font-bold hover:bg-[var(--accent-strong)] disabled:opacity-50"
+            style={{ boxShadow: "var(--shadow-sm)" }}
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>
@@ -120,7 +122,7 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setShowRequestAccess(true)}
-              className="font-bold text-[var(--accent-strong)]"
+              className="font-bold text-[var(--accent-strong)] hover:underline"
             >
               Request access
             </button>

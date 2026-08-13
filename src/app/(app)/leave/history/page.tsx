@@ -35,7 +35,7 @@ export default async function LeaveHistoryPage() {
     // Must disambiguate: leave_requests has two FKs to profiles
     // (associate_id, reviewed_by) — see /leave/page.tsx for the full note.
     .select(
-      "id, associate_id, leave_type, start_date, end_date, status, document_path, reviewed_at, review_note, final_rejection, profiles!leave_requests_associate_id_fkey(first_name, last_name), leave_request_ranges(start_date, end_date)"
+      "id, associate_id, leave_type, start_date, end_date, status, document_path, reviewed_at, review_note, final_rejection, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)"
     )
     .lt("reviewed_at", weekStart)
     // Approved requests roll in normally; rejected ones roll in unless
@@ -91,12 +91,12 @@ export default async function LeaveHistoryPage() {
               <table className="w-full text-[13px] border-collapse">
                 <thead>
                   <tr>
-                    {canViewAll && <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Associate</th>}
-                    <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Type</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Dates</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Document</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Decided on</th>
+                    {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Associate</th>}
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Type</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Dates</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Document</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Decided on</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -109,7 +109,7 @@ export default async function LeaveHistoryPage() {
                         {canViewAll && (
                           <td className="py-2.5 border-b border-[var(--line)]">
                             <span className="flex items-center">
-                              <Avatar firstName={p?.first_name ?? ""} lastName={p?.last_name ?? ""} />
+                              <Avatar firstName={p?.first_name ?? ""} lastName={p?.last_name ?? ""} avatarUrl={p?.avatar_url} />
                               {formatFullName(p?.first_name, p?.last_name)}
                             </span>
                           </td>

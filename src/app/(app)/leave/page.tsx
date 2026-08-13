@@ -39,7 +39,7 @@ export default async function LeavePage() {
     // must name which one, otherwise PostgREST errors with "more than one
     // relationship was found" and the whole query returns null (this was
     // silently emptying the queue for every account).
-    .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name), leave_request_ranges(start_date, end_date)")
+    .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)")
     .or(`status.eq.pending,reviewed_at.gte.${weekStart},and(status.eq.rejected,document_path.not.is.null,final_rejection.eq.false)`)
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });

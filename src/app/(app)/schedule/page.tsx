@@ -61,7 +61,7 @@ export default async function SchedulePage() {
   const { data: assignments } = week
     ? await supabase
         .from("assignments")
-        .select(`*, workstations(name), profiles(first_name, last_name${canManage ? ", is_immune" : ""})`)
+        .select(`*, workstations(name), profiles(first_name, last_name, avatar_url${canManage ? ", is_immune" : ""})`)
         .eq("schedule_week_id", week.id)
         .order("workstation_id")
     : { data: [] };
@@ -137,10 +137,10 @@ export default async function SchedulePage() {
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>
-                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
-                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Assigned to</th>
-                {canManage && <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>}
-                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Leave</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Assigned to</th>
+                {canManage && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>}
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Leave</th>
                 {canManage && <th className="py-2.5 border-b border-[var(--line)]" />}
               </tr>
             </thead>

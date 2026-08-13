@@ -55,7 +55,7 @@ export default function AddWorkstationForm() {
         <h2 className="text-sm font-bold mb-4">Add workstation</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Name</label>
+            <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -63,7 +63,7 @@ export default function AddWorkstationForm() {
             />
           </div>
           <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Description (optional)</label>
+            <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Description (optional)</label>
             <input
               value={description}
               onChange={(e) => setDescription(e.target.value)}

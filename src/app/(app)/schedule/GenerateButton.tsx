@@ -86,9 +86,10 @@ export default function GenerateButton({
       </Button>
 
       {open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setOpen(false)}>
           <div
-            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-md p-6 flex flex-col gap-4"
+            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-4 animate-scale-in"
+            style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div>
@@ -101,7 +102,7 @@ export default function GenerateButton({
 
             {immuneMembers.length > 0 && (
               <div>
-                <h3 className="text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-2">
+                <h3 className="text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2">
                   Immune members — place them first (required)
                 </h3>
                 <div className="flex flex-col gap-2">
@@ -134,10 +135,10 @@ export default function GenerateButton({
               <table className="w-full text-[13px] border-collapse">
                 <thead>
                   <tr>
-                    <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Station</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Headcount</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Tenured</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">New Hire</th>
+                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Station</th>
+                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Headcount</th>
+                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Tenured</th>
+                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">New Hire</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -179,19 +180,19 @@ export default function GenerateButton({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-[var(--paper)] rounded-md p-3 border border-[var(--line)] text-[13px]">
               <div>
-                <div className="text-[10.5px] uppercase tracking-wide text-[var(--muted)] mb-0.5">Headcount planned</div>
+                <div className="text-[10.5px] uppercase tracking-wider text-[var(--muted)] mb-0.5">Headcount planned</div>
                 <div className={totals.headcount > totalMembers ? "text-[var(--bad)] font-bold" : "font-bold"}>
                   {totals.headcount} / {totalMembers}
                 </div>
               </div>
               <div>
-                <div className="text-[10.5px] uppercase tracking-wide text-[var(--muted)] mb-0.5">Tenured planned</div>
+                <div className="text-[10.5px] uppercase tracking-wider text-[var(--muted)] mb-0.5">Tenured planned</div>
                 <div className={totals.tenured > totalTenured ? "text-[var(--bad)] font-bold" : "font-bold"}>
                   {totals.tenured} / {totalTenured}
                 </div>
               </div>
               <div>
-                <div className="text-[10.5px] uppercase tracking-wide text-[var(--muted)] mb-0.5">New Hire planned</div>
+                <div className="text-[10.5px] uppercase tracking-wider text-[var(--muted)] mb-0.5">New Hire planned</div>
                 <div className={totals.newHire > totalNewHire ? "text-[var(--bad)] font-bold" : "font-bold"}>
                   {totals.newHire} / {totalNewHire}
                 </div>

@@ -73,13 +73,13 @@ export default function OrgSettingsForm({ settings }: { settings: OrgSettings })
       </table>
 
       <div>
-        <div className="text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-2">Leave types</div>
+        <div className="text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2">Leave types</div>
         <div className="overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>
-                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Label</th>
-                <th className="text-left text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Behavior</th>
+                <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Label</th>
+                <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Behavior</th>
                 <th className="py-2 border-b border-[var(--line)]" />
               </tr>
             </thead>

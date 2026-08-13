@@ -24,13 +24,16 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
 
   return (
     <>
-      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--paper)]">
-        <span className="font-serif text-[17px] font-bold text-[var(--ink)]">CRS Naga</span>
+      <div
+        className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--paper)]"
+        style={{ boxShadow: "var(--shadow-xs)" }}
+      >
+        <span className="font-serif text-[17px] font-bold text-[var(--ink)] tracking-tight">CRS Naga</span>
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open menu"
-          className="p-2 -mr-2 text-[var(--ink)]"
+          className="p-2 -mr-2 text-[var(--ink)] rounded-md hover:bg-[var(--accent-soft)]"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <line x1="3" y1="6" x2="21" y2="6" />
@@ -42,7 +45,7 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
 
       {open && (
         <div
-          className="md:hidden fixed inset-0 bg-black/40 z-40"
+          className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40 animate-fade-in"
           onClick={() => setOpen(false)}
           aria-hidden="true"
         />

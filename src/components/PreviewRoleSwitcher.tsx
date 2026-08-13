@@ -24,7 +24,7 @@ export default function PreviewRoleSwitcher({ currentRole }: { currentRole: AppR
 
   return (
     <div className="px-2.5 py-2 rounded border border-dashed border-[var(--line)]">
-      <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Preview as</div>
+      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Preview as</div>
       <select
         value={currentRole}
         disabled={pending}

@@ -63,7 +63,7 @@ export default function ForgotPasswordForm() {
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label htmlFor="identifier" className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+                <label htmlFor="identifier" className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   PSID or Email
                 </label>
                 <input

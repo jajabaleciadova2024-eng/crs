@@ -127,7 +127,7 @@ export default function LeaveRequestForm({
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
-        <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Leave type</label>
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Leave type</label>
         <select
           value={leaveType}
           onChange={(e) => setLeaveType(e.target.value)}
@@ -141,7 +141,7 @@ export default function LeaveRequestForm({
         </select>
       </div>
       <div>
-        <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
           Reason {requireReason ? "" : "(optional)"}
         </label>
         <input
@@ -154,7 +154,7 @@ export default function LeaveRequestForm({
       </div>
 
       <div className="col-span-2 flex flex-col gap-2">
-        <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)]">
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
           Date(s) — add more if they&apos;re not consecutive
         </label>
         {ranges.map((r, i) => (
@@ -204,7 +204,7 @@ export default function LeaveRequestForm({
             is uploaded — attach it now, or later from the queue below.
           </p>
           <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
               Supporting document <span className="normal-case font-normal">(optional)</span>
             </label>
             <input

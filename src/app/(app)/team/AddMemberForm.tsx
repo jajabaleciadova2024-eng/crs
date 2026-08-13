@@ -124,7 +124,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">{label}</label>
+      <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">{label}</label>
       {children ?? (
         <input
           type={type}

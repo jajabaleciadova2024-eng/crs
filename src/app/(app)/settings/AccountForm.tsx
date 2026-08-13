@@ -41,7 +41,7 @@ export default function AccountForm({ profile }: { profile: Profile }) {
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
-        <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">First name</label>
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">First name</label>
         <input
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
@@ -49,7 +49,7 @@ export default function AccountForm({ profile }: { profile: Profile }) {
         />
       </div>
       <div>
-        <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Last name</label>
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Last name</label>
         <input
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
@@ -57,7 +57,7 @@ export default function AccountForm({ profile }: { profile: Profile }) {
         />
       </div>
       <div>
-        <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Mobile number</label>
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Mobile number</label>
         <input
           value={mobile}
           onChange={(e) => setMobile(e.target.value)}
@@ -65,7 +65,7 @@ export default function AccountForm({ profile }: { profile: Profile }) {
         />
       </div>
       <div>
-        <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Email</label>
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Email</label>
         <input
           value={profile.email}
           disabled
@@ -73,7 +73,7 @@ export default function AccountForm({ profile }: { profile: Profile }) {
         />
       </div>
       <div>
-        <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">PSID</label>
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">PSID</label>
         <input
           value={profile.psid}
           disabled
@@ -81,7 +81,7 @@ export default function AccountForm({ profile }: { profile: Profile }) {
         />
       </div>
       <div className="col-span-2">
-        <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Password</label>
+        <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Password</label>
         <Button type="button" onClick={sendReset} disabled={resetSent}>
           {resetSent ? "Reset link sent" : "Send password reset link"}
         </Button>

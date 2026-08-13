@@ -49,9 +49,10 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={onClose}>
       <div
-        className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-md p-6"
+        className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 animate-scale-in"
+        style={{ boxShadow: "var(--shadow-lg)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {sent ? (
@@ -82,7 +83,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
             </p>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">PSID</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">PSID</label>
               <input
                 required
                 value={psid}
@@ -93,7 +94,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">First name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">First name</label>
                 <input
                   required
                   value={firstName}
@@ -102,7 +103,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Middle name <span className="normal-case font-normal">(optional)</span>
                 </label>
                 <input
@@ -114,7 +115,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Last name</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Last name</label>
               <input
                 required
                 value={lastName}
@@ -124,7 +125,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Email</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Email</label>
               <input
                 type="email"
                 required
@@ -135,7 +136,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">Mobile number</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Mobile number</label>
               <input
                 required
                 value={mobile}
@@ -145,7 +146,7 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                 Note to your Team Leader <span className="normal-case font-normal">(optional)</span>
               </label>
               <textarea

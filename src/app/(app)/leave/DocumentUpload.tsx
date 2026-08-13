@@ -102,9 +102,10 @@ export function DocumentLinks({ requestId, canDownload }: { requestId: string; c
       {error && <span className="text-[11px] text-[var(--bad)]">{error}</span>}
 
       {links && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={() => setLinks(null)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in" onClick={() => setLinks(null)}>
           <div
-            className="w-full max-w-3xl h-[85vh] bg-[var(--paper-raised)] border border-[var(--line)] rounded-md flex flex-col overflow-hidden"
+            className="w-full max-w-3xl h-[85vh] bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg flex flex-col overflow-hidden animate-scale-in"
+            style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)] shrink-0">

@@ -7,14 +7,14 @@
 // tells someone they're moving to a different page.
 export default function AppLoading() {
   return (
-    <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="flex items-center justify-center min-h-[50vh] animate-fade-in">
       <div className="flex flex-col items-center gap-3">
         <div
-          className="w-8 h-8 rounded-full border-2 border-[var(--line)] border-t-[var(--accent)] animate-spin"
+          className="w-9 h-9 rounded-full border-[2.5px] border-[var(--line)] border-t-[var(--accent)] animate-spin"
           role="status"
           aria-label="Loading"
         />
-        <span className="text-xs text-[var(--muted)]">Loading…</span>
+        <span className="text-xs text-[var(--muted)] font-medium tracking-wide">Loading…</span>
       </div>
     </div>
   );
