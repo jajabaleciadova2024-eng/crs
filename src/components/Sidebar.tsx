@@ -145,14 +145,14 @@ export default function Sidebar({
   const initials = `${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase();
 
   return (
-    <aside className="px-3 py-6 flex flex-col gap-6 h-full w-full overflow-y-auto overflow-x-hidden shrink-0 bg-[var(--paper)]">
-      <div className="px-1 flex items-center gap-2 group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:px-0">
-        <span className="hidden group-data-[collapsed=true]/sidebar:flex w-8 h-8 rounded-md bg-[var(--accent)] text-white items-center justify-center font-serif font-bold text-sm shrink-0">
+    <aside className="px-3 pt-5 pb-4 flex flex-col gap-5 h-full w-full overflow-y-auto overflow-x-hidden shrink-0 bg-[var(--paper)]">
+      <div className="px-1 flex items-center gap-2.5 group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:px-0">
+        <span className="hidden group-data-[collapsed=true]/sidebar:flex w-9 h-9 rounded-lg bg-[var(--accent)] text-white items-center justify-center font-serif font-bold text-sm shrink-0 shadow-sm">
           CN
         </span>
-        <div className="group-data-[collapsed=true]/sidebar:hidden">
-          <div className="font-serif text-[18px] font-bold text-[var(--ink)] tracking-tight leading-tight">CRS Naga</div>
-          <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] mt-0.5">
+        <div className="group-data-[collapsed=true]/sidebar:hidden min-w-0">
+          <div className="font-serif text-[19px] font-bold text-[var(--ink)] tracking-tight leading-tight">CRS Naga</div>
+          <span className="block text-[9.5px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)] mt-0.5">
             Field Operations
           </span>
         </div>
@@ -174,24 +174,24 @@ export default function Sidebar({
         )}
       </div>
 
-      <div className="border-t border-[var(--line)] pt-4 flex items-center gap-2.5 group-data-[collapsed=true]/sidebar:justify-center">
+      <div className="border-t border-[var(--line)] pt-3.5 flex items-center gap-2.5 group-data-[collapsed=true]/sidebar:justify-center">
         {profile.avatar_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={profile.avatar_url}
             alt=""
-            className="w-8 h-8 rounded-full object-cover ring-1 ring-[var(--accent-soft)] shrink-0"
+            className="w-9 h-9 rounded-full object-cover ring-2 ring-[var(--accent-soft)] shrink-0"
           />
         ) : (
-          <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-[11px] font-bold shrink-0 ring-1 ring-[var(--accent-soft)]">
+          <span className="w-9 h-9 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-[12px] font-bold shrink-0 ring-2 ring-[var(--accent-soft)]">
             {initials}
           </span>
         )}
         <div className="min-w-0 flex-1 group-data-[collapsed=true]/sidebar:hidden">
-          <div className="text-[12.5px] font-semibold text-[var(--ink)] truncate">
+          <div className="text-[12.5px] font-semibold text-[var(--ink)] truncate leading-tight">
             {formatFullName(profile.first_name, profile.last_name)}
           </div>
-          <div className="text-[10.5px] text-[var(--muted)]">{ROLE_LABEL[profile.role]}</div>
+          <div className="text-[10.5px] text-[var(--muted)] mt-0.5">{ROLE_LABEL[profile.role]}</div>
         </div>
         <div className="group-data-[collapsed=true]/sidebar:hidden">
           <SignOutButton />

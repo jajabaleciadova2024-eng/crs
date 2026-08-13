@@ -72,7 +72,7 @@ export default function ProfilePhotoFrame({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        className="relative group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+        className="relative group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper)] transition-transform duration-150 hover:scale-[1.02] active:scale-100"
       >
         <input
           ref={inputRef}
@@ -82,8 +82,8 @@ export default function ProfilePhotoFrame({
           className="hidden"
         />
         <div
-          className="w-[80px] h-[80px] rounded-full overflow-hidden border-[3px] border-[var(--accent)] transition-shadow hover:shadow-md"
-          style={{ boxShadow: "var(--shadow-md)" }}
+          className="w-[84px] h-[84px] rounded-full overflow-hidden border-[3px] border-[var(--paper-raised)] transition-shadow duration-200"
+          style={{ boxShadow: "0 0 0 2px var(--accent), var(--shadow-md)" }}
         >
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -93,13 +93,17 @@ export default function ProfilePhotoFrame({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-[26px] font-bold font-serif">
+            <div className="w-full h-full bg-gradient-to-br from-[var(--accent-soft)] to-[var(--accent-soft)]/60 text-[var(--accent-strong)] flex items-center justify-center text-[28px] font-bold font-serif">
               {initials}
             </div>
           )}
         </div>
-        <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <span className="text-white text-[10px] font-bold tracking-wide">
+        <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex flex-col items-center justify-center gap-1">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
+          <span className="text-white text-[10px] font-bold tracking-wide uppercase">
             {uploading ? "Working…" : "Change"}
           </span>
         </div>
@@ -108,7 +112,7 @@ export default function ProfilePhotoFrame({
         <button
           type="button"
           onClick={handleRemove}
-          className="text-[11px] font-semibold text-[var(--muted)] hover:text-[var(--bad)]"
+          className="text-[11px] font-semibold text-[var(--muted)] hover:text-[var(--bad)] underline-offset-2 hover:underline"
         >
           Remove photo
         </button>

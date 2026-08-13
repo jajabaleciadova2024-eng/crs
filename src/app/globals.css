@@ -5,6 +5,7 @@
   --paper: #e6f2dd;
   --paper-raised: #ffffff;
   --line: #b1d3b9;
+  --line-strong: #7fb593;
   --muted: #5b7568;
   --accent: #659287;
   --accent-soft: #d3e6da;
@@ -20,7 +21,11 @@
   --shadow-xs: 0 1px 2px rgba(34,51,44,0.04);
   --shadow-sm: 0 1px 3px rgba(34,51,44,0.06), 0 1px 2px rgba(34,51,44,0.04);
   --shadow-md: 0 4px 12px rgba(34,51,44,0.07), 0 1px 3px rgba(34,51,44,0.05);
-  --shadow-lg: 0 8px 24px rgba(34,51,44,0.09), 0 2px 6px rgba(34,51,44,0.04);
+  --shadow-lg: 0 12px 32px rgba(34,51,44,0.12), 0 3px 8px rgba(34,51,44,0.06);
+  --shadow-xl: 0 24px 48px rgba(34,51,44,0.16), 0 6px 12px rgba(34,51,44,0.08);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.4, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,6 +34,7 @@
     --paper: #12201b;
     --paper-raised: #1a2b23;
     --line: #2c453a;
+    --line-strong: #497660;
     --muted: #8fae97;
     --accent: #88bda4;
     --accent-soft: #1f3a2f;
@@ -40,10 +46,11 @@
     --bad-strong: #ff6b6b;
     --good: #88bda4;
     --good-soft: #1f3a2f;
-    --shadow-xs: 0 1px 2px rgba(0,0,0,0.12);
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.16), 0 1px 2px rgba(0,0,0,0.1);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.12);
-    --shadow-lg: 0 8px 24px rgba(0,0,0,0.24), 0 2px 6px rgba(0,0,0,0.12);
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.14);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.12);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.24), 0 1px 3px rgba(0,0,0,0.16);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.32), 0 3px 8px rgba(0,0,0,0.18);
+    --shadow-xl: 0 24px 48px rgba(0,0,0,0.44), 0 6px 12px rgba(0,0,0,0.22);
   }
 }
 
@@ -52,6 +59,7 @@
   --paper: #12201b;
   --paper-raised: #1a2b23;
   --line: #2c453a;
+  --line-strong: #497660;
   --muted: #8fae97;
   --accent: #88bda4;
   --accent-soft: #1f3a2f;
@@ -63,10 +71,11 @@
   --bad-strong: #ff6b6b;
   --good: #88bda4;
   --good-soft: #1f3a2f;
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.12);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.16), 0 1px 2px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.12);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,0.24), 0 2px 6px rgba(0,0,0,0.12);
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.14);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.12);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.24), 0 1px 3px rgba(0,0,0,0.16);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.32), 0 3px 8px rgba(0,0,0,0.18);
+  --shadow-xl: 0 24px 48px rgba(0,0,0,0.44), 0 6px 12px rgba(0,0,0,0.22);
 }
 
 :root[data-theme="light"] {
@@ -74,6 +83,7 @@
   --paper: #e6f2dd;
   --paper-raised: #ffffff;
   --line: #b1d3b9;
+  --line-strong: #7fb593;
   --muted: #5b7568;
   --accent: #659287;
   --accent-soft: #d3e6da;
@@ -88,7 +98,8 @@
   --shadow-xs: 0 1px 2px rgba(34,51,44,0.04);
   --shadow-sm: 0 1px 3px rgba(34,51,44,0.06), 0 1px 2px rgba(34,51,44,0.04);
   --shadow-md: 0 4px 12px rgba(34,51,44,0.07), 0 1px 3px rgba(34,51,44,0.05);
-  --shadow-lg: 0 8px 24px rgba(34,51,44,0.09), 0 2px 6px rgba(34,51,44,0.04);
+  --shadow-lg: 0 12px 32px rgba(34,51,44,0.12), 0 3px 8px rgba(34,51,44,0.06);
+  --shadow-xl: 0 24px 48px rgba(34,51,44,0.16), 0 6px 12px rgba(34,51,44,0.08);
 }
 
 * {
@@ -97,11 +108,14 @@
 
 /* Safety net so the whole page never scrolls sideways at any zoom level or
    viewport width — wide content (tables, long text) should scroll inside
-   its own overflow-x-auto container instead, never push the page itself. */
+   its own overflow-x-auto container instead, never push the page itself.
+   overscroll-behavior on the body prevents the iOS "rubber band" pull from
+   revealing white space beyond the sticky/fixed chrome. */
 html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -112,6 +126,19 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Custom, subtle tap highlight instead of the default translucent
+     black rectangle Chrome/Android draws on every tap. Our own :active
+     scale animation on buttons provides better feedback. */
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* At wider desktop widths, bump the base a hair for readability — same
+   reason old print typography scaled up on larger surfaces. */
+@media (min-width: 1200px) {
+  body {
+    font-size: 14.5px;
+  }
 }
 
 img,
@@ -122,19 +149,33 @@ svg {
 
 .font-serif {
   font-family: Georgia, "Iowan Old Style", serif;
+  letter-spacing: -0.01em;
 }
 
 table {
   font-variant-numeric: tabular-nums;
 }
 
+/* Prevent iOS Safari from auto-zooming into any form field with a
+   sub-16px font size on focus — a universally hated UX quirk. Only
+   applies on smaller viewports where the zoom happens; the ui.tsx
+   inputs stay their normal 13–14px on desktop where zoom doesn't
+   trigger. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* ── Smooth interactive transitions ────────────────────────────── */
 
 button,
 [role="button"] {
-  transition: background-color 0.15s ease, border-color 0.15s ease,
-    color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease,
-    transform 0.1s ease;
+  transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out),
+    color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out), opacity 0.15s var(--ease-out),
+    transform 0.12s var(--ease-out);
   cursor: pointer;
 }
 
@@ -144,13 +185,14 @@ button:active:not(:disabled),
 }
 
 a {
-  transition: color 0.15s ease, opacity 0.15s ease;
+  transition: color 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
 }
 
 input,
 select,
 textarea {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out),
+    background-color 0.2s var(--ease-out);
 }
 
 /* ── Focus-visible rings ───────────────────────────────────────── */
@@ -158,6 +200,7 @@ textarea {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
 input:focus-visible,
@@ -165,24 +208,36 @@ select:focus-visible,
 textarea:focus-visible {
   outline: none;
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: var(--ring);
+}
+
+/* Buttons already have their own hover/active — a full outline ring on
+   click would be visual noise. Preserve keyboard-only focus via the ring
+   style; suppress the outer outline. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 /* ── Table row hover ───────────────────────────────────────────── */
 
 tbody tr {
-  transition: background-color 0.12s ease;
+  transition: background-color 0.12s var(--ease-out);
 }
 
-tbody tr:hover {
-  background-color: color-mix(in srgb, var(--accent-soft) 40%, transparent);
+@media (hover: hover) {
+  tbody tr:hover {
+    background-color: color-mix(in srgb, var(--accent-soft) 50%, transparent);
+  }
 }
 
 /* ── Scrollbar styling ─────────────────────────────────────────── */
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -190,18 +245,40 @@ tbody tr:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--line);
-  border-radius: 3px;
+  background: color-mix(in srgb, var(--muted) 30%, transparent);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted);
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+  background-clip: content-box;
 }
 
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted) 30%, transparent) transparent;
+}
+
+/* ── Scroll shadow (for horizontal-scroll tables etc.) ─────────── */
+
+/* Add class="scroll-shadow-x" on any horizontally-scrollable wrapper
+   (e.g. .overflow-x-auto div around a table). Sussex CSS trick: two
+   linear-gradients with background-attachment:local reveal a soft
+   shadow on the leading/trailing edge only when there's actually more
+   content off-screen in that direction. Purely visual hint that there's
+   more to scroll to — the scroll behavior itself doesn't change. */
+.scroll-shadow-x {
+  background:
+    linear-gradient(to right, var(--paper-raised) 30%, transparent),
+    linear-gradient(to right, transparent, var(--paper-raised) 70%) 100% 0,
+    radial-gradient(farthest-side at 0 50%, rgba(34,51,44,0.14), transparent),
+    radial-gradient(farthest-side at 100% 50%, rgba(34,51,44,0.14), transparent) 100% 0;
+  background-repeat: no-repeat;
+  background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+  background-attachment: local, local, scroll, scroll;
 }
 
 /* ── Animation keyframes ───────────────────────────────────────── */
@@ -225,12 +302,29 @@ tbody tr:hover {
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent); }
+  70%  { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
 }
 
 /* No `both`/`forwards` fill-mode on any of these: none of them use an
@@ -246,20 +340,71 @@ tbody tr:hover {
    page. Dropping the fill-mode lets the element's transform revert to
    its normal (unset) value once the 0.2–0.25s animation completes. */
 .animate-fade-in-up {
-  animation: fadeInUp 0.25s ease-out;
+  animation: fadeInUp 0.28s var(--ease-out);
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.2s var(--ease-out);
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.2s ease-out;
+  animation: scaleIn 0.22s var(--ease-spring);
+}
+
+.animate-slide-up {
+  animation: slideUp 0.28s var(--ease-out);
+}
+
+/* ── Reduced-motion support ────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  button:active:not(:disabled),
+  [role="button"]:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 /* ── Selection color ───────────────────────────────────────────── */
 
 ::selection {
-  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
   color: var(--ink);
+}
+
+/* ── Placeholder tone ──────────────────────────────────────────── */
+
+::placeholder {
+  color: color-mix(in srgb, var(--muted) 80%, transparent);
+  opacity: 1;
+}
+
+/* ── Date/time picker indicators — match theme in both modes ───── */
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s var(--ease-out);
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.9;
+}
+:root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+:root[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) input[type="date"]::-webkit-calendar-picker-indicator,
+  :root:not([data-theme="light"]) input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+  }
 }

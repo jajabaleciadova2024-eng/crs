@@ -8,12 +8,19 @@
 export default function AppLoading() {
   return (
     <div className="flex items-center justify-center min-h-[50vh] animate-fade-in">
-      <div className="flex flex-col items-center gap-3">
-        <div
-          className="w-9 h-9 rounded-full border-[2.5px] border-[var(--line)] border-t-[var(--accent)] animate-spin"
-          role="status"
-          aria-label="Loading"
-        />
+      <div className="flex flex-col items-center gap-3.5">
+        <div className="relative">
+          <div
+            className="w-10 h-10 rounded-full border-[2.5px] border-[var(--line)] border-t-[var(--accent)] animate-spin"
+            role="status"
+            aria-label="Loading"
+          />
+          <div
+            className="absolute inset-0 w-10 h-10 rounded-full border-[2.5px] border-transparent border-r-[var(--accent-strong)]/40 animate-spin"
+            style={{ animationDuration: "1.8s", animationDirection: "reverse" }}
+            aria-hidden="true"
+          />
+        </div>
         <span className="text-xs text-[var(--muted)] font-medium tracking-wide">Loading…</span>
       </div>
     </div>

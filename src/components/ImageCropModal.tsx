@@ -143,24 +143,28 @@ export default function ImageCropModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4 z-[60] animate-fade-in" onClick={onCancel}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4 py-6 z-[60] animate-fade-in" onClick={onCancel}>
       <div
-        className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-5 flex flex-col gap-3 animate-scale-in"
-        style={{ boxShadow: "var(--shadow-lg)" }}
+        className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl p-5 sm:p-6 flex flex-col gap-4 animate-scale-in"
+        style={{ boxShadow: "var(--shadow-xl)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="font-serif text-lg text-[var(--ink)] m-0">Adjust photo</h2>
+        <div>
+          <h2 className="font-serif text-xl text-[var(--ink)] m-0 leading-tight">Adjust photo</h2>
+          <p className="text-[12px] text-[var(--muted)] m-0 mt-0.5">Drag to reposition. Scroll or use the slider to zoom.</p>
+        </div>
 
         <div className="relative mx-auto" style={{ width: VIEW, height: VIEW }}>
           {/* Dimmed square backdrop behind the circular crop, like
               Facebook's uploader — gives context for how the square
               source image maps onto the round result instead of just
               showing a plain void around the circle. */}
-          <div className="absolute inset-0 rounded-md bg-black/5" />
+          <div className="absolute inset-0 rounded-lg bg-black/5 dark:bg-white/5" />
           <div
-            className={`absolute inset-0 rounded-full overflow-hidden border-2 border-[var(--accent)] bg-[var(--paper)] select-none touch-none ${
+            className={`absolute inset-0 rounded-full overflow-hidden bg-[var(--paper)] select-none touch-none ${
               dragging ? "cursor-grabbing" : "cursor-grab"
             }`}
+            style={{ boxShadow: "0 0 0 2px var(--accent), 0 0 0 6px color-mix(in srgb, var(--accent) 20%, transparent)" }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -219,14 +223,12 @@ export default function ImageCropModal({
           </button>
         </div>
 
-        <p className="text-[11px] text-[var(--muted)] text-center m-0">Drag to reposition, scroll or use the slider to zoom.</p>
-
-        <div className="flex justify-end gap-2 mt-1">
+        <div className="flex gap-2 mt-1">
           <button
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="px-3.5 py-1.5 rounded-md text-[12.5px] font-bold border bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] disabled:opacity-50"
+            className="flex-1 min-h-[38px] px-3.5 py-2 rounded-lg text-[13px] font-bold border bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] disabled:opacity-50"
           >
             Cancel
           </button>
@@ -234,7 +236,7 @@ export default function ImageCropModal({
             type="button"
             onClick={save}
             disabled={saving || !imgUrl}
-            className="px-3.5 py-1.5 rounded-md text-[12.5px] font-bold border bg-[var(--accent)] border-[var(--accent)] text-white hover:bg-[var(--accent-strong)] disabled:opacity-50"
+            className="flex-1 min-h-[38px] px-3.5 py-2 rounded-lg text-[13px] font-bold border bg-[var(--accent)] border-[var(--accent)] text-white hover:bg-[var(--accent-strong)] disabled:opacity-50 shadow-sm hover:shadow"
           >
             {saving ? "Saving…" : "Save photo"}
           </button>

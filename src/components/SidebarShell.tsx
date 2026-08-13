@@ -60,6 +60,22 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
     setOpen(false);
   }, [pathname]);
 
+  // Escape closes the mobile drawer + prevent background scroll while
+  // it's open (standard mobile-drawer/modal etiquette).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   function toggleCollapsed() {
     setCollapsed((prev) => {
       const next = !prev;
@@ -70,18 +86,20 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
 
   return (
     <>
+      {/* Mobile top bar — sticky, blurred, and slightly translucent so
+          content peeking through underneath reads as "there's more
+          above" rather than a flat wall. */}
       <div
-        className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--paper)]"
-        style={{ boxShadow: "var(--shadow-xs)" }}
+        className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--paper)]/85 backdrop-blur-md"
       >
         <span className="font-serif text-[17px] font-bold text-[var(--ink)] tracking-tight">CRS Naga</span>
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open menu"
-          className="p-2 -mr-2 text-[var(--ink)] rounded-md hover:bg-[var(--accent-soft)]"
+          className="inline-flex items-center justify-center w-10 h-10 -mr-2 text-[var(--ink)] rounded-lg hover:bg-[var(--accent-soft)]"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
@@ -91,7 +109,7 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
 
       {open && (
         <div
-          className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40 animate-fade-in"
+          className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in"
           onClick={() => setOpen(false)}
           aria-hidden="true"
         />
@@ -105,12 +123,12 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
           introduce its own containing-block quirks, so it's simplest to
           just never apply one past mobile. */}
       <div
-        className={`fixed top-0 left-0 h-screen z-50 transition-transform duration-200 ease-out ${
+        className={`fixed top-0 left-0 h-[100dvh] z-50 transition-transform duration-250 ease-out will-change-transform ${
           open ? "max-md:translate-x-0" : "max-md:-translate-x-full"
         }`}
       >
         <div
-          className={`group/sidebar relative h-full border-r border-[var(--line)] bg-[var(--paper)] transition-[width] duration-200 ease-out w-[220px] ${
+          className={`group/sidebar relative h-full border-r border-[var(--line)] bg-[var(--paper)] transition-[width] duration-200 ease-out w-[264px] max-md:shadow-2xl md:w-[220px] ${
             collapsed ? "md:w-[72px]" : "md:w-[220px]"
           }`}
           data-collapsed={collapsed ? "true" : "false"}
@@ -124,7 +142,7 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
             onClick={toggleCollapsed}
             aria-label={collapsed ? "Pin sidebar open" : "Collapse sidebar"}
             title={collapsed ? "Pin sidebar open" : "Collapse sidebar"}
-            className="hidden md:flex absolute -right-3 top-9 w-6 h-6 rounded-full bg-[var(--paper-raised)] border border-[var(--line)] items-center justify-center text-[var(--muted)] hover:text-[var(--accent-strong)] hover:border-[var(--accent)] z-10"
+            className="hidden md:flex absolute -right-3 top-9 w-6 h-6 rounded-full bg-[var(--paper-raised)] border border-[var(--line)] items-center justify-center text-[var(--muted)] hover:text-[var(--accent-strong)] hover:border-[var(--accent)] hover:scale-110 z-10"
             style={{ boxShadow: "var(--shadow-sm)" }}
           >
             <svg

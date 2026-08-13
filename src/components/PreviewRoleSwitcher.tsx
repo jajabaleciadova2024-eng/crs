@@ -33,7 +33,7 @@ export default function PreviewRoleSwitcher({ currentRole }: { currentRole: AppR
   }
 
   return (
-    <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--paper-raised)] p-2.5">
+    <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--paper-raised)] p-2.5">
       <div className="flex items-center gap-1.5 mb-2 px-0.5">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--muted)] shrink-0">
           <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
@@ -41,7 +41,7 @@ export default function PreviewRoleSwitcher({ currentRole }: { currentRole: AppR
         </svg>
         <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">View as</span>
       </div>
-      <div className="grid grid-cols-3 gap-1 rounded-md bg-[var(--paper)] p-1 border border-[var(--line)]">
+      <div className="grid grid-cols-3 gap-1 rounded-lg bg-[var(--paper)] p-1 border border-[var(--line)]">
         {OPTIONS.map((opt) => {
           const active = opt.role === currentRole;
           return (
@@ -51,7 +51,7 @@ export default function PreviewRoleSwitcher({ currentRole }: { currentRole: AppR
               disabled={pending}
               title={opt.full}
               onClick={() => setPreview(opt.role)}
-              className={`px-1.5 py-1.5 rounded text-[10.5px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`px-1.5 py-1.5 rounded-md text-[10.5px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                 active
                   ? "bg-[var(--accent)] text-white"
                   : "text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-strong)]"

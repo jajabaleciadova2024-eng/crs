@@ -27,12 +27,16 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   const content = children ?? (
-    <div className="flex items-center justify-between gap-4 flex-wrap">
-      <div>
-        {title && <h1 className="font-serif text-2xl m-0 mb-1">{title}</h1>}
-        {subtitle && <p className="text-sm text-[var(--muted)] m-0">{subtitle}</p>}
+    <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4 flex-wrap">
+      <div className="min-w-0 flex-1">
+        {title && (
+          <h1 className="font-serif text-[22px] sm:text-2xl md:text-[26px] m-0 mb-1 leading-tight tracking-tight">
+            {title}
+          </h1>
+        )}
+        {subtitle && <p className="text-[13px] sm:text-sm text-[var(--muted)] m-0 leading-snug">{subtitle}</p>}
       </div>
-      {action}
+      {action && <div className="flex items-center gap-2 sm:gap-3 shrink-0">{action}</div>}
     </div>
   );
 
@@ -43,10 +47,10 @@ export function PageHeader({
           to jump up underneath it. Same content/width as the visible
           copy so its height always matches, however long a given page's
           title/subtitle/action ends up being. */}
-      <div aria-hidden="true" className="invisible px-4 md:px-10 py-4 md:py-5 mb-6 border-b border-transparent">
+      <div aria-hidden="true" className="invisible px-4 md:px-10 py-3.5 md:py-5 mb-4 md:mb-6 border-b border-transparent">
         {content}
       </div>
-      <header className="fixed z-20 top-[calc(52px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-4 md:px-10 py-4 md:py-5 bg-[var(--paper)]/95 backdrop-blur-sm border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out">
+      <header className="fixed z-20 top-[calc(52px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-4 md:px-10 py-3.5 md:py-5 bg-[var(--paper)]/85 backdrop-blur-md border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out">
         {content}
       </header>
     </>
@@ -67,14 +71,17 @@ export function Panel({
   footnote?: string;
 }) {
   return (
-    <div className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg mb-4 overflow-hidden animate-fade-in-up" style={{ boxShadow: "var(--shadow-sm)" }}>
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line)]">
-        <h2 className="text-sm font-bold m-0 tracking-tight">{title}</h2>
-        {action ?? (hint && <span className="text-xs text-[var(--muted)] font-medium">{hint}</span>)}
+    <div
+      className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl mb-4 overflow-hidden animate-fade-in-up"
+      style={{ boxShadow: "var(--shadow-sm)" }}
+    >
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[var(--line)]">
+        <h2 className="text-[13px] sm:text-sm font-bold m-0 tracking-tight truncate">{title}</h2>
+        {action ?? (hint && <span className="text-[11px] sm:text-xs text-[var(--muted)] font-medium shrink-0">{hint}</span>)}
       </div>
-      <div className="px-5 pb-4 pt-2">{children}</div>
+      <div className="px-4 sm:px-5 pb-4 pt-2">{children}</div>
       {footnote && (
-        <div className="flex items-center gap-2 px-5 py-2.5 text-xs text-[var(--muted)] bg-[var(--paper)] border-t border-dashed border-[var(--line)] leading-relaxed">
+        <div className="flex items-center gap-2 px-4 sm:px-5 py-2.5 text-[11.5px] sm:text-xs text-[var(--muted)] bg-[var(--paper)]/60 border-t border-dashed border-[var(--line)] leading-relaxed">
           {footnote}
         </div>
       )}
@@ -93,7 +100,7 @@ const PILL_STYLES: Record<string, string> = {
 export function Pill({ tone = "muted", children }: { tone?: keyof typeof PILL_STYLES; children: ReactNode }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide ${PILL_STYLES[tone]}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide leading-relaxed whitespace-nowrap ${PILL_STYLES[tone]}`}
     >
       <span className="w-[5px] h-[5px] rounded-full bg-current opacity-80" />
       {children}
@@ -104,17 +111,19 @@ export function Pill({ tone = "muted", children }: { tone?: keyof typeof PILL_ST
 export function Card({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "warn" }) {
   return (
     <div
-      className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg px-4 py-4 hover:border-[var(--accent)] transition-colors"
+      className="group bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl px-4 py-4 hover:border-[var(--accent)] hover:-translate-y-[1px] transition-all duration-200"
       style={{ boxShadow: "var(--shadow-xs)" }}
     >
-      <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-2">{label}</div>
+      <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5 group-hover:text-[var(--accent-strong)] transition-colors">
+        {label}
+      </div>
       <div
-        className="font-serif text-[28px] tabular-nums leading-tight"
+        className="font-serif text-[26px] sm:text-[28px] tabular-nums leading-none"
         style={tone === "warn" ? { color: "var(--warn)" } : undefined}
       >
         {value}
       </div>
-      {sub && <div className="text-xs text-[var(--muted)] mt-1">{sub}</div>}
+      {sub && <div className="text-[11.5px] text-[var(--muted)] mt-1.5 leading-snug">{sub}</div>}
     </div>
   );
 }
@@ -163,11 +172,15 @@ export function Button({
   variant = "ghost",
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" }) {
-  const base = "px-3.5 py-1.5 rounded-md text-[12.5px] font-bold border cursor-pointer";
+  // min-h-[36px] keeps the primary hit-target comfortable on both mobile
+  // (touch spec's ~44px minimum is close after the caller's own padding)
+  // and desktop, without being visually clunky. inline-flex with center
+  // alignment stops icon+text buttons from wobbling in height.
+  const base = "inline-flex items-center justify-center gap-1.5 min-h-[34px] px-3.5 py-1.5 rounded-md text-[12.5px] font-bold border cursor-pointer whitespace-nowrap select-none";
   const styles =
     variant === "primary"
-      ? "bg-[var(--accent)] border-[var(--accent)] text-white hover:bg-[var(--accent-strong)] hover:border-[var(--accent-strong)] disabled:opacity-50 disabled:cursor-not-allowed shadow-[var(--shadow-xs)]"
-      : "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] hover:shadow-[var(--shadow-xs)] disabled:opacity-50 disabled:cursor-not-allowed";
+      ? "bg-[var(--accent)] border-[var(--accent)] text-white hover:bg-[var(--accent-strong)] hover:border-[var(--accent-strong)] hover:-translate-y-[0.5px] active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)]"
+      : "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 hover:shadow-[var(--shadow-xs)] disabled:opacity-50 disabled:cursor-not-allowed";
   return (
     <button className={`${base} ${styles}`} {...props}>
       {children}

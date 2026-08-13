@@ -49,10 +49,10 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto" onClick={onClose}>
       <div
-        className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 animate-scale-in"
-        style={{ boxShadow: "var(--shadow-lg)" }}
+        className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl p-5 sm:p-6 my-auto animate-scale-in"
+        style={{ boxShadow: "var(--shadow-xl)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {sent ? (

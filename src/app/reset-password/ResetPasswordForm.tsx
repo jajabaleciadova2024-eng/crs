@@ -81,28 +81,40 @@ export default function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--paper)] px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="font-serif text-2xl text-[var(--ink)]">CRS Naga</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">Set a new password</p>
+    <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-[var(--paper)] via-[var(--paper)] to-[var(--accent-soft)]/40 px-4 py-8 relative overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none opacity-60"
+        style={{
+          background:
+            "radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 40%), radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 40%)",
+        }}
+      />
+
+      <div className="w-full max-w-sm animate-fade-in-up relative">
+        <div className="mb-7 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--accent)] text-white mb-3 shadow-lg">
+            <span className="font-serif font-bold text-2xl leading-none">CN</span>
+          </div>
+          <h1 className="font-serif text-[28px] text-[var(--ink)] tracking-tight leading-none">CRS Naga</h1>
+          <p className="text-[13px] text-[var(--muted)] mt-1.5 font-medium tracking-wide">Set a new password</p>
         </div>
 
-        <div className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-md p-6 flex flex-col gap-4">
+        <div className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl p-6 sm:p-7 flex flex-col gap-4" style={{ boxShadow: "var(--shadow-lg)" }}>
           {invalid ? (
-            <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
+            <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-lg px-3 py-2.5 border border-[var(--bad)]/20">
               This reset link is invalid or has expired. Request a new one from the sign-in page.
             </p>
           ) : !ready ? (
-            <p className="text-sm text-[var(--muted)] text-center">Verifying your reset link…</p>
+            <p className="text-sm text-[var(--muted)] text-center py-2">Verifying your reset link…</p>
           ) : done ? (
-            <p className="text-sm text-[var(--good)] bg-[var(--good-soft)] rounded px-3 py-2">
+            <p className="text-sm text-[var(--good)] bg-[var(--good-soft)] rounded-lg px-3 py-2.5 border border-[var(--good)]/20">
               Password updated. Redirecting to sign in…
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+                <label htmlFor="password" className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   New password
                 </label>
                 <input
@@ -112,11 +124,11 @@ export default function ResetPasswordForm() {
                   autoFocus
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
                 />
               </div>
               <div>
-                <label htmlFor="confirm" className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+                <label htmlFor="confirm" className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Confirm password
                 </label>
                 <input
@@ -125,12 +137,12 @@ export default function ResetPasswordForm() {
                   required
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
                 />
               </div>
 
               {error && (
-                <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
+                <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-lg px-3 py-2.5 border border-[var(--bad)]/20">
                   {error}
                 </p>
               )}
@@ -138,7 +150,7 @@ export default function ResetPasswordForm() {
               <button
                 type="submit"
                 disabled={saving}
-                className="mt-1 w-full py-2.5 rounded bg-[var(--accent)] text-white text-sm font-bold hover:bg-[var(--accent-strong)] disabled:opacity-50"
+                className="mt-1 w-full py-2.5 rounded-lg bg-[var(--accent)] text-white text-sm font-bold hover:bg-[var(--accent-strong)] disabled:opacity-50 shadow-sm hover:shadow"
               >
                 {saving ? "Saving…" : "Set new password"}
               </button>
