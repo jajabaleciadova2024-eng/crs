@@ -76,14 +76,21 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
 
       {/* Sticky on desktop (md:sticky + h-screen) so the sidebar stays
           pinned in the viewport as the main content scrolls; a fixed
-          slide-in drawer on mobile instead. `md:transform-none` matters
-          here: a `transform` on the SAME element as `position: sticky` —
-          even a no-op translate-x-0 — makes sticky silently stop working
-          in Chrome/Firefox, so the mobile slide transform has to be fully
-          cleared at the md breakpoint, not just zeroed out. */}
+          slide-in drawer on mobile instead. The slide transform is scoped
+          with `max-md:` so it's ONLY ever applied below the md breakpoint
+          — at md+ no transform utility is generated for this element at
+          all, which matters because `position: sticky` combined with ANY
+          transform on the same element (even a no-op translate-x-0, and
+          even one meant to be overridden at a wider breakpoint) makes
+          Chrome/Firefox silently stop sticking. Trying to override it
+          with `md:transform-none` instead of never applying it in the
+          first place depends on Tailwind's generated cascade order and
+          hid the sidebar completely off-screen at all sizes when that bet
+          didn't pay off — this scoped version has no such ordering
+          dependency to get wrong. */}
       <div
-        className={`fixed md:sticky top-0 left-0 h-screen z-50 md:z-auto transition-transform duration-200 ease-out md:transform-none ${
-          open ? "translate-x-0" : "-translate-x-full"
+        className={`fixed md:sticky top-0 left-0 h-screen z-50 md:z-auto transition-transform duration-200 ease-out ${
+          open ? "max-md:translate-x-0" : "max-md:-translate-x-full"
         }`}
       >
         <div
