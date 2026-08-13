@@ -109,10 +109,23 @@
 /* Safety net so the whole page never scrolls sideways at any zoom level or
    viewport width — wide content (tables, long text) should scroll inside
    its own overflow-x-auto container instead, never push the page itself.
-   overscroll-behavior on the body prevents the iOS "rubber band" pull from
-   revealing white space beyond the sticky/fixed chrome. */
-html,
-body {
+   overscroll-behavior on html prevents the iOS "rubber band" pull from
+   revealing white space beyond the sticky/fixed chrome.
+
+   Deliberately on `html` ONLY, not `body` too: per the CSS Overflow spec,
+   setting overflow-x without an explicit overflow-y forces the UA to
+   promote the unset overflow-y from its default `visible` to `auto` —
+   silently. Applying `overflow-x: hidden` to BOTH html and body therefore
+   turned both of them into independent scroll containers instead of one
+   unambiguous one, and different browsers (and the same browser at
+   different times, depending on content height / after a fixed-position
+   modal closes / etc.) don't agree on which of the two is actually "the"
+   document scroller — that's what caused scrolling to work "sometimes"
+   and not others, with no obvious trigger. html is the standard root
+   scrolling element (document.scrollingElement) in every modern browser,
+   so it alone is the single source of truth here; it still clips any
+   horizontal overflow bubbling up from body since body is its child. */
+html {
   max-width: 100vw;
   overflow-x: hidden;
   overscroll-behavior-y: none;
