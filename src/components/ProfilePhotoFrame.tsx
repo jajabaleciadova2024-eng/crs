@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import ImageCropModal from "./ImageCropModal";
 
 export default function ProfilePhotoFrame({
   firstName,
@@ -14,30 +15,51 @@ export default function ProfilePhotoFrame({
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase();
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = ""; // allow picking the same file again later
     if (!file) return;
+    setError(null);
+    // Opens the crop/rotate/zoom editor instead of uploading immediately —
+    // the file only gets sent to the server once the user confirms.
+    setPendingFile(file);
+  }
+
+  async function handleCropped(blob: Blob) {
+    setPendingFile(null);
     setError(null);
     setUploading(true);
 
-    const res = await fetch("/api/profile/avatar", {
-      method: "POST",
-      body: (() => {
-        const fd = new FormData();
-        fd.append("file", file);
-        return fd;
-      })(),
-    });
+    const formData = new FormData();
+    formData.append("file", blob, "avatar.jpg");
+    const res = await fetch("/api/profile/avatar", { method: "POST", body: formData });
 
     setUploading(false);
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       setError(body.error ?? "Upload failed.");
+      return;
+    }
+
+    router.refresh();
+  }
+
+  async function handleRemove(e: React.MouseEvent) {
+    e.stopPropagation();
+    setError(null);
+    setUploading(true);
+    const res = await fetch("/api/profile/avatar", { method: "DELETE" });
+    setUploading(false);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? "Couldn't remove your photo.");
       return;
     }
 
@@ -78,11 +100,24 @@ export default function ProfilePhotoFrame({
         </div>
         <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <span className="text-white text-[10px] font-bold tracking-wide">
-            {uploading ? "Uploading…" : "Change"}
+            {uploading ? "Working…" : "Change"}
           </span>
         </div>
       </button>
+      {avatarUrl && !uploading && (
+        <button
+          type="button"
+          onClick={handleRemove}
+          className="text-[11px] font-semibold text-[var(--muted)] hover:text-[var(--bad)]"
+        >
+          Remove photo
+        </button>
+      )}
       {error && <span className="text-[11px] text-[var(--bad)]">{error}</span>}
+
+      {pendingFile && (
+        <ImageCropModal file={pendingFile} onCancel={() => setPendingFile(null)} onSave={handleCropped} />
+      )}
     </div>
   );
 }

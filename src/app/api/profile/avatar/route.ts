@@ -64,3 +64,27 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ avatarUrl });
 }
+
+export async function DELETE() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  const admin = createAdminClient();
+
+  const { data: existing } = await admin.storage.from(BUCKET).list("", { search: user.id });
+  if (existing && existing.length > 0) {
+    await admin.storage.from(BUCKET).remove(existing.map((f) => f.name));
+  }
+
+  const { error } = await admin.from("profiles").update({ avatar_url: null }).eq("id", user.id);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}

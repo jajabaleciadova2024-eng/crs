@@ -21,6 +21,7 @@ const DEFAULT_TENURED_BY_STATION: Record<string, number> = {
   "collecting officer": 3,
   "releasing officer": 2,
   "electronic endorsement": 1,
+  "premium annotation": 1,
 };
 
 function defaultQuotaRow(w: Workstation): QuotaRow {
