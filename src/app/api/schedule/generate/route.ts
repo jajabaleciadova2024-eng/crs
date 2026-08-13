@@ -5,10 +5,12 @@ import { generateAssignments, type StationQuota, type ImmunePlacement } from "@/
 import { notifySchedulePublished } from "@/lib/notify";
 import { todayInManila, startOfWorkWeek, addDays } from "@/lib/scheduleDates";
 
-// Generates the earliest not-yet-scheduled week starting from the CURRENT
-// week — fills the current week if it has no schedule yet, otherwise the
-// next one after it (spaced by org_settings.schedule_cadence), continuing
-// forward from whichever weeks are already scheduled. Publishes a
+// Always generates the upcoming week's schedule — never the current one,
+// even if the current week has no schedule yet. "Generating this week"
+// (i.e. today, sometime during the current work week) only ever produces
+// NEXT week's schedule, by definition; if several weeks are already
+// scheduled ahead, it continues from whichever is the latest one on
+// record (spaced by org_settings.schedule_cadence). Publishes a
 // notification email afterward.
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -34,20 +36,25 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle();
 
-  // Walk forward from THIS week (not from whatever the latest row in the
-  // table happens to be) until an unscheduled week is found. The previous
-  // version computed `addDays(latestWeek.week_start_date, cadenceDays)`
-  // directly — if the latest row on record was from a week further back
-  // than one cadence period ago (a skipped week, or a stray old row left
-  // over from testing/a data reset), that landed the "next" week
-  // BEFORE today, on an already-elapsed week, or back on THIS week even
-  // though it was labeled "next" — reported as "next week schedule
-  // result is this week". Looping from today's actual current week
-  // guarantees the target is never earlier than "this week", and still
-  // correctly continues past however many weeks are already scheduled
-  // ahead (the loop just keeps advancing past existing rows).
+  // Always start counting from the week AFTER today's current week — never
+  // the current week itself, no matter what. Two bugs this replaces:
+  //   1. The original version fell back to filling the CURRENT week
+  //      whenever schedule_weeks was empty, so the very first "Generate
+  //      next week" click (e.g. right after a fresh start) silently
+  //      produced a schedule for THIS week instead of next — reported as
+  //      "next week schedule result is this week".
+  //   2. An earlier fix computed the target as
+  //      `addDays(latestWeek.week_start_date, cadenceDays)` — relative to
+  //      whatever the latest row in the table happened to be rather than
+  //      to today, so a stale/old row (a skipped week, or a leftover row
+  //      from testing/a data reset) could still land "next" on an
+  //      already-elapsed week, or back on the current one.
+  // Starting at thisWeekStart + cadence and walking forward past any
+  // already-scheduled weeks is correct in every case: normally lands
+  // immediately on next week; if several weeks are already generated
+  // ahead, keeps advancing until it finds the actual first open one.
   const thisWeekStart = startOfWorkWeek(todayInManila());
-  let targetWeekStart = thisWeekStart;
+  let targetWeekStart = addDays(thisWeekStart, cadenceDays);
   for (let guard = 0; guard < 52; guard++) {
     const { data: existing } = await supabase
       .from("schedule_weeks")

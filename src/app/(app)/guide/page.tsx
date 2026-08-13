@@ -46,7 +46,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "How do I generate the next week's schedule?",
-        a: "Click \"Generate next week\" on the Weekly Schedule page — this opens a planning screen listing every station. If anyone is currently flagged Immune, place each of them at a station first — Generate stays disabled until every immune member has one (no more automatic carryover from last week). Then set each station's headcount and how many should be Tenured vs. New Hire; the totals at the bottom subtract live as you type. OIC is included and eligible to be seated. Click Generate to create it. It fills in the current week if it's empty, or creates the next one after whatever's already scheduled. You can still manually reassign any station afterward. Team Leader only — OIC can view the schedule but not generate or reassign.",
+        a: "Click \"Generate next week\" on the Weekly Schedule page — this opens a planning screen listing every station. If anyone is currently flagged Immune, place each of them at a station first — Generate stays disabled until every immune member has one (no more automatic carryover from last week). Then set each station's headcount and how many should be Tenured vs. New Hire; the totals at the bottom subtract live as you type. OIC is included and eligible to be seated. Click Generate to create it. It always creates the upcoming week's schedule — never the current week's, even if the current week hasn't been scheduled yet — continuing from whatever's already scheduled if you've generated a few weeks ahead. You can still manually reassign any station afterward. Team Leader only — OIC can view the schedule but not generate or reassign.",
         roles: ["team_leader"],
       },
       {

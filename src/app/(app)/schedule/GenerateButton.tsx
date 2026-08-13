@@ -65,6 +65,24 @@ export default function GenerateButton({
 
   const unplacedImmune = immuneMembers.filter((m) => !immunePlacements[m.id]);
 
+  // Catches an over-full station BEFORE submitting, not just after the
+  // server rejects it — if more immune members are pointed at one station
+  // than it has seats for, some of them can't actually be honored there,
+  // which the API refuses to silently paper over (see the route's own
+  // validation). Surfacing it here means the Team Leader sees exactly
+  // which station and who, immediately, instead of a round-trip error.
+  const immuneOverflow = useMemo(() => {
+    const countByStation = new Map<string, number>();
+    for (const m of immuneMembers) {
+      const stationId = immunePlacements[m.id];
+      if (!stationId) continue;
+      countByStation.set(stationId, (countByStation.get(stationId) ?? 0) + 1);
+    }
+    return workstations
+      .filter((w) => (countByStation.get(w.id) ?? 0) > w.headcount)
+      .map((w) => ({ name: w.name, placed: countByStation.get(w.id) ?? 0, headcount: w.headcount }));
+  }, [immuneMembers, immunePlacements, workstations]);
+
   function updateRow(id: string, field: keyof QuotaRow, value: number) {
     setRows((prev) => ({ ...prev, [id]: { ...prev[id], [field]: Math.max(0, value) } }));
   }
@@ -73,6 +91,14 @@ export default function GenerateButton({
     setError(null);
     if (unplacedImmune.length > 0) {
       setError(`Place every immune member at a station first — still missing: ${unplacedImmune.map((m) => m.name).join(", ")}`);
+      return;
+    }
+    if (immuneOverflow.length > 0) {
+      setError(
+        `Too many immune members placed at the same station: ${immuneOverflow
+          .map((o) => `${o.name} (${o.placed} placed, only ${o.headcount} seat${o.headcount === 1 ? "" : "s"})`)
+          .join("; ")}. Move some to a different station, or increase that station's headcount on Workstations.`
+      );
       return;
     }
 
@@ -230,6 +256,14 @@ export default function GenerateButton({
               </p>
             )}
 
+            {immuneOverflow.length > 0 && (
+              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
+                Too many immune members at one station —{" "}
+                {immuneOverflow.map((o) => `${o.name}: ${o.placed} placed, only ${o.headcount} seat${o.headcount === 1 ? "" : "s"}`).join("; ")}.
+                Move some to a different station, or increase that station&apos;s headcount on Workstations.
+              </p>
+            )}
+
             {error && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{error}</p>}
 
             <div className="flex justify-end gap-2">
@@ -239,7 +273,7 @@ export default function GenerateButton({
               <Button
                 variant="primary"
                 style={{ padding: "7px 14px" }}
-                disabled={pending || unplacedImmune.length > 0}
+                disabled={pending || unplacedImmune.length > 0 || immuneOverflow.length > 0}
                 onClick={generate}
               >
                 {pending ? "Generating…" : "Generate"}
