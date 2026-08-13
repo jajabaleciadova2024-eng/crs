@@ -44,7 +44,7 @@ export default function DocumentUpload({ requestId, hasDocument }: { requestId: 
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
       >
-        {uploading ? "Uploading…" : "Upload document"}
+        {uploading ? "Uploading…" : "Upload"}
       </Button>
       {error && <span className="text-[11px] text-[var(--bad)]">{error}</span>}
     </div>
