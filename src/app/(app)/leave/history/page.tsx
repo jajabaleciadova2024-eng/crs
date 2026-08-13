@@ -21,6 +21,9 @@ export default async function LeaveHistoryPage() {
   // Same visibility split as the Queue: Team Leader + OIC see everyone's
   // history, an associate sees only their own.
   const canViewAll = isApprover(profile.role);
+  // Download (inside the document popup) is Team Leader only, narrower
+  // than canViewAll -- OIC and the owner themselves can still View.
+  const canDownload = profile.role === "team_leader";
 
   const supabase = await createClient();
   // History is everything that's rolled OUT of the Queue's current-week
@@ -115,7 +118,7 @@ export default async function LeaveHistoryPage() {
                         <td className="py-2.5 border-b border-[var(--line)]">
                           {typeConfig?.behavior === "auto_approve_document" ? (
                             r.document_path ? (
-                              <DocumentLinks requestId={r.id} />
+                              <DocumentLinks requestId={r.id} canDownload={canDownload} />
                             ) : (
                               <span className="text-[var(--muted)]">Not uploaded</span>
                             )
