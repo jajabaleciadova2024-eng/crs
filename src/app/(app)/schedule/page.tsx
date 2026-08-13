@@ -7,6 +7,7 @@ import { Panel, Pill, Card } from "@/components/ui";
 import ReassignForm from "./ReassignForm";
 import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
+import RotationSettingsPanel from "./RotationSettingsPanel";
 import { todayInManila, startOfWorkWeek, endOfWorkWeek } from "@/lib/scheduleDates";
 import { holidaysInRange } from "@/lib/phHolidays";
 import { formatFullName } from "@/lib/format";
@@ -183,6 +184,16 @@ export default async function SchedulePage() {
           </table>
         </div>
       </Panel>
+
+      {canManage && (
+        <Panel
+          title="Rotation Settings"
+          hint="Team Leader only"
+          footnote="Immune members are excluded from the weekly shuffle and must be placed manually when generating. Tenure (associates only) feeds the Tenured/New Hire quotas in the Generate modal."
+        >
+          <RotationSettingsPanel members={(allActive ?? []).filter((p) => p.role !== "team_leader")} />
+        </Panel>
+      )}
     </>
   );
 }

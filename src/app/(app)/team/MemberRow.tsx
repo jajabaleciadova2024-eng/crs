@@ -3,12 +3,15 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Pill, Button, Avatar } from "@/components/ui";
+import { Pill, Button } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
-import type { AppRole, Profile, TenureGroup } from "@/lib/database.types";
+import type { AppRole, Profile } from "@/lib/database.types";
 
-const ROLE_TONE: Record<AppRole, "good" | "warn" | "accent"> = {
-  team_leader: "good",
+// Team Leader and OIC share the same pill color — role hierarchy isn't
+// what the color is communicating, so there's no reason for OIC to stand
+// out in a different tone than the role right above it.
+const ROLE_TONE: Record<AppRole, "warn" | "accent"> = {
+  team_leader: "warn",
   oic: "warn",
   associate: "accent",
 };
@@ -17,15 +20,13 @@ const ROLE_LABEL: Record<AppRole, string> = { team_leader: "Team Leader", oic: "
 export default function MemberRow({ member, isSelf }: { member: Profile; isSelf: boolean }) {
   const [editing, setEditing] = useState(false);
   const [role, setRole] = useState(member.role);
-  const [isImmune, setIsImmune] = useState(member.is_immune);
-  const [tenureGroup, setTenureGroup] = useState<TenureGroup>(member.tenure_group);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
   function save() {
     startTransition(async () => {
       const supabase = createClient();
-      await supabase.from("profiles").update({ role, is_immune: isImmune, tenure_group: tenureGroup }).eq("id", member.id);
+      await supabase.from("profiles").update({ role }).eq("id", member.id);
       setEditing(false);
       router.refresh();
     });
@@ -44,12 +45,7 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
       <td className="py-2.5 border-b border-[var(--line)]">
         <code className="bg-[var(--accent-soft)] text-[var(--accent-strong)] px-1.5 py-0.5 rounded text-[11.5px]">{member.psid}</code>
       </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
-        <span className="flex items-center">
-          <Avatar firstName={member.first_name} lastName={member.last_name} />
-          {formatFullName(member.first_name, member.last_name)}
-        </span>
-      </td>
+      <td className="py-2.5 border-b border-[var(--line)]">{formatFullName(member.first_name, member.last_name)}</td>
       <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.email}</td>
       <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.mobile_number ?? "—"}</td>
       <td className="py-2.5 border-b border-[var(--line)]">
@@ -65,33 +61,6 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
           </select>
         ) : (
           <Pill tone={ROLE_TONE[member.role]}>{ROLE_LABEL[member.role]}</Pill>
-        )}
-      </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
-        {editing ? (
-          <input type="checkbox" checked={isImmune} onChange={(e) => setIsImmune(e.target.checked)} />
-        ) : member.is_immune ? (
-          <Pill tone="accent">Immune</Pill>
-        ) : (
-          <span className="text-[var(--muted)]">—</span>
-        )}
-      </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
-        {member.role !== "associate" ? (
-          <span className="text-[var(--muted)]">—</span>
-        ) : editing ? (
-          <select
-            value={tenureGroup}
-            onChange={(e) => setTenureGroup(e.target.value as TenureGroup)}
-            className="text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
-          >
-            <option value="new_hire">New Hire</option>
-            <option value="tenured">Tenured</option>
-          </select>
-        ) : (
-          <Pill tone={member.tenure_group === "tenured" ? "good" : "muted"}>
-            {member.tenure_group === "tenured" ? "Tenured" : "New Hire"}
-          </Pill>
         )}
       </td>
       <td className="py-2.5 border-b border-[var(--line)]">

@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pill, Avatar, Button } from "@/components/ui";
+import { Pill, Button } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
 import { formatLeaveRanges, type LeaveDateRange } from "@/lib/leaveFormat";
 import EditLeaveRequestForm from "./EditLeaveRequestForm";
@@ -150,12 +150,7 @@ export default function LeaveQueueTable({
             <Fragment key={r.id}>
               <tr>
                 {canViewAll && (
-                  <td className="py-2.5 border-b border-[var(--line)]">
-                    <span className="flex items-center">
-                      <Avatar firstName={r.profiles?.first_name ?? ""} lastName={r.profiles?.last_name ?? ""} avatarUrl={r.profiles?.avatar_url} />
-                      {formatFullName(r.profiles?.first_name, r.profiles?.last_name)}
-                    </span>
-                  </td>
+                  <td className="py-2.5 border-b border-[var(--line)]">{formatFullName(r.profiles?.first_name, r.profiles?.last_name)}</td>
                 )}
                 <td className="py-2.5 border-b border-[var(--line)]">
                   <div className="flex items-center gap-1.5">

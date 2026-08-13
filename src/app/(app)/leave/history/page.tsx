@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireProfile, isApprover } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { currentQueueWeekStart } from "@/lib/scheduleDates";
-import { Panel, Avatar, Pill } from "@/components/ui";
+import { Panel, Pill } from "@/components/ui";
 import { getPayPeriod } from "@/lib/payPeriod";
 import { formatLeaveRanges } from "@/lib/leaveFormat";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, type LeaveTypeConfig } from "@/lib/leaveTypes";
@@ -107,12 +107,7 @@ export default async function LeaveHistoryPage() {
                     return (
                       <tr key={r.id}>
                         {canViewAll && (
-                          <td className="py-2.5 border-b border-[var(--line)]">
-                            <span className="flex items-center">
-                              <Avatar firstName={p?.first_name ?? ""} lastName={p?.last_name ?? ""} avatarUrl={p?.avatar_url} />
-                              {formatFullName(p?.first_name, p?.last_name)}
-                            </span>
-                          </td>
+                          <td className="py-2.5 border-b border-[var(--line)]">{formatFullName(p?.first_name, p?.last_name)}</td>
                         )}
                         <td className="py-2.5 border-b border-[var(--line)] capitalize">{typeConfig?.label ?? r.leave_type}</td>
                         <td className="py-2.5 border-b border-[var(--line)]">

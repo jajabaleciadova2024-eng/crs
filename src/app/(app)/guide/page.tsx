@@ -116,16 +116,16 @@ const SECTIONS: GuideSection[] = [
         a: "Go to Team & Roles → \"Add member.\" They'll get an invite email to set their own password — they can then log in with their PSID or email. The roster lists everyone (Team Leader, OIC, and associates), sorted by PSID from lowest to highest.",
       },
       {
-        q: "How do I change someone's role or the immune flag?",
-        a: "On Team & Roles, click Edit next to their row, adjust Role and/or Immune, then Save.",
+        q: "How do I change someone's role?",
+        a: "On Team & Roles, click Edit next to their row, adjust Role, then Save.",
       },
       {
         q: "How do I deactivate someone instead of deleting them?",
         a: "Use the Deactivate button on their row. Deactivated members are excluded from active-associate queries (like scheduling) but their history is preserved.",
       },
       {
-        q: "How do I mark an associate as Tenured or New Hire?",
-        a: "On Team & Roles, click Edit next to their row and set the Tenure dropdown, then Save. Manual only — no auto-promotion by date. Associates only (the field is blank for Team Leader/OIC rows). Doesn't affect scheduling yet, but is meant to feed a future auto-shuffle rule.",
+        q: "Where do I set someone's Immune flag or Tenure (associates)?",
+        a: "Weekly Schedule → Rotation Settings (Team Leader only), not Team & Roles — those two only matter for schedule generation, so they live next to the Generate button that actually uses them. Click Edit on a row, adjust Immune and/or Tenure, then Save. Immune excludes someone from the weekly shuffle (they must be placed manually when generating); Tenure (associates only) feeds the Tenured/New Hire quotas in the Generate modal.",
       },
       {
         q: "How do I handle a \"Request access\" submission?",

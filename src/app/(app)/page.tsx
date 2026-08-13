@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, isApprover, ROLE_LABEL } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, Pill, Card, Avatar } from "@/components/ui";
+import { Panel, Pill, Card } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek } from "@/lib/scheduleDates";
 import { toTitleCase, formatFullName } from "@/lib/format";
@@ -110,13 +110,8 @@ export default async function DashboardPage() {
                     {(a as any).workstations?.name}
                     {isOwn ? " — your station" : ""}
                   </div>
-                  <div className="font-serif text-base mt-1.5 flex items-center gap-2">
-                    <Avatar
-                      firstName={(a as any).profiles?.first_name ?? ""}
-                      lastName={(a as any).profiles?.last_name ?? ""}
-                      avatarUrl={(a as any).profiles?.avatar_url}
-                    />
-                    <span>{formatFullName((a as any).profiles?.first_name, (a as any).profiles?.last_name)}</span>
+                  <div className="font-serif text-base mt-1.5">
+                    {formatFullName((a as any).profiles?.first_name, (a as any).profiles?.last_name)}
                   </div>
                 </div>
               );
@@ -146,14 +141,7 @@ export default async function DashboardPage() {
                   <tr key={r.id}>
                     {approver && (
                       <td className="py-3 border-b border-[var(--line)]">
-                        <span className="flex items-center">
-                          <Avatar
-                            firstName={(r as any).profiles?.first_name ?? ""}
-                            lastName={(r as any).profiles?.last_name ?? ""}
-                            avatarUrl={(r as any).profiles?.avatar_url}
-                          />
-                          {formatFullName((r as any).profiles?.first_name, (r as any).profiles?.last_name)}
-                        </span>
+                        {formatFullName((r as any).profiles?.first_name, (r as any).profiles?.last_name)}
                       </td>
                     )}
                     <td className="py-3 border-b border-[var(--line)] capitalize">{r.leave_type}</td>

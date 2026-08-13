@@ -30,7 +30,7 @@ export default async function TeamPage() {
       <Panel
         title="Roster"
         action={<AddMemberForm />}
-        footnote="New members receive an email invite to set their own password. Login accepts PSID or email. Tenure grouping (associates only) is manual — no auto-promotion by date, and it's not yet used by the schedule generator."
+        footnote="New members receive an email invite to set their own password. Login accepts PSID or email. Immune and Tenure are managed from Weekly Schedule now, alongside the other rotation/generate settings that use them."
       >
         <div className="overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">
@@ -41,8 +41,6 @@ export default async function TeamPage() {
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Email</th>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Mobile</th>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Role</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Tenure</th>
                 <th className="py-2.5 border-b border-[var(--line)]" />
               </tr>
             </thead>
@@ -51,7 +49,7 @@ export default async function TeamPage() {
                 members.map((m) => <MemberRow key={m.id} member={m} isSelf={m.id === profile.id} />)
               ) : (
                 <tr>
-                  <td colSpan={8} className="py-4 text-[var(--muted)]">
+                  <td colSpan={6} className="py-4 text-[var(--muted)]">
                     No members yet.
                   </td>
                 </tr>
