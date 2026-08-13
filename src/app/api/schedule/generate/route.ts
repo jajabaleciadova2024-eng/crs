@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
 import { generateAssignments, type StationQuota, type ImmunePlacement } from "@/lib/schedule";
@@ -169,6 +170,16 @@ export async function POST(request: Request) {
   }
 
   await notifySchedulePublished(targetWeekStart);
+
+  // Same reasoning as /api/schedule/clear: router.refresh() from the
+  // calling client only invalidates the Weekly Schedule route it was
+  // called from, not the Dashboard's separately-cached "This week's
+  // assignments" panel (a different route entirely) — and it's purely
+  // local to that one browser tab/session besides. revalidatePath makes
+  // both routes fetch fresh data on their next load, for every viewer,
+  // not just whoever clicked Generate.
+  revalidatePath("/");
+  revalidatePath("/schedule");
 
   return NextResponse.json({ ok: true, week_start_date: targetWeekStart, assignments: newAssignments.length });
 }

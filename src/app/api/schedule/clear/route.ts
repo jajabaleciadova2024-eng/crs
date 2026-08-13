@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
 
@@ -28,6 +29,19 @@ export async function POST(request: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  // The caller (Weekly Schedule) already refreshes itself via
+  // router.refresh() client-side, but that only invalidates the CURRENT
+  // route's client-side Router Cache entry, and only for that one
+  // browser tab/session — the Dashboard's "This week's assignments"
+  // panel (a completely different route), and any OTHER tab/session
+  // looking at either page, keep showing their own last-cached snapshot
+  // (still with the now-deleted assignments) until something explicitly
+  // tells Next.js those routes are stale too. That mismatch was the bug:
+  // clearing looked like it worked on Weekly Schedule but the Dashboard
+  // didn't budge.
+  revalidatePath("/");
+  revalidatePath("/schedule");
 
   return NextResponse.json({ ok: true });
 }
