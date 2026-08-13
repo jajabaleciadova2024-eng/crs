@@ -42,7 +42,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "How does the weekly rotation work?",
-        a: "Each week, associates are assigned one station each. Anyone flagged \"Immune\" keeps their previous station and isn't shuffled — everyone else gets reshuffled across the remaining open stations.",
+        a: "Each week (Monday–Friday, Philippine time) associates are assigned one station each. Anyone flagged \"Immune\" keeps their previous station and isn't shuffled — everyone else gets reshuffled across the remaining open stations. Philippine regular holidays falling in the week are flagged at the top of the page.",
       },
       {
         q: "How do I generate the next week's schedule?",
@@ -84,6 +84,11 @@ const SECTIONS: GuideSection[] = [
         roles: ["team_leader"],
       },
       {
+        q: "Where can I see a history of approved leave?",
+        a: "Click \"View history\" at the top of Leave Requests. It's grouped into semi-monthly periods (1st–15th and 16th–end of month), most recent first. Team Leader only.",
+        roles: ["team_leader"],
+      },
+      {
         q: "How do I view or download an associate's supporting document?",
         a: "On the Leave Requests queue, the Document column shows View/Download buttons for any Sick/Bereavement-type request that has one uploaded. Team Leader only. These are freshly-generated links each time you click, and documents get auto-deleted after a while — download a copy if you need to keep it longer.",
         roles: ["team_leader"],
@@ -108,7 +113,7 @@ const SECTIONS: GuideSection[] = [
     items: [
       {
         q: "How do I add a new team member?",
-        a: "Go to Team & Roles → \"Add member.\" They'll get an invite email to set their own password — they can then log in with their PSID or email.",
+        a: "Go to Team & Roles → \"Add member.\" They'll get an invite email to set their own password — they can then log in with their PSID or email. The roster lists everyone (Team Leader, OIC, and associates), sorted by PSID from lowest to highest.",
       },
       {
         q: "How do I change someone's role or the immune flag?",

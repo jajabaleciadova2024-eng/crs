@@ -9,7 +9,16 @@ export default async function TeamPage() {
   await requireRole(profile, ["team_leader"]);
 
   const supabase = await createClient();
-  const { data: members } = await supabase.from("profiles").select("*").order("first_name");
+  const { data: rawMembers } = await supabase.from("profiles").select("*");
+  // Sorted numerically by PSID (lowest first) rather than lexicographically,
+  // so "9" sorts before "10" regardless of digit count. Includes every
+  // role — Team Leader, OIC, and associates all show here.
+  const members = [...(rawMembers ?? [])].sort((a, b) => {
+    const numA = Number(a.psid);
+    const numB = Number(b.psid);
+    if (!Number.isNaN(numA) && !Number.isNaN(numB)) return numA - numB;
+    return a.psid.localeCompare(b.psid);
+  });
 
   return (
     <>

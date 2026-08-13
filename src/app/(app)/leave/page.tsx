@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireProfile, isApprover, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Panel } from "@/components/ui";
@@ -30,10 +31,19 @@ export default async function LeavePage() {
   return (
     <>
       <header className="mb-6">
-        <h1 className="font-serif text-2xl m-0 mb-1">Leave Requests</h1>
-        <p className="text-sm text-[var(--muted)] m-0">
-          {canViewAll ? "Track requests from your team" : "File a request and track your leave history"}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-serif text-2xl m-0 mb-1">Leave Requests</h1>
+            <p className="text-sm text-[var(--muted)] m-0">
+              {canViewAll ? "Track requests from your team" : "File a request and track your leave history"}
+            </p>
+          </div>
+          {profile.role === "team_leader" && (
+            <Link href="/leave/history" className="text-xs font-bold text-[var(--accent-strong)]">
+              View history →
+            </Link>
+          )}
+        </div>
       </header>
 
       <div className={canViewAll ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-4 items-start"}>

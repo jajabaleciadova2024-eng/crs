@@ -5,15 +5,7 @@ import { requireProfile, isApprover, ROLE_LABEL } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Panel, Pill, Card, Avatar } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
-
-function startOfWeek(date: Date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+import { todayInManila, startOfWorkWeek } from "@/lib/scheduleDates";
 
 const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   pending: "warn",
@@ -26,7 +18,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const approver = isApprover(profile.role);
 
-  const weekStart = startOfWeek(new Date()).toISOString().slice(0, 10);
+  const weekStart = startOfWorkWeek(todayInManila());
 
   // Independent queries run in parallel instead of stacking sequentially —
   // this was a big chunk of page-load delay (6+ round-trips one after

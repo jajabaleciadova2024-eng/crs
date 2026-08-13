@@ -3,25 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
 import { generateAssignments } from "@/lib/schedule";
 import { notifySchedulePublished } from "@/lib/notify";
-
-function startOfWeek(date: Date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function addDays(date: Date, days: number) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
-
-function toDateString(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
+import { todayInManila, startOfWorkWeek, addDays } from "@/lib/scheduleDates";
 
 // Generates the next not-yet-scheduled week: fills the current week if it
 // has no schedule yet, otherwise generates the week after the latest one on
@@ -52,10 +34,8 @@ export async function POST() {
     .limit(1)
     .maybeSingle();
 
-  const thisWeekStart = startOfWeek(new Date());
-  const targetWeekStart = latestWeek
-    ? toDateString(addDays(new Date(latestWeek.week_start_date), cadenceDays))
-    : toDateString(thisWeekStart);
+  const thisWeekStart = startOfWorkWeek(todayInManila());
+  const targetWeekStart = latestWeek ? addDays(latestWeek.week_start_date, cadenceDays) : thisWeekStart;
 
   const { data: existingTarget } = await supabase
     .from("schedule_weeks")

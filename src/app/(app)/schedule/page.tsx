@@ -7,21 +7,8 @@ import { Panel, Pill } from "@/components/ui";
 import ReassignForm from "./ReassignForm";
 import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
-
-function startOfWeek(date: Date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function addDays(dateStr: string, days: number) {
-  const d = new Date(dateStr);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
+import { todayInManila, startOfWorkWeek, endOfWorkWeek } from "@/lib/scheduleDates";
+import { holidaysInRange } from "@/lib/phHolidays";
 
 function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string) {
   return aStart <= bEnd && bStart <= aEnd;
@@ -32,9 +19,9 @@ export default async function SchedulePage() {
   const supabase = await createClient();
   const canManage = canManageOperations(profile.role);
 
-  const thisWeekStart = startOfWeek(new Date()).toISOString().slice(0, 10);
+  const thisWeekStart = startOfWorkWeek(todayInManila());
 
-  // Show whichever is more current: this calendar week, or the latest
+  // Show whichever is more current: this work week, or the latest
   // generated week if the Team Leader/OIC has already generated ahead.
   // latestWeek and associates are independent — run together; assignments
   // needs latestWeek's id first, so it follows in its own batch.
@@ -47,7 +34,10 @@ export default async function SchedulePage() {
 
   const week = latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek : null;
   const weekStart = week?.week_start_date ?? thisWeekStart;
-  const weekEnd = addDays(weekStart, 6);
+  // Work week is Monday–Friday, not the full calendar week — schedule
+  // coverage and "on leave" overlap only care about workdays.
+  const weekEnd = endOfWorkWeek(weekStart);
+  const holidays = holidaysInRange(weekStart, weekEnd);
 
   const { data: assignments } = week
     ? await supabase
@@ -57,9 +47,9 @@ export default async function SchedulePage() {
         .order("workstation_id")
     : { data: [] };
 
-  // "On leave" flag: approved leave overlapping this week, for whoever's
-  // assigned — visibility only, TL decides whether/how to reassign (see
-  // ReassignForm above).
+  // "On leave" flag: approved leave overlapping this work week, for
+  // whoever's assigned — visibility only, TL decides whether/how to
+  // reassign (see ReassignForm above).
   const assignedIds = (assignments ?? []).map((a: any) => a.associate_id);
   const { data: leaveOnRecord } =
     assignedIds.length > 0
@@ -83,11 +73,11 @@ export default async function SchedulePage() {
     <>
       <header className="mb-6">
         <h1 className="font-serif text-2xl m-0 mb-1">Weekly Schedule</h1>
-        <p className="text-sm text-[var(--muted)] m-0">One associate per station, regenerated every week</p>
+        <p className="text-sm text-[var(--muted)] m-0">One associate per station, Monday–Friday (Philippine time), regenerated every week</p>
       </header>
 
       <Panel
-        title={`Week of ${weekStart}`}
+        title={`Week of ${weekStart} – ${weekEnd}`}
         action={
           canManage && (
             <div className="flex items-center gap-2">
@@ -98,10 +88,19 @@ export default async function SchedulePage() {
         }
         footnote={
           canManage
-            ? "Immune associates keep their previous station; everyone else is reshuffled across the remaining stations. “On leave” flags approved leave overlapping this week — reassign manually if needed."
-            : "“On leave” flags approved leave overlapping this week."
+            ? "Immune associates keep their previous station; everyone else is reshuffled across the remaining stations. “On leave” flags approved leave overlapping this work week — reassign manually if needed."
+            : "“On leave” flags approved leave overlapping this work week."
         }
       >
+        {holidays.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {holidays.map((h) => (
+              <Pill key={h.date} tone="warn">
+                Holiday {h.date}: {h.name}
+              </Pill>
+            ))}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-[13px] border-collapse">
             <thead>
