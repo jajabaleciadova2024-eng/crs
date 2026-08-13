@@ -154,7 +154,7 @@ describe("generateAssignments with quotas", () => {
     expect(result).toEqual([]);
   });
 
-  it("prefers a real new-hire associate over OIC for the targeted new-hire slot", () => {
+  it("treats OIC the same as an associate for the targeted new-hire slot (Team Leader wants tenure applied to OIC too)", () => {
     const workstations = [{ id: "w1" }];
     const associates = [
       { id: "oic1", is_immune: false, tenure_group: "new_hire" as const, role: "oic" as const },
@@ -162,11 +162,14 @@ describe("generateAssignments with quotas", () => {
     ];
     const quotas = [{ workstation_id: "w1", headcount: 1, tenured: 0, newHire: 1 }];
     const result = generateAssignments(workstations, associates, [], noShuffle, quotas);
-    // The real associate fills the targeted new-hire slot, not OIC.
+    // Both are equally eligible for the targeted new-hire pool now — no
+    // preference either way (noShuffle's rand=0 still runs one Fisher-
+    // Yates swap on a 2-element array, so it's "n1" here, not just
+    // whichever came first in the input).
     expect(result).toEqual([{ workstation_id: "w1", associate_id: "n1" }]);
   });
 
-  it("still seats OIC via fallback fill when no associate is available (Team Leader wants OIC included)", () => {
+  it("still seats OIC via fallback fill when no tenure quota targets them (Team Leader wants OIC included)", () => {
     const workstations = [{ id: "w1" }];
     const associates = [{ id: "oic1", is_immune: false, tenure_group: "new_hire" as const, role: "oic" as const }];
     const quotas = [{ workstation_id: "w1", headcount: 1, tenured: 0, newHire: 0 }];

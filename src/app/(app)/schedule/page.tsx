@@ -37,16 +37,18 @@ export default async function SchedulePage() {
       : Promise.resolve({ data: [] }),
     // Headcount/tenure totals for the stats strip + "Generate" quota modal
     // — includes everyone active (Team Leader, OIC, associates) for the
-    // headcount total, per request; tenure only meaningfully applies to
-    // associates.
+    // headcount total; Tenured/New Hire totals include OIC too now (Team
+    // Leader's explicit instruction: tenure applies to OIC the same as
+    // associates, not just an associate-only concept — see schedule.ts).
+    // psid is only for the Rotation Settings panel's sort order.
     canManage
-      ? supabase.from("profiles").select("id, first_name, last_name, role, is_immune, tenure_group").eq("is_active", true)
+      ? supabase.from("profiles").select("id, first_name, last_name, psid, role, is_immune, tenure_group").eq("is_active", true)
       : Promise.resolve({ data: [] }),
   ]);
 
   const totalMembers = allActive?.length ?? 0;
-  const totalTenured = (allActive ?? []).filter((p) => p.role === "associate" && p.tenure_group === "tenured").length;
-  const totalNewHire = (allActive ?? []).filter((p) => p.role === "associate" && p.tenure_group === "new_hire").length;
+  const totalTenured = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "tenured").length;
+  const totalNewHire = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "new_hire").length;
   // Everyone immune (Team Leader/OIC/associates, not Team Leader — they
   // don't rotate) must be explicitly placed at a station in the modal
   // before generating is allowed — see GenerateButton + the API route.
@@ -191,9 +193,20 @@ export default async function SchedulePage() {
         <Panel
           title="Rotation Settings"
           hint="Team Leader only"
-          footnote="Immune members are excluded from the weekly shuffle and must be placed manually when generating. Tenure (associates only) feeds the Tenured/New Hire quotas in the Generate modal."
+          footnote="Immune members are excluded from the weekly shuffle and must be placed manually when generating. Tenure (OIC and associates) feeds the Tenured/New Hire quotas in the Generate modal."
         >
-          <RotationSettingsPanel members={(allActive ?? []).filter((p) => p.role !== "team_leader")} />
+          <RotationSettingsPanel
+            members={(allActive ?? [])
+              .filter((p) => p.role !== "team_leader")
+              // Same PSID-numeric-first sort as Team & Roles, so the two
+              // rosters line up in the same order.
+              .sort((a, b) => {
+                const numA = Number(a.psid);
+                const numB = Number(b.psid);
+                if (!Number.isNaN(numA) && !Number.isNaN(numB)) return numA - numB;
+                return a.psid.localeCompare(b.psid);
+              })}
+          />
         </Panel>
       )}
     </>

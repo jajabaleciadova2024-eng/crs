@@ -76,11 +76,15 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
 
       {/* Sticky on desktop (md:sticky + h-screen) so the sidebar stays
           pinned in the viewport as the main content scrolls; a fixed
-          slide-in drawer on mobile instead. */}
+          slide-in drawer on mobile instead. `md:transform-none` matters
+          here: a `transform` on the SAME element as `position: sticky` —
+          even a no-op translate-x-0 — makes sticky silently stop working
+          in Chrome/Firefox, so the mobile slide transform has to be fully
+          cleared at the md breakpoint, not just zeroed out. */}
       <div
-        className={`fixed md:sticky top-0 left-0 h-screen z-50 md:z-auto transition-transform duration-200 ease-out ${
+        className={`fixed md:sticky top-0 left-0 h-screen z-50 md:z-auto transition-transform duration-200 ease-out md:transform-none ${
           open ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0`}
+        }`}
       >
         <div
           className={`group/sidebar relative h-full border-r border-[var(--line)] bg-[var(--paper)] transition-[width] duration-200 ease-out w-[220px] ${

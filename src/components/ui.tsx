@@ -20,9 +20,7 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <header
-      className="sticky top-[calc(52px+var(--sticky-header-offset,0px))] md:top-[var(--sticky-header-offset,0px)] z-20 -mx-4 md:-mx-10 px-4 md:px-10 py-4 md:py-5 mb-6 bg-[var(--paper)]/95 backdrop-blur-sm border-b border-[var(--line)]"
-    >
+    <header className="sticky top-[52px] md:top-0 z-20 -mx-4 md:-mx-10 px-4 md:px-10 py-4 md:py-5 mb-6 bg-[var(--paper)]/95 backdrop-blur-sm border-b border-[var(--line)]">
       {children ?? (
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>

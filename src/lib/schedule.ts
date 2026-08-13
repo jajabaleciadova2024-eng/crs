@@ -28,11 +28,12 @@ export type ShuffleAssociate = {
   id: string;
   is_immune: boolean;
   tenure_group?: "new_hire" | "tenured";
-  // Role matters for the quota path: OIC are eligible for headcount/fallback
-  // seating (Team Leader included them explicitly), but tenure grouping is
-  // an associate-only concept, so only role "associate" people are pulled
-  // into the tenured/new-hire targeted pools — everyone else can still be
-  // seated via the fallback fill.
+  // Role matters for the quota path: Team Leader doesn't rotate at all, so
+  // never eligible for seating. OIC and associate are both eligible for
+  // headcount/fallback seating AND the tenured/new-hire targeted pools
+  // (Team Leader's explicit instruction: tenure/immune apply to OIC the
+  // same as associates) — only an explicit "team_leader" role opts
+  // someone out of the tenure-targeted pools.
   role?: "team_leader" | "oic" | "associate";
 };
 export type PreviousAssignment = { workstation_id: string; associate_id: string };
@@ -128,21 +129,21 @@ export function generateAssignments(
     }
   }
 
-  // `role` is optional (older/simpler callers, and every existing test,
+  // `role` is optional (older/simpler callers, and some existing tests,
   // don't set it) — treat unset role as eligible rather than excluding it,
-  // so only an *explicit* "team_leader"/"oic" role opts someone out of the
-  // tenure-targeted pools.
-  const isAssociateEligible = (a: ShuffleAssociate) => a.role === undefined || a.role === "associate";
+  // so only an *explicit* "team_leader" role opts someone out of the
+  // tenure-targeted pools. OIC is eligible here same as associate.
+  const isTenureEligible = (a: ShuffleAssociate) => a.role === undefined || a.role === "associate" || a.role === "oic";
 
   const remainingTenured = shuffle(
     associates.filter(
-      (a) => associateIds.has(a.id) && !assignedAssociateIds.has(a.id) && isAssociateEligible(a) && a.tenure_group === "tenured"
+      (a) => associateIds.has(a.id) && !assignedAssociateIds.has(a.id) && isTenureEligible(a) && a.tenure_group === "tenured"
     ),
     rand
   );
   const remainingNewHire = shuffle(
     associates.filter(
-      (a) => associateIds.has(a.id) && !assignedAssociateIds.has(a.id) && isAssociateEligible(a) && a.tenure_group === "new_hire"
+      (a) => associateIds.has(a.id) && !assignedAssociateIds.has(a.id) && isTenureEligible(a) && a.tenure_group === "new_hire"
     ),
     rand
   );

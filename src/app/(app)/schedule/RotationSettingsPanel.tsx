@@ -11,6 +11,7 @@ type Member = {
   id: string;
   first_name: string;
   last_name: string;
+  psid: string;
   role: AppRole;
   is_immune: boolean;
   tenure_group: TenureGroup;
@@ -36,7 +37,10 @@ function RotationRow({ member }: { member: Member }) {
 
   return (
     <tr>
-      <td className="py-2.5 border-b border-[var(--line)]">{formatFullName(member.first_name, member.last_name)}</td>
+      <td className="py-2.5 border-b border-[var(--line)]">
+        <code className="bg-[var(--accent-soft)] text-[var(--accent-strong)] px-1.5 py-0.5 rounded text-[11.5px] mr-2">{member.psid}</code>
+        {formatFullName(member.first_name, member.last_name)}
+      </td>
       <td className="py-2.5 border-b border-[var(--line)]">
         <Pill tone={member.role === "associate" ? "accent" : "warn"}>{ROLE_LABEL[member.role]}</Pill>
       </td>
@@ -50,9 +54,7 @@ function RotationRow({ member }: { member: Member }) {
         )}
       </td>
       <td className="py-2.5 border-b border-[var(--line)]">
-        {member.role !== "associate" ? (
-          <span className="text-[var(--muted)]">—</span>
-        ) : editing ? (
+        {editing ? (
           <select
             value={tenureGroup}
             onChange={(e) => setTenureGroup(e.target.value as TenureGroup)}
