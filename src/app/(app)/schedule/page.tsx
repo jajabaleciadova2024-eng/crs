@@ -117,7 +117,7 @@ export default async function SchedulePage() {
         }
       >
         {canManage && (
-          <div className="grid grid-cols-3 gap-2.5 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
             <Card label="Total headcount" value={String(totalMembers)} sub="Team Leader, OIC & associates" />
             <Card label="Tenured associates" value={String(totalTenured)} sub="Available to assign" />
             <Card label="New Hire associates" value={String(totalNewHire)} sub="Available to assign" />

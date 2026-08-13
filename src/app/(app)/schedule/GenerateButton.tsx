@@ -106,12 +106,12 @@ export default function GenerateButton({
                 </h3>
                 <div className="flex flex-col gap-2">
                   {immuneMembers.map((m) => (
-                    <div key={m.id} className="flex items-center gap-2">
+                    <div key={m.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
                       <span className="text-sm flex-1">{m.name}</span>
                       <select
                         value={immunePlacements[m.id] ?? ""}
                         onChange={(e) => setImmunePlacements((prev) => ({ ...prev, [m.id]: e.target.value }))}
-                        className="text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)] min-w-[180px]"
+                        className="text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)] w-full sm:w-auto sm:min-w-[180px]"
                       >
                         <option value="">Select a station…</option>
                         {workstations.map((w) => (
@@ -177,7 +177,7 @@ export default function GenerateButton({
               </table>
             </div>
 
-            <div className="grid grid-cols-3 gap-2.5 bg-[var(--paper)] rounded-md p-3 border border-[var(--line)] text-[13px]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-[var(--paper)] rounded-md p-3 border border-[var(--line)] text-[13px]">
               <div>
                 <div className="text-[10.5px] uppercase tracking-wide text-[var(--muted)] mb-0.5">Headcount planned</div>
                 <div className={totals.headcount > totalMembers ? "text-[var(--bad)] font-bold" : "font-bold"}>
