@@ -8,10 +8,16 @@ export default function DocumentUpload({
   requestId,
   hasDocument,
   canDownload,
+  canReplace,
 }: {
   requestId: string;
   hasDocument: boolean;
   canDownload: boolean;
+  // Once a document's uploaded this normally switches to View-only — but
+  // while the request is sitting rejected, the associate needs a way back
+  // to the upload control too (e.g. the wrong file got uploaded the first
+  // time), not just their one shot at it.
+  canReplace: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,12 +44,13 @@ export default function DocumentUpload({
     router.refresh();
   }
 
-  if (hasDocument) {
+  if (hasDocument && !canReplace) {
     return <DocumentLinks requestId={requestId} canDownload={canDownload} />;
   }
 
   return (
     <div className="flex flex-col gap-1 items-start">
+      {hasDocument && <DocumentLinks requestId={requestId} canDownload={canDownload} />}
       <input ref={inputRef} type="file" onChange={handleFile} disabled={uploading} className="hidden" />
       <Button
         type="button"
@@ -52,7 +59,7 @@ export default function DocumentUpload({
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
       >
-        {uploading ? "Uploading…" : "Upload"}
+        {uploading ? "Uploading…" : hasDocument ? "Replace" : "Upload"}
       </Button>
       {error && <span className="text-[11px] text-[var(--bad)]">{error}</span>}
     </div>

@@ -168,7 +168,12 @@ export default function LeaveQueueTable({
                 <td className="py-2.5 border-b border-[var(--line)]">
                   {typeConfig?.behavior === "auto_approve_document" ? (
                     isOwn ? (
-                      <DocumentUpload requestId={r.id} hasDocument={Boolean(r.document_path)} canDownload={canManage} />
+                      <DocumentUpload
+                        requestId={r.id}
+                        hasDocument={Boolean(r.document_path)}
+                        canDownload={canManage}
+                        canReplace={r.status === "rejected"}
+                      />
                     ) : canManage && r.document_path ? (
                       <DocumentLinks requestId={r.id} canDownload={canManage} />
                     ) : canManage ? (
