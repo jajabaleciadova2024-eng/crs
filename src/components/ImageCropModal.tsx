@@ -19,18 +19,20 @@ export default function ImageCropModal({
   onSave: (blob: Blob) => void;
 }) {
   const [imgUrl, setImgUrl] = useState<string | null>(null);
+  const [imgReady, setImgReady] = useState(false);
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0); // 0 | 90 | 180 | 270
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [saving, setSaving] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
+    const url = URL.createObjectURL(file);
     // Legitimate "synchronize with an external system" effect (creating an
     // object URL for the picked File), not a state cascade.
-    const url = URL.createObjectURL(file);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setImgUrl(url);
     return () => URL.revokeObjectURL(url);
@@ -62,19 +64,40 @@ export default function ImageCropModal({
     if (!img) return;
     setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
     setPan({ x: 0, y: 0 });
+    setImgReady(true);
   }
 
-  function startDrag(clientX: number, clientY: number) {
-    dragRef.current = { startX: clientX, startY: clientY, panX: pan.x, panY: pan.y };
+  // Pointer Events (not separate mouse/touch handlers) + pointer capture:
+  // once captured, this element keeps receiving move/up events for that
+  // pointer even after the cursor leaves its bounds mid-drag — which a
+  // plain onMouseMove/onMouseUp pair on the small crop circle doesn't,
+  // and dragging past a 280px circle is trivially easy to do. That gap
+  // was the "something off" feeling — drag tracking would just silently
+  // stop and the photo would appear stuck until the pointer re-entered
+  // the circle. Facebook's own crop UI (and every other drag-to-pan
+  // implementation) relies on exactly this capture behavior.
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDragging(true);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
   }
-  function moveDrag(clientX: number, clientY: number) {
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!dragRef.current) return;
-    const dx = clientX - dragRef.current.startX;
-    const dy = clientY - dragRef.current.startY;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
     setPan(clampPan(dragRef.current.panX + dx, dragRef.current.panY + dy, scale));
   }
-  function endDrag() {
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     dragRef.current = null;
+    setDragging(false);
+  }
+
+  function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
+    e.preventDefault();
+    handleZoom(Math.min(3, Math.max(1, zoom - e.deltaY * 0.0015)));
   }
 
   function rotate() {
@@ -128,44 +151,45 @@ export default function ImageCropModal({
       >
         <h2 className="font-serif text-lg text-[var(--ink)] m-0">Adjust photo</h2>
 
-        <div
-          className="relative mx-auto rounded-full overflow-hidden border-2 border-[var(--accent)] bg-[var(--paper)] cursor-grab active:cursor-grabbing select-none touch-none"
-          style={{ width: VIEW, height: VIEW }}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            startDrag(e.clientX, e.clientY);
-          }}
-          onMouseMove={(e) => moveDrag(e.clientX, e.clientY)}
-          onMouseUp={endDrag}
-          onMouseLeave={endDrag}
-          onTouchStart={(e) => {
-            const t = e.touches[0];
-            startDrag(t.clientX, t.clientY);
-          }}
-          onTouchMove={(e) => {
-            const t = e.touches[0];
-            moveDrag(t.clientX, t.clientY);
-          }}
-          onTouchEnd={endDrag}
-        >
-          {imgUrl && (
-            // eslint-disable-next-line @next/next/no-img-element -- object URL, transformed on a canvas for the real upload
-            <img
-              ref={imgRef}
-              src={imgUrl}
-              alt=""
-              draggable={false}
-              onLoad={handleImgLoad}
-              className="absolute top-1/2 left-1/2 max-w-none pointer-events-none"
-              style={{
-                transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) rotate(${rotation}deg) scale(${scale})`,
-              }}
-            />
-          )}
+        <div className="relative mx-auto" style={{ width: VIEW, height: VIEW }}>
+          {/* Dimmed square backdrop behind the circular crop, like
+              Facebook's uploader — gives context for how the square
+              source image maps onto the round result instead of just
+              showing a plain void around the circle. */}
+          <div className="absolute inset-0 rounded-md bg-black/5" />
+          <div
+            className={`absolute inset-0 rounded-full overflow-hidden border-2 border-[var(--accent)] bg-[var(--paper)] select-none touch-none ${
+              dragging ? "cursor-grabbing" : "cursor-grab"
+            }`}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onWheel={handleWheel}
+          >
+            {imgUrl && (
+              // eslint-disable-next-line @next/next/no-img-element -- object URL, transformed on a canvas for the real upload
+              <img
+                ref={imgRef}
+                src={imgUrl}
+                alt=""
+                draggable={false}
+                onLoad={handleImgLoad}
+                className="absolute top-1/2 left-1/2 max-w-none pointer-events-none transition-opacity duration-150"
+                style={{
+                  opacity: imgReady ? 1 : 0,
+                  transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) rotate(${rotation}deg) scale(${scale})`,
+                }}
+              />
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] shrink-0">Zoom</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <circle cx="10" cy="10" r="6" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
           <input
             type="range"
             min={1}
@@ -175,6 +199,10 @@ export default function ImageCropModal({
             onChange={(e) => handleZoom(Number(e.target.value))}
             className="w-full accent-[var(--accent)]"
           />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <circle cx="10" cy="10" r="7" />
+            <path d="m21 21-4.35-4.35M10 7v6M7 10h6" />
+          </svg>
         </div>
 
         <div className="flex justify-center">
@@ -191,7 +219,7 @@ export default function ImageCropModal({
           </button>
         </div>
 
-        <p className="text-[11px] text-[var(--muted)] text-center m-0">Drag to reposition, use the slider to zoom.</p>
+        <p className="text-[11px] text-[var(--muted)] text-center m-0">Drag to reposition, scroll or use the slider to zoom.</p>
 
         <div className="flex justify-end gap-2 mt-1">
           <button
