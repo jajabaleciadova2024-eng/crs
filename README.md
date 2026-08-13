@@ -269,22 +269,38 @@ npm test
   Dashboard. Verified live against a real associate account (generated a
   magiclink session server-side with the admin client, ran the exact query
   as them) before and after the fix.
-- **Per-station headcount + tenure quotas when generating**: ✅ done.
-  "Generate next week" now opens a planning modal (`GenerateButton.tsx`)
-  listing every active workstation with Headcount/Tenured/New Hire number
-  inputs, live-subtracting against total active headcount (Team Leader +
-  OIC + associates) and total tenured/new-hire associates as you type.
-  `src/lib/schedule.ts`'s `generateAssignments` now accepts optional
-  `quotas`: immune associates are seated first (counting toward their
-  station's headcount), then tenured/new-hire pools fill each station's
-  targets, then any still-open seats get filled from whoever's left
-  regardless of tenure (coverage over a strict-but-empty seat). Calling it
-  without quotas keeps the original one-per-station behavior unchanged
-  (existing tests untouched). Required allowing more than one associate
-  per station per week — `0009_multi_per_station.sql` drops the old
-  1-per-station unique constraint (an associate can still only be on one
-  station per week). `/schedule` also shows a persistent headcount/tenure
-  stats strip (Team Leader only).
+- **Per-station headcount + tenure quotas when generating, OIC included,
+  manual immune placement required**: ✅ done. "Generate next week" opens a
+  planning modal (`GenerateButton.tsx`) listing every active workstation
+  with Headcount/Tenured/New Hire number inputs, live-subtracting against
+  total active headcount (Team Leader + OIC + associates) and total
+  tenured/new-hire associates as you type.
+  - **OIC is included** in the assignable pool (eligible for headcount/
+    fallback seating, per explicit instruction) — Team Leader is not, they
+    don't rotate through stations. Tenure targeting still only pulls from
+    associates (OIC/Team Leader don't have a meaningful tenure group), but
+    OIC can still fill a plain headcount seat via fallback.
+  - **Immune carryover is no longer automatic.** Every currently-immune,
+    active, non-Team-Leader member must be explicitly placed at a station
+    in the modal — a required step, hard-enforced server-side in
+    `POST /api/schedule/generate` (returns a 400 listing exactly who's
+    still unplaced if you try to generate without placing all of them). No
+    more falling back to "wherever they were last week."
+  - `src/lib/schedule.ts`'s `generateAssignments` accepts optional `quotas`
+    and `immunePlacements`: explicit immune placements seat first (counting
+    toward that station's headcount), then tenured/new-hire pools fill each
+    station's targets, then any still-open seats fill from whoever's left
+    regardless of tenure (coverage over a strict-but-empty seat). Calling
+    it with neither param keeps the original one-per-station,
+    automatic-carryover behavior byte-for-byte (all pre-existing tests
+    untouched); quotas without immunePlacements falls back to
+    carryover-from-last-week for immune seating specifically. 14 tests
+    total covering all three modes.
+  - Required allowing more than one associate per station per week —
+    `0009_multi_per_station.sql` drops the old 1-per-station unique
+    constraint (an associate can still only be on one station per week).
+  - `/schedule` shows a persistent headcount/tenure stats strip (Team
+    Leader only).
 - **Schedule week = Philippine Monday–Friday, with regular holidays flagged**:
   ✅ done. `src/lib/scheduleDates.ts` computes "today"/week boundaries in
   Asia/Manila (fixed UTC+8, no DST) rather than the server's own clock —

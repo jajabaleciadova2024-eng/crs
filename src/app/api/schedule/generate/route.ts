@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
-import { generateAssignments, type StationQuota } from "@/lib/schedule";
+import { generateAssignments, type StationQuota, type ImmunePlacement } from "@/lib/schedule";
 import { notifySchedulePublished } from "@/lib/notify";
 import { todayInManila, startOfWorkWeek, addDays } from "@/lib/scheduleDates";
 
 // Generates the next not-yet-scheduled week: fills the current week if it
 // has no schedule yet, otherwise generates the week after the latest one on
-// record (spaced by org_settings.schedule_cadence). Immune associates keep
-// their previous station; everyone else is reshuffled across the remaining
-// stations. Publishes a notification email afterward.
+// record (spaced by org_settings.schedule_cadence). Publishes a
+// notification email afterward.
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -52,18 +51,54 @@ export async function POST(request: Request) {
   // original one-per-station, no-tenure-preference behavior.
   const body = await request.json().catch(() => ({}));
   const quotas: StationQuota[] | undefined = Array.isArray(body?.quotas) && body.quotas.length > 0 ? body.quotas : undefined;
+  const immunePlacements: ImmunePlacement[] | undefined = Array.isArray(body?.immune_placements) ? body.immune_placements : undefined;
 
   const { data: workstations } = await supabase.from("workstations").select("id").eq("is_active", true);
-  // Quota-driven tenure targeting only makes sense for associates — Team
-  // Leader/OIC don't rotate through stations by tenure group.
+  // Team Leader/OIC/associates are all eligible to be seated — Team Leader
+  // doesn't rotate through stations, so excluded from the pool entirely.
+  // Tenure targeting still only pulls from role="associate" (enforced in
+  // src/lib/schedule.ts), but OIC is eligible for headcount/fallback
+  // seating per the Team Leader's explicit instruction.
   const { data: allActive } = await supabase.from("profiles").select("id, role, is_immune, tenure_group").eq("is_active", true);
-  const associates = quotas ? (allActive ?? []).filter((p) => p.role === "associate") : (allActive ?? []);
+  const eligiblePool = (allActive ?? []).filter((p) => p.role !== "team_leader");
+
+  // Required step (Team Leader's explicit rule): when using the quota
+  // modal, EVERY currently-immune, active, non-Team-Leader profile must be
+  // explicitly placed at a station before generating — no automatic
+  // carryover from last week. Generation is blocked until all of them are
+  // accounted for.
+  if (quotas) {
+    const immuneRequired = eligiblePool.filter((p) => p.is_immune);
+    const placedIds = new Set((immunePlacements ?? []).map((p) => p.associate_id));
+    const missing = immuneRequired.filter((p) => !placedIds.has(p.id));
+    if (missing.length > 0) {
+      const { data: missingProfiles } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .in(
+          "id",
+          missing.map((m) => m.id)
+        );
+      const names = (missingProfiles ?? []).map((p) => `${p.first_name} ${p.last_name}`).join(", ");
+      return NextResponse.json(
+        { error: `Place every immune member at a station before generating. Still missing: ${names}` },
+        { status: 400 }
+      );
+    }
+  }
 
   const { data: previousAssignments } = latestWeek
     ? await supabase.from("assignments").select("workstation_id, associate_id").eq("schedule_week_id", latestWeek.id)
     : { data: [] };
 
-  const newAssignments = generateAssignments(workstations ?? [], associates, previousAssignments ?? [], Math.random, quotas);
+  const newAssignments = generateAssignments(
+    workstations ?? [],
+    eligiblePool,
+    previousAssignments ?? [],
+    Math.random,
+    quotas,
+    immunePlacements
+  );
 
   const { data: newWeek, error: weekError } = await supabase
     .from("schedule_weeks")

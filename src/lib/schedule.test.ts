@@ -126,4 +126,51 @@ describe("generateAssignments with quotas", () => {
 
     expect(result).toHaveLength(1);
   });
+
+  it("uses explicit immunePlacements instead of last week's assignment when given", () => {
+    const workstations = [{ id: "w1" }, { id: "w2" }];
+    const associates = [{ id: "imm", is_immune: true, tenure_group: "tenured" as const }];
+    // Was on w1 last week, but the Team Leader is explicitly placing them
+    // on w2 this time via the modal.
+    const previous = [{ workstation_id: "w1", associate_id: "imm" }];
+    const quotas = [
+      { workstation_id: "w1", headcount: 1, tenured: 0, newHire: 0 },
+      { workstation_id: "w2", headcount: 1, tenured: 0, newHire: 0 },
+    ];
+    const immunePlacements = [{ associate_id: "imm", workstation_id: "w2" }];
+    const result = generateAssignments(workstations, associates, previous, noShuffle, quotas, immunePlacements);
+
+    expect(result).toContainEqual({ workstation_id: "w2", associate_id: "imm" });
+    expect(result).not.toContainEqual({ workstation_id: "w1", associate_id: "imm" });
+  });
+
+  it("does not seat an immune placement beyond that station's headcount", () => {
+    const workstations = [{ id: "w1" }];
+    const associates = [{ id: "imm", is_immune: true, tenure_group: "tenured" as const }];
+    const quotas = [{ workstation_id: "w1", headcount: 0, tenured: 0, newHire: 0 }];
+    const immunePlacements = [{ associate_id: "imm", workstation_id: "w1" }];
+    const result = generateAssignments(workstations, associates, [], noShuffle, quotas, immunePlacements);
+
+    expect(result).toEqual([]);
+  });
+
+  it("prefers a real new-hire associate over OIC for the targeted new-hire slot", () => {
+    const workstations = [{ id: "w1" }];
+    const associates = [
+      { id: "oic1", is_immune: false, tenure_group: "new_hire" as const, role: "oic" as const },
+      { id: "n1", is_immune: false, tenure_group: "new_hire" as const, role: "associate" as const },
+    ];
+    const quotas = [{ workstation_id: "w1", headcount: 1, tenured: 0, newHire: 1 }];
+    const result = generateAssignments(workstations, associates, [], noShuffle, quotas);
+    // The real associate fills the targeted new-hire slot, not OIC.
+    expect(result).toEqual([{ workstation_id: "w1", associate_id: "n1" }]);
+  });
+
+  it("still seats OIC via fallback fill when no associate is available (Team Leader wants OIC included)", () => {
+    const workstations = [{ id: "w1" }];
+    const associates = [{ id: "oic1", is_immune: false, tenure_group: "new_hire" as const, role: "oic" as const }];
+    const quotas = [{ workstation_id: "w1", headcount: 1, tenured: 0, newHire: 0 }];
+    const result = generateAssignments(workstations, associates, [], noShuffle, quotas);
+    expect(result).toEqual([{ workstation_id: "w1", associate_id: "oic1" }]);
+  });
 });

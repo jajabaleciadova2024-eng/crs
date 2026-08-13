@@ -35,12 +35,20 @@ export default async function SchedulePage() {
     // — includes everyone active (Team Leader, OIC, associates) for the
     // headcount total, per request; tenure only meaningfully applies to
     // associates.
-    canManage ? supabase.from("profiles").select("role, tenure_group").eq("is_active", true) : Promise.resolve({ data: [] }),
+    canManage
+      ? supabase.from("profiles").select("id, first_name, last_name, role, is_immune, tenure_group").eq("is_active", true)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const totalMembers = allActive?.length ?? 0;
   const totalTenured = (allActive ?? []).filter((p) => p.role === "associate" && p.tenure_group === "tenured").length;
   const totalNewHire = (allActive ?? []).filter((p) => p.role === "associate" && p.tenure_group === "new_hire").length;
+  // Everyone immune (Team Leader/OIC/associates, not Team Leader — they
+  // don't rotate) must be explicitly placed at a station in the modal
+  // before generating is allowed — see GenerateButton + the API route.
+  const immuneMembers = (allActive ?? [])
+    .filter((p) => p.is_immune && p.role !== "team_leader")
+    .map((p) => ({ id: p.id, name: `${p.first_name} ${p.last_name}` }));
 
   const week = latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek : null;
   const weekStart = week?.week_start_date ?? thisWeekStart;
@@ -97,13 +105,14 @@ export default async function SchedulePage() {
                 totalMembers={totalMembers}
                 totalTenured={totalTenured}
                 totalNewHire={totalNewHire}
+                immuneMembers={immuneMembers}
               />
             </div>
           )
         }
         footnote={
           canManage
-            ? "Immune associates keep their previous station; everyone else is reshuffled across the remaining stations. “On leave” flags approved leave overlapping this work week — reassign manually if needed."
+            ? "Immune members must be manually placed at a station in the Generate modal before generating — everyone else fills in from the headcount/tenure quotas. “On leave” flags approved leave overlapping this work week — reassign manually if needed."
             : "“On leave” flags approved leave overlapping this work week."
         }
       >

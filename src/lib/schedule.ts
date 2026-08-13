@@ -1,28 +1,44 @@
 // Pure assignment logic for the weekly auto-shuffle, kept dependency-free
 // (no Supabase imports) so it's directly unit-testable.
 //
-// Rule: associates flagged `is_immune` keep whatever station they held the
-// previous week (if that station still exists/is active) — they're excluded
-// from shuffling.
+// Three modes:
+//  - No `quotas` given: legacy behavior — exactly one associate per station,
+//    no tenure preference, immune associates carry over from whatever
+//    station they held the previous week (via `previousAssignments`).
+//    Unchanged from before — kept so existing callers/tests don't need to
+//    know about quotas at all.
+//  - `quotas` given, no `immunePlacements`: quota-based headcount + tenure
+//    targeting (see below), but immune associates still carry over
+//    automatically from `previousAssignments` like the legacy path.
+//  - `quotas` AND `immunePlacements` given (this is what the app's
+//    "Generate next week" modal actually sends): immune carryover is NOT
+//    automatic — every currently-immune associate must be explicitly
+//    placed at a station by the Team Leader in the modal first (enforced
+//    as a hard requirement in the API route, not just here). Those
+//    explicit placements are used instead of last week's assignments.
 //
-// Two modes:
-//  - No `quotas` given: legacy behavior, exactly one associate per station,
-//    no tenure preference (unchanged from before — kept so existing callers
-//    and tests don't need to know about quotas at all).
-//  - `quotas` given: the Team Leader has set a target headcount per station
-//    (via the "Generate next week" quota modal), plus how many of that
-//    headcount should be Tenured vs. New Hire. Immune carryover still
-//    happens first (counts toward that station's headcount); remaining
-//    slots are filled tenured-then-new-hire from shuffled pools, then any
-//    still-open slots get filled from whoever's left over regardless of
-//    tenure — better to have coverage than an empty seat if the quota
-//    under-specifies who's available.
+// In both quota modes: immune placements fill headcount first, then the
+// tenured/new-hire pools fill each station's targets, then any still-open
+// seats get filled from whoever's left regardless of tenure — better to
+// have coverage than an empty seat if the quota under-specifies who's
+// available.
 
 export type ShuffleWorkstation = { id: string };
-export type ShuffleAssociate = { id: string; is_immune: boolean; tenure_group?: "new_hire" | "tenured" };
+export type ShuffleAssociate = {
+  id: string;
+  is_immune: boolean;
+  tenure_group?: "new_hire" | "tenured";
+  // Role matters for the quota path: OIC are eligible for headcount/fallback
+  // seating (Team Leader included them explicitly), but tenure grouping is
+  // an associate-only concept, so only role "associate" people are pulled
+  // into the tenured/new-hire targeted pools — everyone else can still be
+  // seated via the fallback fill.
+  role?: "team_leader" | "oic" | "associate";
+};
 export type PreviousAssignment = { workstation_id: string; associate_id: string };
 export type NewAssignment = { workstation_id: string; associate_id: string };
 export type StationQuota = { workstation_id: string; headcount: number; tenured: number; newHire: number };
+export type ImmunePlacement = { associate_id: string; workstation_id: string };
 
 // Simple in-place Fisher-Yates shuffle. `rand` is injectable for deterministic
 // tests; defaults to Math.random for real use.
@@ -40,7 +56,8 @@ export function generateAssignments(
   associates: ShuffleAssociate[],
   previousAssignments: PreviousAssignment[],
   rand: () => number = Math.random,
-  quotas?: StationQuota[]
+  quotas?: StationQuota[],
+  immunePlacements?: ImmunePlacement[]
 ): NewAssignment[] {
   const stationIds = new Set(workstations.map((w) => w.id));
   const associateIds = new Set(associates.map((a) => a.id));
@@ -88,25 +105,45 @@ export function generateAssignments(
     return quotaByStation.get(workstationId)?.headcount ?? 1;
   }
 
-  // Immune carryover — fills one headcount slot on the associate's previous
-  // station, if that station still exists and has room under its quota.
-  for (const associate of associates) {
-    if (!associate.is_immune) continue;
-    const prevStation = previousStationByAssociate.get(associate.id);
-    if (!prevStation || !stationIds.has(prevStation)) continue;
-    const filled = stationFillCount.get(prevStation) ?? 0;
-    if (filled >= headcountFor(prevStation)) continue;
-    result.push({ workstation_id: prevStation, associate_id: associate.id });
-    assignedAssociateIds.add(associate.id);
-    stationFillCount.set(prevStation, filled + 1);
+  function seatImmune(associateId: string, workstationId: string) {
+    if (!stationIds.has(workstationId) || !associateIds.has(associateId) || assignedAssociateIds.has(associateId)) return;
+    const filled = stationFillCount.get(workstationId) ?? 0;
+    if (filled >= headcountFor(workstationId)) return; // over quota — still not seated even though immune
+    result.push({ workstation_id: workstationId, associate_id: associateId });
+    assignedAssociateIds.add(associateId);
+    stationFillCount.set(workstationId, filled + 1);
   }
 
+  if (immunePlacements) {
+    // Explicit placements from the Team Leader — no automatic carryover.
+    for (const p of immunePlacements) seatImmune(p.associate_id, p.workstation_id);
+  } else {
+    // Fall back to carrying over from last week (quota path without
+    // explicit placements — used when quotas are set programmatically
+    // without the modal's immune-placement step).
+    for (const associate of associates) {
+      if (!associate.is_immune) continue;
+      const prevStation = previousStationByAssociate.get(associate.id);
+      if (prevStation) seatImmune(associate.id, prevStation);
+    }
+  }
+
+  // `role` is optional (older/simpler callers, and every existing test,
+  // don't set it) — treat unset role as eligible rather than excluding it,
+  // so only an *explicit* "team_leader"/"oic" role opts someone out of the
+  // tenure-targeted pools.
+  const isAssociateEligible = (a: ShuffleAssociate) => a.role === undefined || a.role === "associate";
+
   const remainingTenured = shuffle(
-    associates.filter((a) => associateIds.has(a.id) && !assignedAssociateIds.has(a.id) && a.tenure_group === "tenured"),
+    associates.filter(
+      (a) => associateIds.has(a.id) && !assignedAssociateIds.has(a.id) && isAssociateEligible(a) && a.tenure_group === "tenured"
+    ),
     rand
   );
   const remainingNewHire = shuffle(
-    associates.filter((a) => associateIds.has(a.id) && !assignedAssociateIds.has(a.id) && a.tenure_group === "new_hire"),
+    associates.filter(
+      (a) => associateIds.has(a.id) && !assignedAssociateIds.has(a.id) && isAssociateEligible(a) && a.tenure_group === "new_hire"
+    ),
     rand
   );
 
@@ -137,8 +174,9 @@ export function generateAssignments(
     stationFillCount.set(ws.id, filled);
   }
 
-  // Fallback fill: any still-open headcount slots get whoever's left,
-  // regardless of tenure — coverage beats an empty seat.
+  // Fallback fill: any still-open headcount slots get whoever's left
+  // (associates AND, per Team Leader's instruction, OIC too) regardless of
+  // tenure — coverage beats an empty seat.
   const leftover = shuffle(
     associates.filter((a) => associateIds.has(a.id) && !assignedAssociateIds.has(a.id)),
     rand
