@@ -37,8 +37,14 @@ export default async function LeaveHistoryPage() {
     .select(
       "id, associate_id, leave_type, start_date, end_date, status, document_path, reviewed_at, review_note, profiles!leave_requests_associate_id_fkey(first_name, last_name), leave_request_ranges(start_date, end_date)"
     )
-    .in("status", ["approved", "rejected"])
     .lt("reviewed_at", weekStart)
+    // Approved requests roll in normally; rejected ones only roll in if
+    // they were never given a document -- a rejected pre-approved-type
+    // request that DOES have a document stays in the Queue for re-review
+    // instead (document_path only gets set for that behavior type), so the
+    // two pages stay non-overlapping. See leave/page.tsx for the matching
+    // inclusion on the Queue side.
+    .or("status.eq.approved,and(status.eq.rejected,document_path.is.null)")
     .order("start_date", { ascending: false });
 
   const [{ data: orgSettings }, { data: decided }] = await Promise.all([

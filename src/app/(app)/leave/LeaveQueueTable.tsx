@@ -131,6 +131,13 @@ export default function LeaveQueueTable({
           // document is in hand, but can't actually be approved until it's
           // uploaded and the Team Leader has had a chance to check it.
           const needsDocument = typeConfig?.behavior === "auto_approve_document" && !r.document_path;
+          // If a pre-approved request got rejected for lack of a document
+          // and the associate has since uploaded one, reopen it for
+          // re-review instead of leaving it stuck rejected — the associate
+          // can still upload after rejection (see DocumentUpload below),
+          // so the Team Leader needs a way back to Approve/Reject once
+          // that happens.
+          const isReopenedForReview = typeConfig?.behavior === "auto_approve_document" && r.status === "rejected" && Boolean(r.document_path);
 
           return (
             <Fragment key={r.id}>
@@ -184,8 +191,11 @@ export default function LeaveQueueTable({
                       </Button>
                     </div>
                   )}
-                  {!isOwn && canManage && r.status === "pending" && (
+                  {!isOwn && canManage && (r.status === "pending" || isReopenedForReview) && (
                     <div className="flex flex-col gap-1 items-start">
+                      {isReopenedForReview && (
+                        <span className="text-[10.5px] font-bold text-[var(--accent-strong)]">Document uploaded — re-review</span>
+                      )}
                       <div className="flex gap-1.5">
                         <Button
                           variant="primary"

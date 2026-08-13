@@ -22,6 +22,13 @@ export default async function LeavePage() {
   // History once Monday 8am (Manila) has passed. This keeps the Queue from
   // filling up with old decided requests while still giving everyone a few
   // days to see how a recent request was decided.
+  //
+  // Exception: a rejected pre-approved-type request (Sick/Bereavement) that
+  // now has a document attached stays in the Queue regardless of week --
+  // the associate can still upload after rejection, and once they do, the
+  // Team Leader needs it back in view to re-review/approve, not buried in
+  // History (document_path is only ever set for that behavior type, so
+  // this can't accidentally surface other rejected requests).
   const weekStart = currentQueueWeekStart();
   const listQuery = supabase
     .from("leave_requests")
@@ -30,7 +37,7 @@ export default async function LeavePage() {
     // relationship was found" and the whole query returns null (this was
     // silently emptying the queue for every account).
     .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name), leave_request_ranges(start_date, end_date)")
-    .or(`status.eq.pending,reviewed_at.gte.${weekStart}`)
+    .or(`status.eq.pending,reviewed_at.gte.${weekStart},and(status.eq.rejected,document_path.not.is.null)`)
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
 
