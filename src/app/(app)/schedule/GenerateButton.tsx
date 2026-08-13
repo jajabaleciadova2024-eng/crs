@@ -11,6 +11,23 @@ type ImmuneMember = { id: string; name: string };
 // into Tenured vs. New Hire, not change the number itself.
 type QuotaRow = { tenured: number; newHire: number };
 
+// Team Leader's standing rule for how many of each station's fixed seats
+// should default to Tenured — saves re-typing the same split every week.
+// Matched case-insensitively against the station's name; anything not
+// listed here (including future/renamed stations) defaults to 0 tenured,
+// i.e. entirely New Hire, same as "the rest is new hires" below.
+const DEFAULT_TENURED_BY_STATION: Record<string, number> = {
+  screener: 1,
+  "collecting officer": 3,
+  "releasing officer": 2,
+  "electronic endorsement": 1,
+};
+
+function defaultQuotaRow(w: Workstation): QuotaRow {
+  const tenured = Math.min(DEFAULT_TENURED_BY_STATION[w.name.trim().toLowerCase()] ?? 0, w.headcount);
+  return { tenured, newHire: Math.max(w.headcount - tenured, 0) };
+}
+
 export default function GenerateButton({
   workstations,
   totalMembers,
@@ -26,7 +43,7 @@ export default function GenerateButton({
 }) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<Record<string, QuotaRow>>(() =>
-    Object.fromEntries(workstations.map((w) => [w.id, { tenured: 0, newHire: 0 }]))
+    Object.fromEntries(workstations.map((w) => [w.id, defaultQuotaRow(w)]))
   );
   const [immunePlacements, setImmunePlacements] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
@@ -91,31 +108,31 @@ export default function GenerateButton({
       {open && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setOpen(false)}>
           <div
-            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-4 animate-scale-in"
+            className="w-full max-w-4xl max-h-[96vh] overflow-y-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-5 flex flex-col gap-3 animate-scale-in"
             style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div>
               <h2 className="font-serif text-xl text-[var(--ink)] m-0 mb-1">Plan next week&apos;s coverage</h2>
               <p className="text-sm text-[var(--muted)] m-0">
-                Headcount per station is fixed (set on Workstations) — just decide how many of each station&apos;s
-                seats should go to Tenured vs. New Hire. OIC is included and eligible for seating too.
+                Headcount per station is fixed (set on Workstations) — Tenured/New Hire are pre-filled per your usual
+                split, adjust as needed. OIC is included and eligible for seating too.
               </p>
             </div>
 
             {immuneMembers.length > 0 && (
               <div>
-                <h3 className="text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2">
+                <h3 className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Immune members — place them first (required)
                 </h3>
-                <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
                   {immuneMembers.map((m) => (
-                    <div key={m.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
-                      <span className="text-sm flex-1">{m.name}</span>
+                    <div key={m.id} className="flex items-center gap-2">
+                      <span className="text-sm flex-1 truncate">{m.name}</span>
                       <select
                         value={immunePlacements[m.id] ?? ""}
                         onChange={(e) => setImmunePlacements((prev) => ({ ...prev, [m.id]: e.target.value }))}
-                        className="text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)] w-full sm:w-auto sm:min-w-[180px]"
+                        className="text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)] min-w-[150px]"
                       >
                         <option value="">Select a station…</option>
                         {workstations.map((w) => (
@@ -127,9 +144,8 @@ export default function GenerateButton({
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-[var(--muted)] mt-2 m-0">
-                  No automatic carryover from last week anymore — you place immune members at a station yourself every
-                  time before generating.
+                <p className="text-[11px] text-[var(--muted)] mt-1.5 m-0">
+                  No automatic carryover from last week — place immune members at a station yourself every time.
                 </p>
               </div>
             )}
@@ -138,10 +154,10 @@ export default function GenerateButton({
               <table className="w-full text-[13px] border-collapse">
                 <thead>
                   <tr>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Station</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Headcount</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Tenured</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">New Hire</th>
+                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Station</th>
+                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Headcount</th>
+                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Tenured</th>
+                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">New Hire</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -150,16 +166,14 @@ export default function GenerateButton({
                     const overAssigned = assigned > w.headcount;
                     return (
                       <tr key={w.id}>
-                        <td className="py-2 border-b border-[var(--line)]">{w.name}</td>
-                        <td className="py-2 border-b border-[var(--line)]">
+                        <td className="py-1.5 border-b border-[var(--line)]">{w.name}</td>
+                        <td className="py-1.5 border-b border-[var(--line)]">
                           <Pill tone="accent">
                             {w.headcount} seat{w.headcount === 1 ? "" : "s"}
                           </Pill>
-                          {overAssigned && (
-                            <div className="text-[10px] text-[var(--bad)] font-bold mt-1">Exceeds fixed headcount</div>
-                          )}
+                          {overAssigned && <div className="text-[10px] text-[var(--bad)] font-bold mt-0.5">Exceeds fixed headcount</div>}
                         </td>
-                        <td className="py-2 border-b border-[var(--line)]">
+                        <td className="py-1.5 border-b border-[var(--line)]">
                           <input
                             type="number"
                             min={0}
@@ -168,7 +182,7 @@ export default function GenerateButton({
                             className="w-16 text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)]"
                           />
                         </td>
-                        <td className="py-2 border-b border-[var(--line)]">
+                        <td className="py-1.5 border-b border-[var(--line)]">
                           <input
                             type="number"
                             min={0}
@@ -184,7 +198,7 @@ export default function GenerateButton({
               </table>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-[var(--paper)] rounded-md p-3 border border-[var(--line)] text-[13px]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-[var(--paper)] rounded-md p-2.5 border border-[var(--line)] text-[13px]">
               <div>
                 <div className="text-[10.5px] uppercase tracking-wider text-[var(--muted)] mb-0.5">Fixed headcount</div>
                 <div className={fixedHeadcount > totalMembers ? "text-[var(--bad)] font-bold" : "font-bold"}>
