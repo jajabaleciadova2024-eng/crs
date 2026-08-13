@@ -22,6 +22,7 @@ export type QueueRequest = {
   status: LeaveStatus;
   document_path: string | null;
   flagged_conflict: boolean;
+  review_note: string | null;
   leave_request_ranges: Range[];
   profiles: { first_name: string; last_name: string } | null;
 };
@@ -49,22 +50,41 @@ export default function LeaveQueueTable({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
+  const [rejectError, setRejectError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
   const colCount = 4 + (canViewAll ? 1 : 0) + 2; // Type, Dates, Reason, Status + Associate? + Actions/Document
 
-  function decide(id: string, status: "approved" | "rejected") {
+  function decide(id: string, status: "approved" | "rejected", note?: string) {
     setPendingId(id);
     startTransition(async () => {
-      await fetch(`/api/leave/${id}`, {
+      const res = await fetch(`/api/leave/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, note }),
       });
       setPendingId(null);
+
+      if (status === "rejected") {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setRejectError(body.error ?? "Couldn't reject that request.");
+          return;
+        }
+        setRejectingId(null);
+        setRejectNote("");
+        setRejectError(null);
+      }
       router.refresh();
     });
+  }
+
+  function submitReject() {
+    if (!rejectingId || !rejectNote.trim()) return;
+    decide(rejectingId, "rejected", rejectNote.trim());
   }
 
   function cancelRequest(id: string) {
@@ -89,6 +109,7 @@ export default function LeaveQueueTable({
   }
 
   return (
+    <>
     <table className="w-full text-[13px] border-collapse">
       <thead>
         <tr>
@@ -133,6 +154,9 @@ export default function LeaveQueueTable({
                 <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.reason ?? "—"}</td>
                 <td className="py-2.5 border-b border-[var(--line)]">
                   <Pill tone={STATUS_TONE[r.status]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
+                  {r.status === "rejected" && r.review_note && (
+                    <div className="text-[10.5px] text-[var(--muted)] mt-1 max-w-[180px]">{r.review_note}</div>
+                  )}
                 </td>
                 <td className="py-2.5 border-b border-[var(--line)]">
                   {typeConfig?.behavior === "auto_approve_document" ? (
@@ -172,7 +196,15 @@ export default function LeaveQueueTable({
                         >
                           Approve
                         </Button>
-                        <Button style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => decide(r.id, "rejected")}>
+                        <Button
+                          style={{ padding: "5px 10px" }}
+                          disabled={pendingId === r.id}
+                          onClick={() => {
+                            setRejectingId(r.id);
+                            setRejectNote("");
+                            setRejectError(null);
+                          }}
+                        >
                           Reject
                         </Button>
                       </div>
@@ -201,5 +233,42 @@ export default function LeaveQueueTable({
         })}
       </tbody>
     </table>
+
+    {rejectingId && (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50" onClick={() => setRejectingId(null)}>
+        <div
+          className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-md p-6 flex flex-col gap-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h2 className="font-serif text-xl text-[var(--ink)] m-0">Reject this request?</h2>
+          <p className="text-sm text-[var(--muted)] m-0">
+            Add a short note so the associate knows why — it&apos;s included in their notification.
+          </p>
+          <textarea
+            value={rejectNote}
+            onChange={(e) => setRejectNote(e.target.value)}
+            rows={3}
+            placeholder="e.g. Overlaps another approved Vacation request"
+            className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-none"
+            autoFocus
+          />
+          {rejectError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{rejectError}</p>}
+          <div className="flex justify-end gap-2 mt-1">
+            <Button style={{ padding: "7px 14px" }} disabled={pendingId === rejectingId} onClick={() => setRejectingId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              style={{ padding: "7px 14px", background: "var(--bad)", borderColor: "var(--bad)" }}
+              disabled={pendingId === rejectingId || !rejectNote.trim()}
+              onClick={submitReject}
+            >
+              {pendingId === rejectingId ? "Rejecting…" : "Reject request"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

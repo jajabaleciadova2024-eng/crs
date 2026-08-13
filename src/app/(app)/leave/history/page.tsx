@@ -35,7 +35,7 @@ export default async function LeaveHistoryPage() {
     // Must disambiguate: leave_requests has two FKs to profiles
     // (associate_id, reviewed_by) — see /leave/page.tsx for the full note.
     .select(
-      "id, associate_id, leave_type, start_date, end_date, status, document_path, reviewed_at, profiles!leave_requests_associate_id_fkey(first_name, last_name), leave_request_ranges(start_date, end_date)"
+      "id, associate_id, leave_type, start_date, end_date, status, document_path, reviewed_at, review_note, profiles!leave_requests_associate_id_fkey(first_name, last_name), leave_request_ranges(start_date, end_date)"
     )
     .in("status", ["approved", "rejected"])
     .lt("reviewed_at", weekStart)
@@ -114,6 +114,9 @@ export default async function LeaveHistoryPage() {
                         </td>
                         <td className="py-2.5 border-b border-[var(--line)]">
                           <Pill tone={STATUS_TONE[r.status as LeaveStatus]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
+                          {r.status === "rejected" && r.review_note && (
+                            <div className="text-[10.5px] text-[var(--muted)] mt-1 max-w-[180px]">{r.review_note}</div>
+                          )}
                         </td>
                         <td className="py-2.5 border-b border-[var(--line)]">
                           {typeConfig?.behavior === "auto_approve_document" ? (

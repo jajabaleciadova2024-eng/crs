@@ -85,5 +85,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Couldn't generate a link right now. Try again." }, { status: 400 });
   }
 
-  return NextResponse.json(links);
+  return NextResponse.json({ ...links, fileName });
 }

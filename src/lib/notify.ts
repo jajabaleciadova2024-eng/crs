@@ -13,7 +13,7 @@ export async function notifyLeaveStatusChange(leaveRequestId: string) {
 
   const { data: leave } = await admin
     .from("leave_requests")
-    .select("id, leave_type, start_date, end_date, status, associate_id")
+    .select("id, leave_type, start_date, end_date, status, associate_id, review_note")
     .eq("id", leaveRequestId)
     .single();
   if (!leave) return;
@@ -37,7 +37,8 @@ export async function notifyLeaveStatusChange(leaveRequestId: string) {
     `Your ${leave.leave_type} leave request was ${leave.status}`,
     `<p>Hi ${toTitleCase(profile.first_name)},</p>
      <p>Your leave request (${leave.leave_type}, ${leave.start_date} to ${leave.end_date}) was
-     <strong>${leave.status}</strong>.</p>`
+     <strong>${leave.status}</strong>.</p>
+     ${leave.status === "rejected" && leave.review_note ? `<p><strong>Reason:</strong> ${leave.review_note}</p>` : ""}`
   );
 }
 

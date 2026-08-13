@@ -70,6 +70,7 @@ export interface LeaveRequest {
   document_uploaded_at: string | null;
   flagged_conflict: boolean;
   seen_by_associate: boolean;
+  review_note: string | null;
   created_at: string;
 }
 
@@ -181,6 +182,7 @@ export interface Database {
           document_uploaded_at?: string | null;
           flagged_conflict?: boolean;
           seen_by_associate?: boolean;
+          review_note?: string | null;
         };
         Update: {
           associate_id?: string;
@@ -195,6 +197,7 @@ export interface Database {
           document_uploaded_at?: string | null;
           flagged_conflict?: boolean;
           seen_by_associate?: boolean;
+          review_note?: string | null;
         };
         Relationships: [];
       };

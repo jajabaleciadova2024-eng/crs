@@ -23,9 +23,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const body = await request.json();
-  const { status } = body ?? {};
+  const { status, note } = body ?? {};
   if (status !== "approved" && status !== "rejected") {
     return NextResponse.json({ error: "Status must be 'approved' or 'rejected'." }, { status: 400 });
+  }
+
+  // A rejection needs a reason attached so the associate knows why —
+  // required here too, not just by the modal client-side.
+  if (status === "rejected" && !String(note ?? "").trim()) {
+    return NextResponse.json({ error: "A note is required when rejecting a request." }, { status: 400 });
   }
 
   // Pre-approved types (Sick/Bereavement) can be filed before the document
@@ -46,7 +52,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { error } = await supabase
     .from("leave_requests")
-    .update({ status, reviewed_by: user.id, reviewed_at: new Date().toISOString(), seen_by_associate: false })
+    .update({
+      status,
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+      seen_by_associate: false,
+      review_note: status === "rejected" ? String(note).trim() : null,
+    })
     .eq("id", id);
 
   if (error) {

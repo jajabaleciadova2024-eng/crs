@@ -68,7 +68,7 @@ export default function DocumentUpload({
 export function DocumentLinks({ requestId, canDownload }: { requestId: string; canDownload: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [links, setLinks] = useState<{ viewUrl: string; downloadUrl: string } | null>(null);
+  const [links, setLinks] = useState<{ viewUrl: string; downloadUrl: string; fileName: string } | null>(null);
 
   async function openModal() {
     setError(null);
@@ -82,8 +82,10 @@ export function DocumentLinks({ requestId, canDownload }: { requestId: string; c
       return;
     }
 
-    setLinks({ viewUrl: body.viewUrl, downloadUrl: body.downloadUrl });
+    setLinks({ viewUrl: body.viewUrl, downloadUrl: body.downloadUrl, fileName: body.fileName ?? "" });
   }
+
+  const isImage = links ? /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(links.fileName) : false;
 
   return (
     <div className="flex flex-col gap-1 items-start">
@@ -111,7 +113,14 @@ export function DocumentLinks({ requestId, canDownload }: { requestId: string; c
                 </Button>
               </div>
             </div>
-            <iframe src={links.viewUrl} title="Supporting document" className="flex-1 w-full border-0 bg-white" />
+            <div className="flex-1 w-full overflow-hidden flex items-center justify-center bg-[var(--paper)]">
+              {isImage ? (
+                // eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URL, not a static asset next/image can optimize
+                <img src={links.viewUrl} alt="Supporting document" className="max-w-full max-h-full object-contain" />
+              ) : (
+                <iframe src={links.viewUrl} title="Supporting document" className="w-full h-full border-0 bg-white" />
+              )}
+            </div>
           </div>
         </div>
       )}
