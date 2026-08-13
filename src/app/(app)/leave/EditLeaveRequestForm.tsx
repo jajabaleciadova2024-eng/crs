@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
+import { datePickerOnlyProps } from "@/lib/dateInputGuards";
 import type { LeaveTypeConfig } from "@/lib/leaveTypes";
 
 type DateRange = { start_date: string; end_date: string };
@@ -140,14 +141,16 @@ export default function EditLeaveRequestForm({
               type="date"
               value={r.start_date}
               onChange={(e) => updateRange(i, "start_date", e.target.value)}
-              className="px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm"
+              {...datePickerOnlyProps}
+              className="px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm cursor-pointer"
             />
             <span className="text-[var(--muted)] text-xs">to</span>
             <input
               type="date"
               value={r.end_date}
               onChange={(e) => updateRange(i, "end_date", e.target.value)}
-              className="px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm"
+              {...datePickerOnlyProps}
+              className="px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm cursor-pointer"
             />
             {ranges.length > 1 && (
               <button type="button" onClick={() => removeRange(i)} aria-label="Remove date range" className="text-[var(--muted)] text-lg leading-none px-1">
