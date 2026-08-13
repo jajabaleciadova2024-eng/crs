@@ -50,7 +50,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           realRole={realRole}
         />
       </SidebarShell>
-      <main className="flex-1 min-w-0 px-4 md:px-10 py-5 md:py-8 pb-16 max-w-[1000px] w-full">
+      <main
+        className="flex-1 min-w-0 px-4 md:px-10 py-5 md:py-8 pb-16 max-w-[1000px] w-full md:ml-[var(--sidebar-width,220px)] transition-[margin-left] duration-200 ease-out"
+      >
         {previewing && <PreviewBanner label={ROLE_LABEL[profile.role]} />}
         {children}
       </main>

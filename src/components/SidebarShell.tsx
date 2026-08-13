@@ -8,13 +8,28 @@ const COLLAPSE_KEY = "crs_sidebar_collapsed";
 // Wraps the (server-rendered) Sidebar content. On mobile it becomes a
 // hamburger-triggered slide-in drawer with a backdrop (always full width —
 // the collapse/pin feature below is a desktop concept); on desktop (md+)
-// it's the normal sticky sidebar, plus a collapse/pin toggle that narrows
-// it to an icon-only rail. Sidebar itself stays a server component — this
-// only adds positioning/toggle behavior around it. The collapsed state is
-// applied as a `data-collapsed` attribute on the wrapping `group/sidebar`
-// element; Sidebar's own markup (and NavLink) key off that via Tailwind's
-// `group-data-[collapsed=true]/sidebar:*` variant, so no prop drilling or
-// context is needed to reach into server-rendered children.
+// it's a permanently `position: fixed` rail, plus a collapse/pin toggle
+// that narrows it to an icon-only rail. Sidebar itself stays a server
+// component — this only adds positioning/toggle behavior around it.
+//
+// Deliberately `fixed`, not `sticky`, at every breakpoint: this sidebar
+// sits inside a `flex md:flex-row` container alongside a `<main>` that can
+// be much taller than the viewport, and that specific combination (a
+// flex item with an explicit `h-screen` using `position: sticky`) turned
+// out to make Chrome/Firefox miscompute the flex container's own height,
+// which cascaded into breaking even unrelated `position: sticky` elements
+// further down inside `<main>` (e.g. PageHeader). `fixed` has none of
+// that containing-block ambiguity — it's always pinned to the viewport,
+// full stop. Removing it from flow like this means `<main>` needs an
+// explicit left margin to avoid sitting underneath it (see
+// `--sidebar-width` below, consumed by `main`'s `md:ml-[var(--sidebar-width,220px)]`
+// in the app layout).
+//
+// The collapsed state is applied as a `data-collapsed` attribute on the
+// wrapping `group/sidebar` element; Sidebar's own markup (and NavLink) key
+// off that via Tailwind's `group-data-[collapsed=true]/sidebar:*` variant,
+// so no prop drilling or context is needed to reach into server-rendered
+// children.
 export default function SidebarShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -26,6 +41,14 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsed(window.localStorage.getItem(COLLAPSE_KEY) === "1");
   }, []);
+
+  // Keep --sidebar-width in sync so <main> (a sibling outside this
+  // component's own DOM subtree) can offset itself without prop drilling
+  // or context — see the big comment above for why margin instead of a
+  // sticky/flex-based approach.
+  useEffect(() => {
+    document.documentElement.style.setProperty("--sidebar-width", collapsed ? "72px" : "220px");
+  }, [collapsed]);
 
   // Close the mobile drawer on navigation — the layout (and this shell)
   // persists across route changes in the App Router, so it wouldn't
@@ -74,22 +97,15 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
         />
       )}
 
-      {/* Sticky on desktop (md:sticky + h-screen) so the sidebar stays
-          pinned in the viewport as the main content scrolls; a fixed
-          slide-in drawer on mobile instead. The slide transform is scoped
-          with `max-md:` so it's ONLY ever applied below the md breakpoint
-          — at md+ no transform utility is generated for this element at
-          all, which matters because `position: sticky` combined with ANY
-          transform on the same element (even a no-op translate-x-0, and
-          even one meant to be overridden at a wider breakpoint) makes
-          Chrome/Firefox silently stop sticking. Trying to override it
-          with `md:transform-none` instead of never applying it in the
-          first place depends on Tailwind's generated cascade order and
-          hid the sidebar completely off-screen at all sizes when that bet
-          didn't pay off — this scoped version has no such ordering
-          dependency to get wrong. */}
+      {/* Always position:fixed (see the top-of-file comment for why not
+          sticky) — pinned to the viewport at every breakpoint. The mobile
+          slide-in/out transform is scoped with `max-md:` so no transform
+          utility is ever generated for this element at md+ at all — a
+          transform on the SAME element as certain position values can
+          introduce its own containing-block quirks, so it's simplest to
+          just never apply one past mobile. */}
       <div
-        className={`fixed md:sticky top-0 left-0 h-screen z-50 md:z-auto transition-transform duration-200 ease-out ${
+        className={`fixed top-0 left-0 h-screen z-50 transition-transform duration-200 ease-out ${
           open ? "max-md:translate-x-0" : "max-md:-translate-x-full"
         }`}
       >
