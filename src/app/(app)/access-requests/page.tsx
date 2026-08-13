@@ -30,7 +30,7 @@ export default async function AccessRequestsPage() {
         hint={`${pending?.length ?? 0} waiting`}
         footnote="Approving always creates an Associate account and invites the person by email, same as adding a member from Team & Roles — just assign a PSID. Need to add a Team Leader or OIC instead? Use Team & Roles directly."
       >
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scroll-shadow-x">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>
@@ -71,7 +71,7 @@ export default async function AccessRequestsPage() {
       </Panel>
 
       <Panel title="Recent decisions" hint="Last 10">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scroll-shadow-x">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>

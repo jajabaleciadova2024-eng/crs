@@ -99,7 +99,7 @@ export default async function LeavePage() {
         )}
 
         <Panel title="Queue" hint={`${pendingCount} pending`}>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scroll-shadow-x">
             <LeaveQueueTable
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               requests={(requests ?? []) as any}

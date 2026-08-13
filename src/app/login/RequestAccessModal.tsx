@@ -74,8 +74,15 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-serif text-xl text-[var(--ink)] m-0">Request access</h2>
-              <button type="button" onClick={onClose} aria-label="Close" className="text-[var(--muted)] text-lg leading-none">
-                ×
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="inline-flex items-center justify-center w-8 h-8 -mr-1 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)]"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
               </button>
             </div>
             <p className="text-xs text-[var(--muted)] -mt-2 mb-1">

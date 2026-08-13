@@ -83,7 +83,7 @@ export default async function LeaveHistoryPage() {
       ) : (
         Array.from(periods.entries()).map(([key, { label, rows }]) => (
           <Panel key={key} title={label} hint={`${rows.length} decided`}>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scroll-shadow-x">
               <table className="w-full text-[13px] border-collapse">
                 <thead>
                   <tr>

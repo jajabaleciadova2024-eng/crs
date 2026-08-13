@@ -196,10 +196,10 @@ export default async function GuidePage() {
 
       {visibleSections.map((section) => (
         <Panel key={section.title} title={section.title}>
-          <dl className="flex flex-col gap-3.5">
-            {section.items.map((item) => (
-              <div key={item.q}>
-                <dt className="text-[13px] font-bold mb-1">{item.q}</dt>
+          <dl className="flex flex-col divide-y divide-[var(--line)]/60">
+            {section.items.map((item, i) => (
+              <div key={item.q} className={i === 0 ? "pb-3.5" : "py-3.5 last:pb-0"}>
+                <dt className="text-[13px] font-bold mb-1 text-[var(--ink)]">{item.q}</dt>
                 <dd className="text-[13px] text-[var(--muted)] m-0 leading-relaxed">{item.a}</dd>
               </div>
             ))}

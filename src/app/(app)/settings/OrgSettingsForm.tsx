@@ -74,7 +74,7 @@ export default function OrgSettingsForm({ settings }: { settings: OrgSettings })
 
       <div>
         <div className="text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2">Leave types</div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scroll-shadow-x">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>

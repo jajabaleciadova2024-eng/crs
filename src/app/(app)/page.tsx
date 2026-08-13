@@ -125,7 +125,7 @@ export default async function DashboardPage() {
       </Panel>
 
       <Panel title={approver ? "Recent leave activity" : "Your recent leave activity"} hint="Last 5 requests">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scroll-shadow-x">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>

@@ -16,7 +16,7 @@ export default async function WorkstationsPage() {
       <PageHeader title="Workstations" subtitle="The functional stations associates rotate through" />
 
       <Panel title="Active stations" action={<AddWorkstationForm />}>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scroll-shadow-x">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>

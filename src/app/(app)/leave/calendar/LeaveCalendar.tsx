@@ -6,6 +6,7 @@ import { addMonths, monthGridDates, MONTH_LABEL, type LeaveCalendarEntry } from 
 import type { LeaveTypeConfig } from "@/lib/leaveTypes";
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAY_LABELS_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
 
 export default function LeaveCalendar({
   dayMap,
@@ -72,10 +73,11 @@ export default function LeaveCalendar({
         </span>
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {WEEKDAY_LABELS.map((label) => (
-          <div key={label} className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold text-center py-1.5">
-            {label}
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+        {WEEKDAY_LABELS.map((label, i) => (
+          <div key={label + i} className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold text-center py-1.5">
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sm:hidden">{WEEKDAY_LABELS_SHORT[i]}</span>
           </div>
         ))}
         {dates.map((date) => {
@@ -90,16 +92,16 @@ export default function LeaveCalendar({
               type="button"
               onClick={() => setSelectedDate(entries.length > 0 ? date : null)}
               disabled={entries.length === 0}
-              className={`flex flex-col items-start gap-1 rounded-md border px-2 py-2 min-h-[68px] text-left transition-all ${
+              className={`flex flex-col items-start gap-1 rounded-lg border px-1.5 sm:px-2 py-1.5 sm:py-2 min-h-[56px] sm:min-h-[68px] text-left transition-all ${
                 isSelected ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-sm" : "border-[var(--line)]"
               } ${inMonth ? "bg-[var(--paper)]" : "bg-[var(--paper-raised)] opacity-40"} ${
-                entries.length > 0 ? "cursor-pointer hover:border-[var(--accent)] hover:shadow-sm" : "cursor-default"
+                entries.length > 0 ? "cursor-pointer hover:border-[var(--accent)] hover:shadow-sm active:scale-95" : "cursor-default"
               }`}
             >
               <span
                 className={`text-[11.5px] leading-none ${
                   isToday
-                    ? "font-bold text-white bg-[var(--accent)] w-[22px] h-[22px] rounded-full flex items-center justify-center"
+                    ? "font-bold text-white bg-[var(--accent)] w-[20px] h-[20px] sm:w-[22px] sm:h-[22px] rounded-full flex items-center justify-center"
                     : "text-[var(--muted)]"
                 }`}
               >
@@ -109,7 +111,7 @@ export default function LeaveCalendar({
                 {entries.slice(0, 4).map((e, i) => (
                   <span
                     key={`${e.id}-${i}`}
-                    className="w-[6px] h-[6px] rounded-full"
+                    className="w-[5px] h-[5px] sm:w-[6px] sm:h-[6px] rounded-full"
                     style={{ background: e.status === "approved" ? "var(--good)" : "var(--warn)" }}
                   />
                 ))}
@@ -130,7 +132,7 @@ export default function LeaveCalendar({
           ) : (
             <ul className="flex flex-col gap-2 m-0 p-0 list-none">
               {selectedEntries.map((e, i) => (
-                <li key={`${e.id}-${i}`} className="flex items-center gap-2.5 text-sm bg-[var(--paper)] rounded-md px-3 py-2 border border-[var(--line)]">
+                <li key={`${e.id}-${i}`} className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-sm bg-[var(--paper)] rounded-lg px-3 py-2 border border-[var(--line)]">
                   <span className="font-medium">{e.name}</span>
                   <span className="text-[var(--muted)] capitalize text-xs">{typeLabel(e.leaveType)}</span>
                   <Pill tone={e.status === "approved" ? "good" : "warn"}>{e.status === "approved" ? "Approved" : "Pending"}</Pill>

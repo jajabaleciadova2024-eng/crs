@@ -29,7 +29,7 @@ export default async function TeamPage() {
         action={<AddMemberForm />}
         footnote="New members receive an email invite to set their own password. Login accepts PSID or email. Immune and Tenure are managed from Weekly Schedule now, alongside the other rotation/generate settings that use them."
       >
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scroll-shadow-x">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>
