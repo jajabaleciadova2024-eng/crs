@@ -83,5 +83,5 @@ export async function POST(request: Request) {
 
   await notifyApproversNewLeave(inserted.id);
 
-  return NextResponse.json({ ok: true, flagged_conflict: flaggedConflict });
+  return NextResponse.json({ ok: true, id: inserted.id, flagged_conflict: flaggedConflict });
 }

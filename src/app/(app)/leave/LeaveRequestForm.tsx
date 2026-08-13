@@ -22,7 +22,9 @@ export default function LeaveRequestForm({
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const selectedConfig = leaveTypeConfigs.find((c) => c.key === leaveType);
 
@@ -49,6 +51,7 @@ export default function LeaveRequestForm({
   }, [checkConflict]);
 
   function updateRange(index: number, field: keyof DateRange, value: string) {
+    setSubmitted(false);
     setRanges((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
   }
 
@@ -63,6 +66,7 @@ export default function LeaveRequestForm({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setSubmitted(false);
 
     const validRanges = ranges.filter((r) => r.start_date && r.end_date);
     if (validRanges.length === 0) {
@@ -86,16 +90,37 @@ export default function LeaveRequestForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ leave_type: leaveType, ranges: validRanges, reason: reason.trim() || null }),
     });
-    setSubmitting(false);
+    const body = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
+      setSubmitting(false);
       setError(body.error ?? "Couldn't submit your request. Please try again.");
       return;
     }
 
+    // If a supporting document was attached, upload it right away against
+    // the request we just created — same endpoint the queue's upload
+    // button uses, just called immediately instead of later.
+    if (file && body.id) {
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await fetch(`/api/leave/${body.id}/document`, { method: "POST", body: formData });
+      if (!uploadRes.ok) {
+        const uploadBody = await uploadRes.json().catch(() => ({}));
+        setSubmitting(false);
+        setError(
+          `Request submitted, but the document upload failed: ${uploadBody.error ?? "please try again from the queue below."}`
+        );
+        router.refresh();
+        return;
+      }
+    }
+
+    setSubmitting(false);
+    setSubmitted(true);
     setRanges([{ ...BLANK_RANGE }]);
     setReason("");
+    setFile(null);
     router.refresh();
   }
 
@@ -172,9 +197,27 @@ export default function LeaveRequestForm({
       )}
 
       {selectedConfig?.behavior === "auto_approve_document" && (
-        <p className="col-span-2 text-sm text-[var(--muted)] bg-[var(--accent-soft)] rounded px-3 py-2 m-0">
-          {selectedConfig.label} requests typically don&apos;t need review. Once it&apos;s filed, upload your supporting
-          document (e.g. medical certificate) from the queue below — you can do that now or once you&apos;re back.
+        <div className="col-span-2 flex flex-col gap-2">
+          <p className="text-sm text-[var(--muted)] bg-[var(--accent-soft)] rounded px-3 py-2 m-0">
+            {selectedConfig.label} requests typically don&apos;t need review. Attach your supporting document (e.g.
+            medical certificate) now, or upload it later from the queue below — either works.
+          </p>
+          <div>
+            <label className="block text-[11.5px] font-bold uppercase tracking-wide text-[var(--muted)] mb-1.5">
+              Supporting document <span className="normal-case font-normal">(optional)</span>
+            </label>
+            <input
+              type="file"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="w-full text-sm text-[var(--muted)] file:mr-3 file:px-3 file:py-1.5 file:rounded file:border file:border-[var(--line)] file:bg-[var(--paper-raised)] file:text-[var(--ink)] file:text-xs file:font-bold"
+            />
+          </div>
+        </div>
+      )}
+
+      {submitted && !error && (
+        <p role="status" className="col-span-2 text-sm text-[var(--good)] bg-[var(--good-soft)] rounded px-3 py-2">
+          Request submitted — see it in the queue below.
         </p>
       )}
 
