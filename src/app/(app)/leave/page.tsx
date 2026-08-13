@@ -93,7 +93,13 @@ export default async function LeavePage() {
         </div>
       </header>
 
-      <div className={canFile ? "grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-4 items-start" : "grid grid-cols-1 gap-4"}>
+      <div className="grid grid-cols-1 gap-4">
+        {canFile && (
+          <Panel title="File a request">
+            <LeaveRequestForm leaveTypeConfigs={leaveTypeConfigs} requireReason={orgSettings?.require_leave_reason ?? true} />
+          </Panel>
+        )}
+
         <Panel title="Queue" hint={`${pendingCount} pending`}>
           <div className="overflow-x-auto">
             <LeaveQueueTable
@@ -107,12 +113,6 @@ export default async function LeavePage() {
             />
           </div>
         </Panel>
-
-        {canFile && (
-          <Panel title="File a request">
-            <LeaveRequestForm leaveTypeConfigs={leaveTypeConfigs} requireReason={orgSettings?.require_leave_reason ?? true} />
-          </Panel>
-        )}
       </div>
     </>
   );
