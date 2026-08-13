@@ -5,12 +5,12 @@ import { formatFullName } from "@/lib/format";
 import SignOutButton from "@/components/SignOutButton";
 import PreviewRoleSwitcher from "@/components/PreviewRoleSwitcher";
 
-type NavItem = { href: string; label: string; roles?: Profile["role"][]; badgeKey?: "accessRequests" };
+type NavItem = { href: string; label: string; roles?: Profile["role"][]; badgeKey?: "accessRequests" | "pendingLeave" };
 
 const MAIN_NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Dashboard" },
   { href: "/schedule", label: "Weekly Schedule" },
-  { href: "/leave", label: "Leave Requests" },
+  { href: "/leave", label: "Leave Requests", badgeKey: "pendingLeave" },
   { href: "/team", label: "Team & Roles", roles: ["team_leader"] },
   { href: "/access-requests", label: "Access Requests", roles: ["team_leader"], badgeKey: "accessRequests" },
   { href: "/workstations", label: "Workstations", roles: ["team_leader"] },
@@ -42,10 +42,12 @@ function NavLink({ item, badgeCount }: { item: NavItem; badgeCount: number }) {
 export default function Sidebar({
   profile,
   pendingAccessRequests = 0,
+  pendingLeaveRequests = 0,
   realRole,
 }: {
   profile: Profile;
   pendingAccessRequests?: number;
+  pendingLeaveRequests?: number;
   realRole?: AppRole;
 }) {
   const initials = `${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase();
@@ -60,9 +62,11 @@ export default function Sidebar({
       </div>
 
       <nav className="flex flex-col gap-0.5">
-        {MAIN_NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile.role)).map((item) => (
-          <NavLink key={item.href} item={item} badgeCount={item.badgeKey === "accessRequests" ? pendingAccessRequests : 0} />
-        ))}
+        {MAIN_NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile.role)).map((item) => {
+          const badgeCount =
+            item.badgeKey === "accessRequests" ? pendingAccessRequests : item.badgeKey === "pendingLeave" ? pendingLeaveRequests : 0;
+          return <NavLink key={item.href} item={item} badgeCount={badgeCount} />;
+        })}
       </nav>
 
       <div className="mt-auto flex flex-col gap-3">

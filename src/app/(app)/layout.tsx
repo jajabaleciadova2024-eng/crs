@@ -1,4 +1,4 @@
-import { requireProfileWithPreview, ROLE_LABEL } from "@/lib/auth";
+import { requireProfileWithPreview, ROLE_LABEL, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import Sidebar from "@/components/Sidebar";
 import SidebarShell from "@/components/SidebarShell";
@@ -8,19 +8,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { profile, realRole, previewing } = await requireProfileWithPreview();
 
   let pendingAccessRequests = 0;
-  if (profile.role === "team_leader") {
+  let pendingLeaveRequests = 0;
+  // Both are Team-Leader-only actionable counts — only the Team Leader can
+  // approve access requests or leave requests, so only they get the badge.
+  if (canManageOperations(profile.role)) {
     const supabase = await createClient();
-    const { count } = await supabase
-      .from("access_requests")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending");
-    pendingAccessRequests = count ?? 0;
+    const [{ count: accessCount }, { count: leaveCount }] = await Promise.all([
+      supabase.from("access_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    ]);
+    pendingAccessRequests = accessCount ?? 0;
+    pendingLeaveRequests = leaveCount ?? 0;
   }
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       <SidebarShell>
-        <Sidebar profile={profile} pendingAccessRequests={pendingAccessRequests} realRole={realRole} />
+        <Sidebar
+          profile={profile}
+          pendingAccessRequests={pendingAccessRequests}
+          pendingLeaveRequests={pendingLeaveRequests}
+          realRole={realRole}
+        />
       </SidebarShell>
       <main className="flex-1 min-w-0 px-4 md:px-8 py-5 md:py-7 pb-16 max-w-[980px] w-full">
         {previewing && <PreviewBanner label={ROLE_LABEL[profile.role]} />}

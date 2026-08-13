@@ -31,11 +31,12 @@ const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   rejected: "bad",
 };
 
+// Lists every date/range in full — a Team Leader approving leave needs the
+// exact dates, not a truncated "+N more" summary.
 function formatRanges(primary: Range, extra: Range[]) {
   const all = [primary, ...extra];
   const label = (r: Range) => (r.start_date === r.end_date ? r.start_date : `${r.start_date} – ${r.end_date}`);
-  if (all.length === 1) return label(all[0]);
-  return `${label(all[0])} +${all.length - 1} more`;
+  return all.map(label).join(", ");
 }
 
 export default function LeaveQueueTable({
@@ -148,7 +149,7 @@ export default function LeaveQueueTable({
                       <span className="text-[var(--muted)]">—</span>
                     )
                   ) : (
-                    <span className="text-[var(--muted)]">—</span>
+                    <span className="text-[var(--muted)]">N/A</span>
                   )}
                 </td>
                 <td className="py-2.5 border-b border-[var(--line)]">
