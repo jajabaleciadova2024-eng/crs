@@ -13,8 +13,15 @@ export default async function LeavePage() {
   const supabase = await createClient();
   // canViewAll: sees everyone's requests, not just their own (Team Leader + OIC).
   // canManage: can approve/reject (Team Leader only).
+  // canFile: can file a leave request for themselves — associates and OIC,
+  // same as each other; the Team Leader approves/rejects instead of filing
+  // through this form. (canViewAll used to gate the filing form too, which
+  // incorrectly hid it from OIC along with Team Leader — OIC isn't a
+  // decision-maker here, just a broader viewer, so they should file the
+  // same as any associate.)
   const canViewAll = isApprover(profile.role);
   const canManage = canManageOperations(profile.role);
+  const canFile = profile.role !== "team_leader";
 
   // The Queue mirrors History in every way except its time window: pending
   // requests always show here, but decided (approved/rejected) ones only
@@ -68,7 +75,11 @@ export default async function LeavePage() {
           <div>
             <h1 className="font-serif text-2xl m-0 mb-1">Leave Requests</h1>
             <p className="text-sm text-[var(--muted)] m-0">
-              {canViewAll ? "Track requests from your team" : "File a request and track your leave history"}
+              {canFile && canViewAll
+                ? "File your own request, and track requests from the whole team"
+                : canFile
+                  ? "File a request and track your leave history"
+                  : "Track requests from your team"}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -82,7 +93,7 @@ export default async function LeavePage() {
         </div>
       </header>
 
-      <div className={canViewAll ? "grid grid-cols-1 gap-4" : "grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-4 items-start"}>
+      <div className={canFile ? "grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-4 items-start" : "grid grid-cols-1 gap-4"}>
         <Panel title="Queue" hint={`${pendingCount} pending`}>
           <div className="overflow-x-auto">
             <LeaveQueueTable
@@ -97,7 +108,7 @@ export default async function LeavePage() {
           </div>
         </Panel>
 
-        {!canViewAll && (
+        {canFile && (
           <Panel title="File a request">
             <LeaveRequestForm leaveTypeConfigs={leaveTypeConfigs} requireReason={orgSettings?.require_leave_reason ?? true} />
           </Panel>
