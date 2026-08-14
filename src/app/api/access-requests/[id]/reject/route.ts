@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { notifyAccessRequestDecision } from "@/lib/notify";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,6 +26,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  // Let the requester know — without this they just never hear back.
+  await notifyAccessRequestDecision(id, "rejected");
 
   return NextResponse.json({ ok: true });
 }

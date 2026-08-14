@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inviteMember } from "@/lib/inviteMember";
+import { notifyAccessRequestDecision } from "@/lib/notify";
 
 // Approving an access request runs the exact same invite as /team's "Add
 // member" — the requester gets the same invite email. Team Leader only,
@@ -63,6 +64,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .from("access_requests")
     .update({ status: "approved", reviewed_by: user.id, reviewed_at: new Date().toISOString() })
     .eq("id", id);
+
+  // Branded "you're approved" email — separate from the generic Supabase
+  // invite link email that inviteMember already triggered above.
+  await notifyAccessRequestDecision(id, "approved");
 
   return NextResponse.json({ ok: true });
 }

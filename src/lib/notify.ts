@@ -158,6 +158,43 @@ export async function notifyLeadersNewAccessRequest(accessRequestId: string) {
   if (!result.sent) console.error("[notify] notifyLeadersNewAccessRequest: send failed", result.reason);
 }
 
+// Notifies the access-request submitter (a public person, not yet a user)
+// when their request is approved or rejected. Approval also triggers
+// Supabase Auth's own invite email, but this one is branded and explains
+// what's happening in the context of CRS Naga specifically.
+export async function notifyAccessRequestDecision(accessRequestId: string, decision: "approved" | "rejected") {
+  const admin = createAdminClient();
+
+  const { data: req, error: reqError } = await admin
+    .from("access_requests")
+    .select("first_name, last_name, email")
+    .eq("id", accessRequestId)
+    .single();
+  if (reqError || !req) {
+    console.error("[notify] notifyAccessRequestDecision: couldn't load access request", accessRequestId, reqError);
+    return;
+  }
+
+  const subject =
+    decision === "approved"
+      ? "Your CRS Naga access request has been approved!"
+      : "Your CRS Naga access request was not approved";
+
+  const html =
+    decision === "approved"
+      ? `<p>Hi ${toTitleCase(req.first_name)},</p>
+         <p>Great news — your request to access CRS Naga has been <strong>approved</strong>.</p>
+         <p>You'll receive a separate email with your login invitation link shortly.
+         Use it to set your password and sign in for the first time.</p>
+         <p>Welcome to the team!</p>`
+      : `<p>Hi ${toTitleCase(req.first_name)},</p>
+         <p>Unfortunately, your request to access CRS Naga has been <strong>declined</strong>.</p>
+         <p>If you believe this was a mistake, please reach out to your Team Leader directly.</p>`;
+
+  const result = await sendEmail(req.email, subject, html);
+  if (!result.sent) console.error("[notify] notifyAccessRequestDecision: send failed", result.reason, "to", req.email);
+}
+
 export async function notifySchedulePublished(weekStartDate: string) {
   const admin = createAdminClient();
 
