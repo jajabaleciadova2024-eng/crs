@@ -24,14 +24,12 @@ function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: strin
 // logic. `week` is null when nothing's been generated yet for that slot.
 async function WeekPanel({
   supabase,
-  label,
   week,
   weekStart,
   canManage,
   associates,
 }: {
   supabase: SupabaseClient;
-  label: string;
   week: { id: string; week_start_date: string } | null;
   weekStart: string;
   canManage: boolean;
@@ -87,7 +85,7 @@ async function WeekPanel({
 
   return (
     <Panel
-      title={`${label} — Week of ${formatWeekRange(weekStart)}`}
+      title={`Week of ${formatWeekRange(weekStart)}`}
       action={canManage && week ? <ClearScheduleButton scheduleWeekId={week.id} weekStart={weekStart} /> : undefined}
       footnote={
         canManage
@@ -265,7 +263,6 @@ export default async function SchedulePage() {
         current={
           <WeekPanel
             supabase={supabase}
-            label="Current Week"
             week={currentWeek}
             weekStart={thisWeekStart}
             canManage={canManage}
@@ -275,7 +272,6 @@ export default async function SchedulePage() {
         next={
           <WeekPanel
             supabase={supabase}
-            label="Next Week"
             week={nextWeek}
             weekStart={nextWeekStart}
             canManage={canManage}
