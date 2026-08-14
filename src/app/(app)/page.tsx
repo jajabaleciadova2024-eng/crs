@@ -53,7 +53,7 @@ export default async function DashboardPage() {
       // arrives. Fetching the latest week on record separately lets us
       // surface a "View next week's schedule" link when one's already
       // been generated, instead of it just being invisible until then.
-      supabase.from("schedule_weeks").select("week_start_date").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("schedule_weeks").select("id, week_start_date").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("workstations").select("id").eq("is_active", true),
       supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       // Immune is a Team-Leader-only scheduling concern — not shown to OIC/associates.
@@ -73,17 +73,36 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false })
     .limit(5);
 
-  const [{ data: assignments }, { data: recentLeave }] = await Promise.all([
+  // Only rotating roles (associate/OIC) ever get seated at a station — the
+  // Team Leader never does, so their own-station card never applies.
+  const isRotatingRole = profile.role !== "team_leader";
+  const nextWeekStart =
+    latestWeekRow && latestWeekRow.week_start_date > weekStart ? latestWeekRow.week_start_date : null;
+
+  const [{ data: assignments }, { data: recentLeave }, { data: myNextAssignment }] = await Promise.all([
     week
       ? supabase.from("assignments").select("*, workstations(name), profiles(first_name, last_name, avatar_url)").eq("schedule_week_id", week.id)
       : Promise.resolve({ data: null }),
     approver ? leaveQuery : leaveQuery.eq("associate_id", profile.id),
+    // Own station for the ALREADY-generated next week, if there is one —
+    // Dashboard otherwise only ever shows the current week (see the
+    // "View next week" link below), so this is the only place a rotating
+    // member would see where they land next week without navigating away.
+    isRotatingRole && nextWeekStart
+      ? supabase
+          .from("assignments")
+          .select("workstations(name)")
+          .eq("schedule_week_id", latestWeekRow!.id)
+          .eq("associate_id", profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const stationsManned = assignments?.length ?? 0;
   const totalStations = activeWorkstations?.length ?? 0;
-  const nextWeekStart =
-    latestWeekRow && latestWeekRow.week_start_date > weekStart ? latestWeekRow.week_start_date : null;
+  const myCurrentAssignment = assignments?.find((a) => a.associate_id === profile.id);
+  const myCurrentStationName = (myCurrentAssignment as any)?.workstations?.name as string | undefined;
+  const myNextStationName = (myNextAssignment as any)?.workstations?.name as string | undefined;
 
   return (
     <>
@@ -105,8 +124,27 @@ export default async function DashboardPage() {
         </div>
       </PageHeader>
 
-      <div className={`grid grid-cols-2 ${profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-3"} gap-3 mb-8`}>
+      <div
+        className={`grid grid-cols-2 ${
+          profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-4"
+        } gap-3 mb-8`}
+      >
         <Card label="Stations manned" value={`${stationsManned} / ${totalStations}`} sub={week ? "This week's coverage" : "No schedule published yet"} />
+        {isRotatingRole && (
+          <Card
+            label="Your station"
+            value={myCurrentStationName ?? "—"}
+            sub={
+              nextWeekStart
+                ? `Next week: ${myNextStationName ?? "not assigned"}`
+                : myCurrentStationName
+                  ? "Next week: not yet generated"
+                  : week
+                    ? "Not assigned this week"
+                    : "No schedule published yet"
+            }
+          />
+        )}
         <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} />
         {profile.role === "team_leader" && <Card label="Immune this cycle" value={String(immuneCount ?? 0)} sub="Excluded from shuffle" />}
         {profile.role === "team_leader" && (
