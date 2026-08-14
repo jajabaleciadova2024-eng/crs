@@ -63,6 +63,30 @@ export default function SocialFeed({
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const channelsRef = useRef<RealtimeChannel[]>([]);
+  const [composerHeight, setComposerHeight] = useState<number | null>(null);
+  const composerFixedRef = useRef<HTMLDivElement>(null);
+
+  // `position: sticky` is deliberately avoided elsewhere in this app (see
+  // SidebarShell/PageHeader's comments — it's empirically unreliable in
+  // this layout, sticking on the way up but not engaging on the way down).
+  // Same fix here: the composer becomes `position: fixed`, matching the
+  // header, with a measured invisible spacer reserving its real (variable
+  // — image preview/emoji picker resize it) height in the flow so posts
+  // don't jump up underneath it.
+  useEffect(() => {
+    if (!stickyComposer) return;
+    const el = composerFixedRef.current;
+    if (!el) return;
+    const update = () => setComposerHeight(el.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [stickyComposer]);
 
   const fetchPosts = useCallback(
     async (cursor?: string) => {
@@ -401,17 +425,27 @@ export default function SocialFeed({
 
   return (
     <div className="space-y-4">
-      <div
-        id="whats-on-your-mind"
-        className={
-          stickyComposer
-            ? "sticky z-10 -mx-3 sm:-mx-4 md:-mx-10 px-3 sm:px-4 md:px-10 pt-3 pb-3 bg-[var(--paper)]"
-            : undefined
-        }
-        style={stickyComposer ? { top: "var(--header-bottom, 140px)" } : undefined}
-      >
-        <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />
-      </div>
+      {stickyComposer ? (
+        <>
+          {/* Space-reserving clone — the real composer below is removed
+              from flow (position: fixed), so this keeps posts from
+              jumping up underneath it. Height is measured live since the
+              composer's own height changes (image preview, emoji picker). */}
+          <div aria-hidden="true" style={{ height: composerHeight ?? undefined }} />
+          <div
+            id="whats-on-your-mind"
+            ref={composerFixedRef}
+            className="fixed z-10 left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-3 sm:px-4 md:px-10 pt-3 pb-3 bg-[var(--paper)] transition-[left,width] duration-200 ease-out"
+            style={{ top: "var(--header-bottom, 140px)" }}
+          >
+            <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />
+          </div>
+        </>
+      ) : (
+        <div id="whats-on-your-mind">
+          <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />
+        </div>
+      )}
       {posts.length === 0 ? (
         <div className="text-center py-12 text-[var(--muted)] text-sm">
           <div className="text-3xl mb-2">💬</div>
