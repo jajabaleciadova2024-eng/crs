@@ -8,6 +8,7 @@ import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek } from "@/lib/scheduleDates";
 import { toTitleCase, formatFullName } from "@/lib/format";
 import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
+import SocialFeed from "@/components/feed/SocialFeed";
 
 const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   pending: "warn",
@@ -134,6 +135,10 @@ export default async function DashboardPage() {
         )}
         <Card label="Your role" value={ROLE_LABEL[profile.role]} sub={profile.psid} />
       </div>
+
+      <Panel title="Team Feed" hint="What's happening">
+        <SocialFeed userId={profile.id} />
+      </Panel>
 
       <Panel title={approver ? "Recent leave activity" : "Your recent leave activity"} hint="Last 5 requests">
         <div className="overflow-x-auto scroll-shadow-x">
