@@ -25,5 +25,8 @@ export async function GET(_request: Request) {
   }
 
   const unread = (data ?? []).filter((n: { read: boolean }) => !n.read).length;
-  return NextResponse.json({ notifications: data ?? [], unread });
+  return NextResponse.json(
+    { notifications: data ?? [], unread },
+    { headers: { "Cache-Control": "no-store, max-age=0" } },
+  );
 }

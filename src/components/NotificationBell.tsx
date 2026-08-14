@@ -62,7 +62,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
   const fetchAll = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications");
+      const res = await fetch("/api/notifications", { cache: "no-store" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         console.error("[NotificationBell] fetch failed:", res.status, body);
@@ -171,7 +171,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--bad)] text-white text-[10px] font-bold flex items-center justify-center animate-fade-in">
+          <span className="absolute -top-1 -right-1 z-10 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--bad)] text-white text-[10px] font-bold flex items-center justify-center animate-badge-pulse">
             {unread > 99 ? "99+" : unread}
           </span>
         )}

@@ -61,19 +61,63 @@ function Icon({ children }: { children: ReactNode }) {
   );
 }
 
+// Shared input style for the inline edit form — matches the compact
+// roster aesthetic, using design tokens for theme consistency.
+const INPUT_CLS =
+  "w-full text-[12.5px] border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent-soft)] transition-colors";
+
 export default function MemberRow({ member, isSelf }: { member: Profile; isSelf: boolean }) {
   const [editing, setEditing] = useState(false);
+  // Editable fields
+  const [psid, setPsid] = useState(member.psid);
+  const [firstName, setFirstName] = useState(member.first_name);
+  const [middleName, setMiddleName] = useState(member.middle_name ?? "");
+  const [lastName, setLastName] = useState(member.last_name);
+  const [email, setEmail] = useState(member.email);
+  const [mobile, setMobile] = useState(member.mobile_number ?? "");
   const [role, setRole] = useState(member.role);
+
   const [resetSent, setResetSent] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
+  function startEdit() {
+    // Reset form fields to current member values (in case a previous
+    // edit was cancelled and member data was refreshed since).
+    setPsid(member.psid);
+    setFirstName(member.first_name);
+    setMiddleName(member.middle_name ?? "");
+    setLastName(member.last_name);
+    setEmail(member.email);
+    setMobile(member.mobile_number ?? "");
+    setRole(member.role);
+    setSaveError(null);
+    setEditing(true);
+  }
+
   function save() {
+    setSaveError(null);
     startTransition(async () => {
       const supabase = createClient();
-      await supabase.from("profiles").update({ role }).eq("id", member.id);
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          psid: psid.trim(),
+          first_name: firstName.trim(),
+          middle_name: middleName.trim() || null,
+          last_name: lastName.trim(),
+          email: email.trim(),
+          mobile_number: mobile.trim() || null,
+          role,
+        })
+        .eq("id", member.id);
+      if (error) {
+        setSaveError(error.message);
+        return;
+      }
       setEditing(false);
       router.refresh();
     });
@@ -111,10 +155,81 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
     });
   }
 
-  // A confirm modal can't live inside the <tr> itself (a <tbody> may only
-  // validly contain <tr> children) — React portals it out via a fixed
-  // overlay instead, rendered as a sibling passed up through a Fragment.
-  // Same fixed inset-0 overlay pattern as ClearScheduleButton.
+  // ── Inline edit mode: full-width row replaced by a form ──────────
+  if (editing) {
+    return (
+      <>
+        <tr className="bg-[var(--accent-soft)]/20">
+          <td colSpan={6} className="py-3 px-2 border-b border-[var(--line)]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2.5">
+              {/* PSID */}
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">PSID</span>
+                <input type="text" value={psid} onChange={(e) => setPsid(e.target.value)} className={INPUT_CLS} required />
+              </label>
+              {/* First name */}
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">First name</span>
+                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={INPUT_CLS} required />
+              </label>
+              {/* Middle name */}
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Middle name</span>
+                <input type="text" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className={INPUT_CLS} placeholder="Optional" />
+              </label>
+              {/* Last name */}
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Last name</span>
+                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={INPUT_CLS} required />
+              </label>
+              {/* Email */}
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Email</span>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLS} required />
+              </label>
+              {/* Mobile */}
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Mobile</span>
+                <input type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} className={INPUT_CLS} placeholder="Optional" />
+              </label>
+              {/* Role */}
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Role</span>
+                <select value={role} onChange={(e) => setRole(e.target.value as AppRole)} className={INPUT_CLS}>
+                  <option value="associate">Associate</option>
+                  <option value="oic">OIC</option>
+                  <option value="team_leader">Team Leader</option>
+                </select>
+              </label>
+            </div>
+
+            {saveError && (
+              <p className="text-[12px] text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-1.5 mt-2 mb-0">{saveError}</p>
+            )}
+
+            <div className="flex gap-2 mt-3">
+              <Button
+                variant="primary"
+                style={{ padding: "5px 14px", fontSize: 12 }}
+                disabled={pending || !psid.trim() || !firstName.trim() || !lastName.trim() || !email.trim()}
+                onClick={save}
+              >
+                {pending ? "Saving…" : "Save"}
+              </Button>
+              <Button
+                style={{ padding: "5px 14px", fontSize: 12 }}
+                onClick={() => { setEditing(false); setSaveError(null); }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </td>
+        </tr>
+      </>
+    );
+  }
+
+  // ── Normal display row ───────────────────────────────────────────
   return (
     <>
       <tr className={member.is_active ? "" : "opacity-50"}>
@@ -125,85 +240,62 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
         <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.email}</td>
         <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.mobile_number ?? "—"}</td>
         <td className="py-2.5 border-b border-[var(--line)]">
-          {editing ? (
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as AppRole)}
-              className="text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
-            >
-              <option value="associate">Associate</option>
-              <option value="oic">OIC</option>
-              <option value="team_leader">Team Leader</option>
-            </select>
-          ) : (
-            <Pill tone={ROLE_TONE[member.role]}>{ROLE_LABEL[member.role]}</Pill>
-          )}
+          <Pill tone={ROLE_TONE[member.role]}>{ROLE_LABEL[member.role]}</Pill>
         </td>
         <td className="py-2.5 border-b border-[var(--line)]">
-          {editing ? (
-            <div className="flex gap-1.5">
-              <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pending} onClick={save}>
-                Save
-              </Button>
-              <Button style={{ padding: "5px 10px" }} onClick={() => setEditing(false)}>
-                Cancel
-              </Button>
-            </div>
-          ) : (
-            <div className="flex gap-1.5">
-              <IconButton label="Edit" onClick={() => setEditing(true)}>
+          <div className="flex gap-1.5">
+            <IconButton label="Edit" onClick={startEdit}>
+              <Icon>
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </Icon>
+            </IconButton>
+            <IconButton
+              label={resetSent ? "Reset link sent" : "Reset password"}
+              onClick={sendReset}
+              disabled={pending || resetSent}
+            >
+              {resetSent ? (
                 <Icon>
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  <path d="M20 6 9 17l-5-5" />
                 </Icon>
-              </IconButton>
-              <IconButton
-                label={resetSent ? "Reset link sent" : "Reset password"}
-                onClick={sendReset}
-                disabled={pending || resetSent}
-              >
-                {resetSent ? (
-                  <Icon>
-                    <path d="M20 6 9 17l-5-5" />
-                  </Icon>
-                ) : (
-                  <Icon>
-                    <circle cx="7.5" cy="15.5" r="4.5" />
-                    <path d="M10.6 12.4 19 4l2 2-2 2 2 2-3 3-2-2-3.4 3.4" />
-                  </Icon>
-                )}
-              </IconButton>
-              {!isSelf && (
-                <>
-                  <IconButton
-                    label={member.is_active ? "Deactivate" : "Reactivate"}
-                    onClick={toggleActive}
-                    disabled={pending}
-                  >
-                    <Icon>
-                      <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
-                      <line x1="12" y1="2" x2="12" y2="12" />
-                    </Icon>
-                  </IconButton>
-                  <IconButton
-                    label="Remove"
-                    tone="danger"
-                    disabled={pending}
-                    onClick={() => {
-                      setRemoveError(null);
-                      setConfirmingRemove(true);
-                    }}
-                  >
-                    <Icon>
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                      <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                    </Icon>
-                  </IconButton>
-                </>
+              ) : (
+                <Icon>
+                  <circle cx="7.5" cy="15.5" r="4.5" />
+                  <path d="M10.6 12.4 19 4l2 2-2 2 2 2-3 3-2-2-3.4 3.4" />
+                </Icon>
               )}
-            </div>
-          )}
+            </IconButton>
+            {!isSelf && (
+              <>
+                <IconButton
+                  label={member.is_active ? "Deactivate" : "Reactivate"}
+                  onClick={toggleActive}
+                  disabled={pending}
+                >
+                  <Icon>
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                    <line x1="12" y1="2" x2="12" y2="12" />
+                  </Icon>
+                </IconButton>
+                <IconButton
+                  label="Remove"
+                  tone="danger"
+                  disabled={pending}
+                  onClick={() => {
+                    setRemoveError(null);
+                    setConfirmingRemove(true);
+                  }}
+                >
+                  <Icon>
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                  </Icon>
+                </IconButton>
+              </>
+            )}
+          </div>
         </td>
       </tr>
 
