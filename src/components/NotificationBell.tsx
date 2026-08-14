@@ -61,12 +61,22 @@ export default function NotificationBell({ userId }: { userId: string }) {
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const fetchAll = useCallback(async () => {
-    const res = await fetch("/api/notifications");
-    if (!res.ok) return;
-    const { notifications, unread: u } = await res.json();
-    setItems(notifications);
-    setUnread(u);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/notifications");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error("[NotificationBell] fetch failed:", res.status, body);
+        setLoading(false);
+        return;
+      }
+      const { notifications, unread: u } = await res.json();
+      setItems(notifications);
+      setUnread(u);
+    } catch (err) {
+      console.error("[NotificationBell] fetch threw:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
