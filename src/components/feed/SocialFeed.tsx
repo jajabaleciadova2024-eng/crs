@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import Link from "next/link";
 import PostComposer from "./PostComposer";
 import PostCard from "./PostCard";
 import type { Mentionable } from "./mentions";
@@ -35,10 +36,21 @@ export default function SocialFeed({
   userId,
   currentUserRole,
   mentionable,
+  initialLimit,
+  viewAllHref,
 }: {
   userId: string;
   currentUserRole: string;
   mentionable: Mentionable[];
+  // Dashboard passes 10 so the feed on the home page stays a "recent
+  // activity" strip; the full /feed page omits it and gets normal
+  // pagination. Loaded via ?limit=N so /api/feed does the cap once
+  // server-side instead of the client trimming.
+  initialLimit?: number;
+  // When set, the "Load older posts" button is replaced by a link to
+  // this href — used on the dashboard to send people to /feed for the
+  // rest instead of paginating inline.
+  viewAllHref?: string;
 }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,12 +58,18 @@ export default function SocialFeed({
   const [hasMore, setHasMore] = useState(false);
   const channelsRef = useRef<RealtimeChannel[]>([]);
 
-  const fetchPosts = useCallback(async (cursor?: string) => {
-    const url = cursor ? `/api/feed?cursor=${encodeURIComponent(cursor)}` : "/api/feed";
-    const res = await fetch(url);
-    if (!res.ok) return { posts: [] as Post[], hasMore: false };
-    return res.json() as Promise<{ posts: Post[]; hasMore: boolean }>;
-  }, []);
+  const fetchPosts = useCallback(
+    async (cursor?: string) => {
+      const params = new URLSearchParams();
+      if (cursor) params.set("cursor", cursor);
+      if (initialLimit && !cursor) params.set("limit", String(initialLimit));
+      const url = `/api/feed${params.toString() ? `?${params}` : ""}`;
+      const res = await fetch(url);
+      if (!res.ok) return { posts: [] as Post[], hasMore: false };
+      return res.json() as Promise<{ posts: Post[]; hasMore: boolean }>;
+    },
+    [initialLimit]
+  );
 
   // Initial load
   useEffect(() => {
@@ -61,6 +79,22 @@ export default function SocialFeed({
       setLoading(false);
     });
   }, [fetchPosts]);
+
+  // Scroll to & highlight a deep-linked post/comment (from a notification
+  // click, e.g. /feed#post-<uuid>) once the feed has loaded. Runs after
+  // `loading` flips false so the target card actually exists in the DOM.
+  useEffect(() => {
+    if (loading) return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    const id = hash.slice(1);
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.add("feed-target-flash");
+    const timer = setTimeout(() => el.classList.remove("feed-target-flash"), 2000);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   // Real-time subscriptions
   useEffect(() => {
@@ -384,16 +418,24 @@ export default function SocialFeed({
           />
         ))
       )}
-      {hasMore && (
-        <button
-          type="button"
-          onClick={loadMore}
-          disabled={loadingMore}
-          className="w-full py-3 text-[13px] font-bold text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] transition-colors"
-        >
-          {loadingMore ? "Loading…" : "Load older posts"}
-        </button>
-      )}
+      {hasMore &&
+        (viewAllHref ? (
+          <Link
+            href={viewAllHref}
+            className="block w-full text-center py-3 text-[13px] font-bold text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] transition-colors"
+          >
+            See all posts →
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="w-full py-3 text-[13px] font-bold text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] transition-colors"
+          >
+            {loadingMore ? "Loading…" : "Load older posts"}
+          </button>
+        ))}
     </div>
   );
 }

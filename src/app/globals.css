@@ -421,3 +421,14 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     filter: invert(0.85);
   }
 }
+
+/* Feed deep-link highlight — the notification bell scrolls to a post and
+   adds .feed-target-flash briefly so the target is obvious. */
+.feed-target-flash {
+  animation: feed-flash 2s ease-out;
+}
+@keyframes feed-flash {
+  0%   { box-shadow: 0 0 0 3px var(--accent); }
+  50%  { box-shadow: 0 0 0 3px var(--accent); }
+  100% { box-shadow: var(--shadow-xs); }
+}

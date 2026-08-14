@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, isApprover, ROLE_LABEL } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek } from "@/lib/scheduleDates";
@@ -47,8 +48,12 @@ export default async function DashboardPage() {
         ? supabase.from("access_requests").select("id", { count: "exact", head: true }).eq("status", "pending")
         : Promise.resolve({ count: null as number | null }),
       // @mention autocomplete source for the Team Feed — first names only,
-      // every active member (all roles) is mentionable.
-      supabase.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name"),
+      // every active member (all roles) is mentionable. MUST go through
+      // the admin client (bypasses RLS): the request-scoped client's
+      // "profiles_select_own_or_leadership" policy hides every other
+      // member's row from non-leadership viewers, so previously an
+      // associate's mentions dropdown only ever contained themselves.
+      createAdminClient().from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name"),
     ]);
 
   const leaveQuery = supabase
@@ -140,7 +145,7 @@ export default async function DashboardPage() {
       </div>
 
       <Panel title="Team Feed" hint="What's happening">
-        <SocialFeed userId={profile.id} currentUserRole={profile.role} mentionable={mentionableProfiles ?? []} />
+        <SocialFeed userId={profile.id} currentUserRole={profile.role} mentionable={mentionableProfiles ?? []} initialLimit={10} viewAllHref="/feed" />
       </Panel>
 
       <Panel title={approver ? "Recent leave activity" : "Your recent leave activity"} hint="Last 5 requests">

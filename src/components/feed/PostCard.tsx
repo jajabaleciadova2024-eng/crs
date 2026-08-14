@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Post, ReactionType } from "./SocialFeed";
 import { Avatar } from "@/components/ui";
 import CommentSection from "./CommentSection";
@@ -67,6 +67,14 @@ export default function PostCard({
   const [showComments, setShowComments] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
 
+  // Deep-link: notification on a comment/reaction sends the user to
+  // /feed#post-<id>. If this card is the target, auto-open its comment
+  // section so the comment they were notified about is actually visible.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash === `#post-${post.id}`) setShowComments(true);
+  }, [post.id]);
+
   const isAuthor = post.author_id === userId;
   const isTeamLeader = currentUserRole === "team_leader";
   // Edit is author-only; delete is Team Leader only (moderation).
@@ -100,7 +108,8 @@ export default function PostCard({
 
   return (
     <div
-      className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-fade-in-up"
+      id={`post-${post.id}`}
+      className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-fade-in-up scroll-mt-24"
       style={{ boxShadow: "var(--shadow-xs)" }}
     >
       {/* Header */}

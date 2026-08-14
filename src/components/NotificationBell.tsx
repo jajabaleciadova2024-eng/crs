@@ -150,7 +150,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
             <span className="font-bold text-[13px] text-[var(--ink)]">Notifications</span>
-            <Link href="/" onClick={() => setOpen(false)} className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--accent-strong)]">
+            <Link href="/feed" onClick={() => setOpen(false)} className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--accent-strong)]">
               Go to feed
             </Link>
           </div>
@@ -167,7 +167,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
               items.map((n) => (
                 <Link
                   key={n.id}
-                  href="/"
+                  href={n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
                   onClick={() => setOpen(false)}
                   className={`flex items-start gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0 hover:bg-[var(--accent-soft)]/30 transition-colors ${
                     !n.read ? "bg-[var(--accent-soft)]/15" : ""
