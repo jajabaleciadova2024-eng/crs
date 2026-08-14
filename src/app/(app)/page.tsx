@@ -103,14 +103,14 @@ export default async function DashboardPage() {
   return (
     <>
       <PageHeader>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3 sm:gap-5">
           <ProfilePhotoFrame
             firstName={profile.first_name}
             lastName={profile.last_name}
             avatarUrl={profile.avatar_url}
           />
           <div>
-            <h1 className="font-serif text-2xl md:text-[28px] m-0 tracking-tight">
+            <h1 className="font-serif text-lg sm:text-2xl md:text-[28px] m-0 tracking-tight">
               Good day, {toTitleCase(profile.first_name)}
             </h1>
           </div>
