@@ -94,11 +94,11 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
           content doesn't jump up underneath it. Blurred + slightly
           translucent so content peeking through underneath reads as
           "there's more above" rather than a flat wall. */}
-      <div aria-hidden="true" className="md:hidden flex items-center justify-between px-4 py-3 invisible">
+      <div aria-hidden="true" className="md:hidden flex items-center justify-between h-14 px-4 invisible">
         <span className="font-serif text-[17px] font-bold tracking-tight">CRS Naga</span>
         <span className="inline-flex w-10 h-10" />
       </div>
-      <div className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--paper)]/85 backdrop-blur-md">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between h-14 px-4 border-b border-[var(--line)] bg-[var(--paper)]/85 backdrop-blur-md">
         <span className="font-serif text-[17px] font-bold text-[var(--ink)] tracking-tight">CRS Naga</span>
         <button
           type="button"

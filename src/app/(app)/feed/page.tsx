@@ -18,7 +18,7 @@ export default async function FeedPage() {
   return (
     <>
       <PageHeader title="Team Feed" subtitle="Everything happening in the team, newest first" />
-      <SocialFeed userId={profile.id} currentUserRole={profile.role} mentionable={mentionable ?? []} />
+      <SocialFeed userId={profile.id} currentUserRole={profile.role} mentionable={mentionable ?? []} stickyComposer />
     </>
   );
 }

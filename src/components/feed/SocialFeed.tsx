@@ -38,6 +38,7 @@ export default function SocialFeed({
   mentionable,
   initialLimit,
   viewAllHref,
+  stickyComposer,
 }: {
   userId: string;
   currentUserRole: string;
@@ -51,6 +52,11 @@ export default function SocialFeed({
   // this href — used on the dashboard to send people to /feed for the
   // rest instead of paginating inline.
   viewAllHref?: string;
+  // Pins the composer just beneath the (fixed) PageHeader while
+  // scrolling — only used on the dedicated /feed page, not the
+  // dashboard's embedded Panel preview. Offset comes from --header-bottom,
+  // published by PageHeader's own ResizeObserver (see ui.tsx).
+  stickyComposer?: boolean;
 }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -395,7 +401,12 @@ export default function SocialFeed({
 
   return (
     <div className="space-y-4">
-      <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />
+      <div
+        className={stickyComposer ? "sticky z-10" : undefined}
+        style={stickyComposer ? { top: "calc(var(--header-bottom, 140px) + 12px)" } : undefined}
+      >
+        <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />
+      </div>
       {posts.length === 0 ? (
         <div className="text-center py-12 text-[var(--muted)] text-sm">
           <div className="text-3xl mb-2">💬</div>

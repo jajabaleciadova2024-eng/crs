@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 
 // Title bar pinned to the top of every page inside the app shell — stays
@@ -41,6 +43,29 @@ export function PageHeader({
     </div>
   );
 
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Publish the header's actual rendered bottom edge as a CSS var so
+  // anything that wants to stick directly beneath it (e.g. the Team
+  // Feed composer) can position off a real measurement instead of a
+  // guessed pixel value — title/subtitle length and breakpoint both
+  // change this header's height, so a hardcoded offset drifts.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const update = () => {
+      document.documentElement.style.setProperty("--header-bottom", `${el.getBoundingClientRect().bottom}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  });
+
   return (
     <>
       {/* Space-reserving clone — invisible but still laid out, so the
@@ -51,7 +76,10 @@ export function PageHeader({
       <div aria-hidden="true" className="invisible px-3 sm:px-4 md:px-10 py-3.5 md:py-5 mb-4 md:mb-6 border-b border-transparent">
         {content}
       </div>
-      <header className="fixed z-20 top-[calc(52px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-3 sm:px-4 md:px-10 py-3.5 md:py-5 bg-[var(--paper)]/85 backdrop-blur-md border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out">
+      <header
+        ref={headerRef}
+        className="fixed z-20 top-[calc(56px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-3 sm:px-4 md:px-10 py-3.5 md:py-5 bg-[var(--paper)]/85 backdrop-blur-md border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out"
+      >
         {content}
       </header>
     </>

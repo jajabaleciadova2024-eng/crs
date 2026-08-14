@@ -67,7 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Notification bell — fixed top-right. On mobile it sits inside the
           hamburger top bar (same z-30 band, left of the hamburger button);
           on desktop it floats above the PageHeader. */}
-      <div className="fixed top-[7px] right-14 md:top-3 md:right-6 z-30 md:z-40">
+      <div className="fixed top-2 right-14 md:top-3 md:right-6 z-30 md:z-40">
         <NotificationBell userId={profile.id} />
       </div>
     </div>
