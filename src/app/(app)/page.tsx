@@ -96,12 +96,9 @@ export default async function DashboardPage() {
             avatarUrl={profile.avatar_url}
           />
           <div>
-            <h1 className="font-serif text-2xl md:text-[28px] m-0 mb-1 tracking-tight">
+            <h1 className="font-serif text-2xl md:text-[28px] m-0 tracking-tight">
               Good day, {toTitleCase(profile.first_name)}
             </h1>
-            <p className="text-sm text-[var(--muted)] m-0">
-              Week of {weekStart} · {totalStations} stations · {ROLE_LABEL[profile.role]}
-            </p>
           </div>
         </div>
       </PageHeader>
