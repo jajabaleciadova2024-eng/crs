@@ -26,6 +26,8 @@ export const DEFAULT_LEAVE_TYPE_CONFIGS: LeaveTypeConfig[] = [
   { key: "sick", label: "Sick", behavior: "auto_approve_document" },
   { key: "bereavement", label: "Bereavement", behavior: "auto_approve_document" },
   { key: "emergency", label: "Emergency", behavior: "review" },
+  { key: "maternity", label: "Maternity", behavior: "review" },
+  { key: "lwop", label: "LWOP", behavior: "review" },
 ];
 
 export const BEHAVIOR_LABEL: Record<LeaveTypeBehavior, string> = {
