@@ -15,6 +15,7 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [showEmojis, setShowEmojis] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,8 +54,15 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/")) return;
-    if (file.size > 5 * 1024 * 1024) return;
+    setUploadError(null);
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Only image files are allowed.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Image must be under 5 MB.");
+      return;
+    }
 
     // Show local preview immediately
     const localUrl = URL.createObjectURL(file);
@@ -69,6 +77,8 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
     setUploading(false);
 
     if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setUploadError(body.error ?? "Upload failed — try again.");
       setImagePreview(null);
       URL.revokeObjectURL(localUrl);
       return;
@@ -152,6 +162,11 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
             </button>
           </div>
         </div>
+      )}
+
+      {/* Upload error */}
+      {uploadError && (
+        <div className="px-4 pb-2 text-[12px] text-[var(--bad)] font-medium">{uploadError}</div>
       )}
 
       {/* Emoji picker */}

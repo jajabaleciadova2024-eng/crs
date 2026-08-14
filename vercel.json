@@ -7,6 +7,10 @@
     {
       "path": "/api/leave-documents-cleanup",
       "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/feed/cleanup",
+      "schedule": "0 1 * * *"
     }
   ]
 }

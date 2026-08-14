@@ -27,8 +27,14 @@ export async function POST(request: Request) {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
   const path = `${user.id}/${Date.now()}.${ext}`;
 
-  const { error: uploadError } = await admin.storage.from(BUCKET).upload(path, file, {
+  // Convert File → ArrayBuffer for Supabase Storage (server-side upload
+  // needs a Buffer/ArrayBuffer, not a browser File object).
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  const { error: uploadError } = await admin.storage.from(BUCKET).upload(path, buffer, {
     contentType: file.type,
+    upsert: false,
   });
 
   if (uploadError) {
