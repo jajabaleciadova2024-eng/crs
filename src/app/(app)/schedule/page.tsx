@@ -9,6 +9,7 @@ import ReassignForm from "./ReassignForm";
 import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
 import RotationSettingsPanel from "./RotationSettingsPanel";
+import WeekTabs from "./WeekTabs";
 import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays } from "@/lib/scheduleDates";
 import { holidaysInRange } from "@/lib/phHolidays";
 import { formatFullName } from "@/lib/format";
@@ -256,27 +257,32 @@ export default async function SchedulePage() {
         </div>
       )}
 
-      {/* Side by side on wide screens so both weeks are visible without
-          scrolling through one to reach the other — stacks back to one
-          column once there's no room for two side-by-side tables. */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
-        <WeekPanel
-          supabase={supabase}
-          label="Next Week"
-          week={nextWeek}
-          weekStart={nextWeekStart}
-          canManage={canManage}
-          associates={associates ?? []}
-        />
-        <WeekPanel
-          supabase={supabase}
-          label="Current Week"
-          week={currentWeek}
-          weekStart={thisWeekStart}
-          canManage={canManage}
-          associates={associates ?? []}
-        />
-      </div>
+      {/* One frame, tab-switched — Current is the default/left tab, Next
+          is the right tab, only the selected week's table shows at a
+          time (both are still fetched up front; WeekTabs just toggles
+          which one is visible). */}
+      <WeekTabs
+        current={
+          <WeekPanel
+            supabase={supabase}
+            label="Current Week"
+            week={currentWeek}
+            weekStart={thisWeekStart}
+            canManage={canManage}
+            associates={associates ?? []}
+          />
+        }
+        next={
+          <WeekPanel
+            supabase={supabase}
+            label="Next Week"
+            week={nextWeek}
+            weekStart={nextWeekStart}
+            canManage={canManage}
+            associates={associates ?? []}
+          />
+        }
+      />
 
       {canManage && (
         <Panel
