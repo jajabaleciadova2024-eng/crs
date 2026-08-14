@@ -2,6 +2,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Panel, PageHeader } from "@/components/ui";
 import AccountForm from "./AccountForm";
+import ProfilePhotoUpload from "./ProfilePhotoUpload";
 import NotificationPrefsForm from "./NotificationPrefsForm";
 import OrgSettingsForm from "./OrgSettingsForm";
 
@@ -21,6 +22,10 @@ export default async function SettingsPage() {
         title="Settings"
         subtitle={isTeamLeader ? "Manage your account, notifications, and organization-wide settings" : "Manage your account and preferences"}
       />
+
+      <Panel title="Profile photo">
+        <ProfilePhotoUpload firstName={profile.first_name} lastName={profile.last_name} avatarUrl={profile.avatar_url} />
+      </Panel>
 
       <Panel title="My account">
         <AccountForm profile={profile} />
