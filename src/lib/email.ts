@@ -64,6 +64,9 @@ export async function sendEmail(to: string | string[], subject: string, html: st
     }
   }
 
-  console.warn(`[email] No SMTP or RESEND_API_KEY configured — skipping "${subject}" to`, to);
+  // console.error (not .warn) — this means EVERY notification silently
+  // does nothing until one of SMTP_HOST/SMTP_USER/SMTP_PASS or
+  // RESEND_API_KEY is set in the environment. Worth being loud about.
+  console.error(`[email] No SMTP or RESEND_API_KEY configured — skipping "${subject}" to`, to);
   return { sent: false, reason: "no_api_key" as const };
 }
