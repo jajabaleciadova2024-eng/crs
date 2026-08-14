@@ -36,7 +36,7 @@ export default async function DashboardPage() {
       // surface a "View next week's schedule" link when one's already
       // been generated, instead of it just being invisible until then.
       supabase.from("schedule_weeks").select("id, week_start_date").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("workstations").select("id").eq("is_active", true),
+      supabase.from("workstations").select("id, headcount").eq("is_active", true),
       supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       // Immune is a Team-Leader-only scheduling concern — not shown to OIC/associates.
       profile.role === "team_leader"
@@ -80,12 +80,13 @@ export default async function DashboardPage() {
       : Promise.resolve({ data: null }),
   ]);
 
-  // Distinct stations with at least one person seated — NOT a raw count of
-  // assignment rows, since a station can have more than one seat filled
-  // (e.g. Collecting Officer has 4). Counting rows would show something
-  // like "15 / 6", which reads as more stations manned than exist.
-  const stationsManned = new Set((assignments ?? []).map((a) => a.workstation_id)).size;
-  const totalStations = activeWorkstations?.length ?? 0;
+  // Seats filled vs. total seats — a station can have several seats (e.g.
+  // Collecting Officer has 4 headcount), so this counts by headcount, not
+  // by station: assignments.length is already one row per seated person,
+  // and totalSeats sums each active station's fixed headcount rather than
+  // just counting stations.
+  const stationsManned = assignments?.length ?? 0;
+  const totalStations = (activeWorkstations ?? []).reduce((sum, w) => sum + (w.headcount ?? 0), 0);
   const myCurrentAssignment = assignments?.find((a) => a.associate_id === profile.id);
   const myCurrentStationName = (myCurrentAssignment as any)?.workstations?.name as string | undefined;
   const myNextStationName = (myNextAssignment as any)?.workstations?.name as string | undefined;
@@ -112,7 +113,7 @@ export default async function DashboardPage() {
           profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-4"
         } gap-3 mb-8`}
       >
-        <Card label="Stations manned" value={`${stationsManned} / ${totalStations}`} sub={week ? "This week's coverage" : "No schedule published yet"} />
+        <Card label="Seats filled" value={`${stationsManned} / ${totalStations}`} sub={week ? "This week's coverage" : "No schedule published yet"} />
         {isRotatingRole && (
           <Card
             label="Next Week's Station"
