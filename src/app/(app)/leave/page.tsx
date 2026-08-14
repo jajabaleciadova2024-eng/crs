@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { requireProfile, isApprover, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { currentQueueWeekStart } from "@/lib/scheduleDates";
-import { Panel, PageHeader } from "@/components/ui";
+import { Panel, PageHeader, Button } from "@/components/ui";
 import LeaveRequestForm from "./LeaveRequestForm";
 import LeaveQueueTable from "./LeaveQueueTable";
 import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
@@ -80,13 +79,9 @@ export default async function LeavePage() {
               : "Track requests from your team"
         }
         action={
-          <div className="flex items-center gap-3">
-            <Link href="/leave/calendar" className="text-xs font-bold text-[var(--accent-strong)]">
-              View calendar →
-            </Link>
-            <Link href="/leave/history" className="text-xs font-bold text-[var(--accent-strong)]">
-              View history →
-            </Link>
+          <div className="flex items-center gap-2">
+            <Button href="/leave/calendar">View calendar →</Button>
+            <Button href="/leave/history">View history →</Button>
           </div>
         }
       />

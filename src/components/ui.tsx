@@ -198,8 +198,14 @@ export function Avatar({
 export function Button({
   children,
   variant = "ghost",
+  href,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" }) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "ghost";
+  // When set, renders as a nav Link styled identically to the button
+  // (e.g. "View calendar" / "View history") instead of an actual <button>.
+  href?: string;
+}) {
   // min-h-[36px] keeps the primary hit-target comfortable on both mobile
   // (touch spec's ~44px minimum is close after the caller's own padding)
   // and desktop, without being visually clunky. inline-flex with center
@@ -209,6 +215,15 @@ export function Button({
     variant === "primary"
       ? "bg-[var(--accent)] border-[var(--accent)] text-white hover:bg-[var(--accent-strong)] hover:border-[var(--accent-strong)] hover:-translate-y-[0.5px] active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)]"
       : "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 hover:shadow-[var(--shadow-xs)] disabled:opacity-50 disabled:cursor-not-allowed";
+
+  if (href) {
+    return (
+      <Link href={href} className={`${base} ${styles}`}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
     <button className={`${base} ${styles}`} {...props}>
       {children}
