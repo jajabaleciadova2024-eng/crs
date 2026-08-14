@@ -44,24 +44,25 @@ export default function TicketList({
   currentUserRole: AppRole;
 }) {
   const isTL = currentUserRole === "team_leader";
-  const [tickets, setTickets] = useState<TicketSummary[]>([]);
+  const [allTickets, setAllTickets] = useState<TicketSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "open" | "closed">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const fetchTickets = useCallback(async () => {
     try {
-      const params = filter !== "all" ? `?status=${filter}` : "";
-      const res = await fetch(`/api/tickets${params}`, { cache: "no-store" });
+      const res = await fetch("/api/tickets", { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
-      setTickets(data.tickets);
+      setAllTickets(data.tickets);
     } catch {
       // ignore
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, []);
+
+  const tickets = filter === "all" ? allTickets : allTickets.filter((t) => t.status === filter);
 
   useEffect(() => {
     fetchTickets();
@@ -82,8 +83,8 @@ export default function TicketList({
     );
   }
 
-  const openCount = tickets.filter((t) => t.status === "open").length;
-  const closedCount = tickets.filter((t) => t.status === "closed").length;
+  const openCount = allTickets.filter((t) => t.status === "open").length;
+  const closedCount = allTickets.filter((t) => t.status === "closed").length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -93,7 +94,7 @@ export default function TicketList({
       {/* Filter tabs */}
       <div className="flex gap-1 bg-[var(--paper)] rounded-lg p-1 border border-[var(--line)] w-fit">
         {(["all", "open", "closed"] as const).map((f) => {
-          const count = f === "all" ? tickets.length : f === "open" ? openCount : closedCount;
+          const count = f === "all" ? allTickets.length : f === "open" ? openCount : closedCount;
           return (
             <button
               key={f}

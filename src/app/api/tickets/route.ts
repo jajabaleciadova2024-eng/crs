@@ -85,9 +85,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error?.message ?? "Couldn't submit ticket." }, { status: 400 });
   }
 
+  const admin = createAdminClient();
+
   // Insert attachments if any
   if (attachments.length > 0) {
-    const admin = createAdminClient();
     const rows = attachments.map((a) => ({
       ticket_id: inserted.id,
       file_path: a.file_path,
@@ -100,7 +101,6 @@ export async function POST(request: Request) {
   }
 
   // Notify TL(s) via bell
-  const admin = createAdminClient();
   const { data: leaders } = await admin
     .from("profiles")
     .select("id")

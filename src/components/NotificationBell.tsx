@@ -210,12 +210,18 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     !n.read ? "bg-[var(--accent-soft)]/15" : ""
                   }`}
                 >
-                  <Avatar
-                    firstName={n.profiles?.first_name ?? ""}
-                    lastName={n.profiles?.last_name ?? ""}
-                    avatarUrl={n.profiles?.avatar_url ?? null}
-                    size="sm"
-                  />
+                  {n.type === "ticket_new" || n.type === "ticket_reply" ? (
+                    <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-sm shrink-0">
+                      🛡️
+                    </span>
+                  ) : (
+                    <Avatar
+                      firstName={n.profiles?.first_name ?? ""}
+                      lastName={n.profiles?.last_name ?? ""}
+                      avatarUrl={n.profiles?.avatar_url ?? null}
+                      size="sm"
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-[12.5px] text-[var(--ink)] leading-snug m-0">{describe(n)}</p>
                     <span className="text-[10.5px] text-[var(--muted)]">{timeAgo(n.created_at)}</span>
