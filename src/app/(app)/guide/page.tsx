@@ -45,8 +45,8 @@ const SECTIONS: GuideSection[] = [
         a: "Each week (Monday–Friday, Philippine time) associates are assigned one station each. Anyone flagged \"Immune\" keeps their previous station and isn't shuffled — everyone else gets reshuffled across the remaining open stations. Philippine regular holidays falling in the week are flagged at the top of the page.",
       },
       {
-        q: "How do I generate the next week's schedule?",
-        a: "Click \"Generate next week\" on the Weekly Schedule page — this opens a planning screen listing every station. If anyone is currently flagged Immune, place each of them at a station first — Generate stays disabled until every immune member has one (no more automatic carryover from last week). Then set each station's headcount and how many should be Tenured vs. New Hire; the totals at the bottom subtract live as you type. OIC is included and eligible to be seated. Click Generate to create it. It always creates the upcoming week's schedule — never the current week's, even if the current week hasn't been scheduled yet — continuing from whatever's already scheduled if you've generated a few weeks ahead. You can still manually reassign any station afterward. Team Leader only — OIC can view the schedule but not generate or reassign.",
+        q: "How do I generate a week's schedule?",
+        a: "Click \"Generate schedule\" on the Weekly Schedule page — this opens a planning screen listing every station, plus a Week field at the top (pre-filled with the next open week, but editable — pick any date and it snaps to that week's Monday; generating fails with a clear error if that week is already scheduled). If anyone is currently flagged Immune, place each of them at a station first — Generate stays disabled until every immune member has one (no more automatic carryover from last week). Then set each station's headcount and how many should be Tenured vs. New Hire; the totals at the bottom subtract live as you type. OIC is included and eligible to be seated. Click Generate to create it. You can still manually reassign any station afterward. Team Leader only — OIC can view the schedule but not generate or reassign.",
         roles: ["team_leader"],
       },
       {
@@ -61,7 +61,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "How do I clear a generated schedule and start over?",
-        a: "Click \"Clear schedule\" next to \"Generate next week\" — you'll get a warning before it deletes every assignment for that week. This can't be undone. Team Leader only.",
+        a: "Click \"Clear schedule\" next to \"Generate schedule\" — you'll get a warning before it deletes every assignment for that week. This can't be undone. Team Leader only.",
         roles: ["team_leader"],
       },
     ],

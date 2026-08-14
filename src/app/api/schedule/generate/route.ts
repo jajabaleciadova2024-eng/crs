@@ -4,15 +4,14 @@ import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
 import { generateAssignments, type StationQuota, type ImmunePlacement } from "@/lib/schedule";
 import { notifySchedulePublished } from "@/lib/notify";
-import { todayInManila, startOfWorkWeek, addDays } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, addDays, formatWeekRange } from "@/lib/scheduleDates";
 
-// Always generates the upcoming week's schedule — never the current one,
-// even if the current week has no schedule yet. "Generating this week"
-// (i.e. today, sometime during the current work week) only ever produces
-// NEXT week's schedule, by definition; if several weeks are already
-// scheduled ahead, it continues from whichever is the latest one on
-// record (spaced by org_settings.schedule_cadence). Publishes a
-// notification email afterward.
+// Generates a schedule for the Team-Leader-chosen week (the modal's date
+// picker, defaulted to the next open week but editable) — or, if no week
+// was submitted (older/direct callers), falls back to auto-picking the
+// earliest not-yet-scheduled week starting from next week. Either way,
+// never the current week by default, and never silently overwrites an
+// already-scheduled week. Publishes a notification email afterward.
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -31,12 +30,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only the Team Leader can generate a schedule." }, { status: 403 });
     }
 
-    const { data: orgSettings, error: orgError } = await supabase.from("org_settings").select("schedule_cadence").limit(1).maybeSingle();
-    if (orgError) {
-      return NextResponse.json({ error: `Couldn't load organization settings: ${orgError.message}` }, { status: 500 });
-    }
-    const cadenceDays = orgSettings?.schedule_cadence === "biweekly" ? 14 : 7;
-
     const { data: latestWeek, error: latestWeekError } = await supabase
       .from("schedule_weeks")
       .select("id, week_start_date")
@@ -47,15 +40,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Couldn't check existing schedules: ${latestWeekError.message}` }, { status: 500 });
     }
 
-    // Always start counting from the week AFTER today's current week — never
-    // the current week itself, no matter what. Walking forward past any
-    // already-scheduled weeks (instead of jumping straight to
-    // latestWeek + cadence) means it's never earlier than next week, no
-    // matter what state schedule_weeks is in, and still correctly
-    // continues past however many weeks are already generated ahead.
-    const thisWeekStart = startOfWorkWeek(todayInManila());
-    let targetWeekStart = addDays(thisWeekStart, cadenceDays);
-    for (let guard = 0; guard < 52; guard++) {
+    // Optional per-station headcount/tenure quotas and immune placements
+    // from the Generate modal — see src/lib/schedule.ts for how these
+    // change the assignment algorithm. Omitted (or empty body) falls back
+    // to the original one-per-station, no-tenure-preference behavior.
+    const body = await request.json().catch(() => ({}));
+    const quotas: StationQuota[] | undefined = Array.isArray(body?.quotas) && body.quotas.length > 0 ? body.quotas : undefined;
+    const immunePlacements: ImmunePlacement[] | undefined = Array.isArray(body?.immune_placements) ? body.immune_placements : undefined;
+    const requestedWeekStart: string | undefined = typeof body?.week_start_date === "string" ? body.week_start_date : undefined;
+
+    let targetWeekStart: string;
+    if (requestedWeekStart) {
+      // Team Leader picked a specific week in the modal — normalize
+      // whatever date they picked to that week's Monday (same rule the
+      // modal itself already applies client-side, re-applied here since
+      // the client can't be trusted) and use it exactly, rather than
+      // silently substituting a different week. If that week is already
+      // scheduled, fail with a clear reason instead of overwriting it or
+      // quietly picking a different one.
+      targetWeekStart = startOfWorkWeek(requestedWeekStart);
       const { data: existing, error: existingError } = await supabase
         .from("schedule_weeks")
         .select("id")
@@ -64,17 +67,37 @@ export async function POST(request: Request) {
       if (existingError) {
         return NextResponse.json({ error: `Couldn't check the week of ${targetWeekStart}: ${existingError.message}` }, { status: 500 });
       }
-      if (!existing) break;
-      targetWeekStart = addDays(targetWeekStart, cadenceDays);
+      if (existing) {
+        return NextResponse.json(
+          { error: `A schedule for the week of ${formatWeekRange(targetWeekStart)} already exists. Pick a different week, or clear that one first.` },
+          { status: 400 }
+        );
+      }
+    } else {
+      // No week specified (older/direct callers) — fall back to
+      // auto-picking: start counting from the week AFTER today's current
+      // week (never the current week itself), walking forward past any
+      // already-scheduled weeks.
+      const { data: orgSettings, error: orgError } = await supabase.from("org_settings").select("schedule_cadence").limit(1).maybeSingle();
+      if (orgError) {
+        return NextResponse.json({ error: `Couldn't load organization settings: ${orgError.message}` }, { status: 500 });
+      }
+      const cadenceDays = orgSettings?.schedule_cadence === "biweekly" ? 14 : 7;
+      const thisWeekStart = startOfWorkWeek(todayInManila());
+      targetWeekStart = addDays(thisWeekStart, cadenceDays);
+      for (let guard = 0; guard < 52; guard++) {
+        const { data: existing, error: existingError } = await supabase
+          .from("schedule_weeks")
+          .select("id")
+          .eq("week_start_date", targetWeekStart)
+          .maybeSingle();
+        if (existingError) {
+          return NextResponse.json({ error: `Couldn't check the week of ${targetWeekStart}: ${existingError.message}` }, { status: 500 });
+        }
+        if (!existing) break;
+        targetWeekStart = addDays(targetWeekStart, cadenceDays);
+      }
     }
-
-    // Optional per-station headcount/tenure quotas from the "Generate next
-    // week" modal — see src/lib/schedule.ts for how these change the
-    // assignment algorithm. Omitted (or empty body) falls back to the
-    // original one-per-station, no-tenure-preference behavior.
-    const body = await request.json().catch(() => ({}));
-    const quotas: StationQuota[] | undefined = Array.isArray(body?.quotas) && body.quotas.length > 0 ? body.quotas : undefined;
-    const immunePlacements: ImmunePlacement[] | undefined = Array.isArray(body?.immune_placements) ? body.immune_placements : undefined;
 
     const { data: workstations, error: workstationsError } = await supabase
       .from("workstations")

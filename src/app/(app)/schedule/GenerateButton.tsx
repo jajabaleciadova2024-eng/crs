@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Pill } from "@/components/ui";
+import { startOfWorkWeek, formatWeekRange } from "@/lib/scheduleDates";
 
 type Workstation = { id: string; name: string; headcount: number };
 type ImmuneMember = { id: string; name: string };
@@ -35,14 +36,21 @@ export default function GenerateButton({
   totalTenured,
   totalNewHire,
   immuneMembers,
+  defaultWeekStart,
 }: {
   workstations: Workstation[];
   totalMembers: number;
   totalTenured: number;
   totalNewHire: number;
   immuneMembers: ImmuneMember[];
+  // Prefilled into the (editable) week picker below — the earliest week
+  // that isn't already scheduled, same as the old auto-picked "next
+  // week" behavior, but now just a starting suggestion instead of the
+  // only option.
+  defaultWeekStart: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [weekStart, setWeekStart] = useState(defaultWeekStart);
   const [rows, setRows] = useState<Record<string, QuotaRow>>(() =>
     Object.fromEntries(workstations.map((w) => [w.id, defaultQuotaRow(w)]))
   );
@@ -87,6 +95,16 @@ export default function GenerateButton({
     setRows((prev) => ({ ...prev, [id]: { ...prev[id], [field]: Math.max(0, value) } }));
   }
 
+  // Whatever day the Team Leader actually clicks in the date picker,
+  // snap it to the Monday of that work week — the API route normalizes
+  // the same way, so this just keeps what's displayed here honest about
+  // what week will actually get generated instead of silently differing
+  // from the submitted value.
+  function handleWeekChange(value: string) {
+    if (!value) return;
+    setWeekStart(startOfWorkWeek(value));
+  }
+
   function generate() {
     setError(null);
     if (unplacedImmune.length > 0) {
@@ -121,7 +139,7 @@ export default function GenerateButton({
         const res = await fetch("/api/schedule/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ quotas, immune_placements }),
+          body: JSON.stringify({ week_start_date: weekStart, quotas, immune_placements }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -138,8 +156,14 @@ export default function GenerateButton({
 
   return (
     <>
-      <Button variant="primary" onClick={() => setOpen(true)}>
-        Generate next week
+      <Button
+        variant="primary"
+        onClick={() => {
+          setWeekStart(defaultWeekStart);
+          setOpen(true);
+        }}
+      >
+        Generate schedule
       </Button>
 
       {open && (
@@ -150,13 +174,27 @@ export default function GenerateButton({
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <h2 className="font-serif text-xl text-[var(--ink)] m-0 mb-1">Plan next week&apos;s coverage</h2>
+              <h2 className="font-serif text-xl text-[var(--ink)] m-0 mb-1">Plan coverage — {formatWeekRange(weekStart)}</h2>
               <p className="text-sm text-[var(--muted)] m-0">
                 Headcount per station is fixed (set on Workstations) — Tenured/New Hire are pre-filled per your usual
                 split, adjust as needed. OIC is included and eligible for seating too. Required Tenured per station is
                 filled first; any station seats still open after that (including New Hire targets short on New Hires)
                 get filled by whoever&apos;s left over, tenured or not — every station&apos;s fixed headcount takes
                 priority over an exact tenure-label match.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Week</label>
+              <input
+                type="date"
+                value={weekStart}
+                onChange={(e) => handleWeekChange(e.target.value)}
+                className="text-sm border border-[var(--line)] rounded px-2.5 py-1.5 bg-[var(--paper)]"
+              />
+              <p className="text-[11px] text-[var(--muted)] mt-1 m-0">
+                Defaults to the next open week — pick any date and it snaps to that week&apos;s Monday. Generating fails
+                with a clear error if that week already has a schedule.
               </p>
             </div>
 

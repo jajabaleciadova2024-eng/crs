@@ -8,7 +8,7 @@ import ReassignForm from "./ReassignForm";
 import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
 import RotationSettingsPanel from "./RotationSettingsPanel";
-import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays } from "@/lib/scheduleDates";
 import { holidaysInRange } from "@/lib/phHolidays";
 import { formatFullName } from "@/lib/format";
 import { compareStationNames } from "@/lib/stationOrder";
@@ -28,24 +28,37 @@ export default async function SchedulePage() {
   // generated week if the Team Leader/OIC has already generated ahead.
   // latestWeek and associates are independent — run together; assignments
   // needs latestWeek's id first, so it follows in its own batch.
-  const [{ data: latestWeek }, { data: associates }, { data: activeWorkstations }, { data: allActive }] = await Promise.all([
-    supabase.from("schedule_weeks").select("*").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
-    canManage
-      ? supabase.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
-      : Promise.resolve({ data: [] }),
-    canManage
-      ? supabase.from("workstations").select("id, name, headcount").eq("is_active", true).order("name")
-      : Promise.resolve({ data: [] }),
-    // Headcount/tenure totals for the stats strip + "Generate" quota modal
-    // — includes everyone active (Team Leader, OIC, associates) for the
-    // headcount total; Tenured/New Hire totals include OIC too now (Team
-    // Leader's explicit instruction: tenure applies to OIC the same as
-    // associates, not just an associate-only concept — see schedule.ts).
-    // psid is only for the Rotation Settings panel's sort order.
-    canManage
-      ? supabase.from("profiles").select("id, first_name, last_name, psid, role, is_immune, tenure_group").eq("is_active", true)
-      : Promise.resolve({ data: [] }),
-  ]);
+  const [{ data: latestWeek }, { data: associates }, { data: activeWorkstations }, { data: allActive }, { data: orgSettings }] =
+    await Promise.all([
+      supabase.from("schedule_weeks").select("*").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
+      canManage
+        ? supabase.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
+        : Promise.resolve({ data: [] }),
+      canManage
+        ? supabase.from("workstations").select("id, name, headcount").eq("is_active", true).order("name")
+        : Promise.resolve({ data: [] }),
+      // Headcount/tenure totals for the stats strip + "Generate" quota modal
+      // — includes everyone active (Team Leader, OIC, associates) for the
+      // headcount total; Tenured/New Hire totals include OIC too now (Team
+      // Leader's explicit instruction: tenure applies to OIC the same as
+      // associates, not just an associate-only concept — see schedule.ts).
+      // psid is only for the Rotation Settings panel's sort order.
+      canManage
+        ? supabase.from("profiles").select("id, first_name, last_name, psid, role, is_immune, tenure_group").eq("is_active", true)
+        : Promise.resolve({ data: [] }),
+      canManage ? supabase.from("org_settings").select("schedule_cadence").limit(1).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+
+  // Default week to prefill the Generate modal's (editable) week picker
+  // with — the week after whatever's already scheduled furthest out, or
+  // after this week if nothing's scheduled yet. Just a starting
+  // suggestion: the Team Leader can change it to any week, and the API
+  // route validates/normalizes whatever they actually submit.
+  const cadenceDays = orgSettings?.schedule_cadence === "biweekly" ? 14 : 7;
+  const defaultGenerateWeekStart = addDays(
+    latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek.week_start_date : thisWeekStart,
+    cadenceDays
+  );
 
   // Team Leader's standing station order (Screener, Collecting Officer,
   // Premium Annotation, Releasing Officer, PACD, Electronic Endorsement),
@@ -124,6 +137,7 @@ export default async function SchedulePage() {
                 totalTenured={totalTenured}
                 totalNewHire={totalNewHire}
                 immuneMembers={immuneMembers}
+                defaultWeekStart={defaultGenerateWeekStart}
               />
             </div>
           )

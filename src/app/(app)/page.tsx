@@ -133,16 +133,8 @@ export default async function DashboardPage() {
         {isRotatingRole && (
           <Card
             label="Your station"
-            value={myCurrentStationName ?? "—"}
-            sub={
-              nextWeekStart
-                ? `Next week: ${myNextStationName ?? "not assigned"}`
-                : myCurrentStationName
-                  ? "Next week: not yet generated"
-                  : week
-                    ? "Not assigned this week"
-                    : "No schedule published yet"
-            }
+            value={nextWeekStart ? (myNextStationName ?? "Not assigned") : "Not yet generated"}
+            sub={`This week: ${week ? (myCurrentStationName ?? "not assigned") : "no schedule yet"}`}
           />
         )}
         <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} />
