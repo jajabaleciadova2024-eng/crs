@@ -176,11 +176,14 @@ export default function GenerateButton({
         // that skinny header bar instead of the viewport.
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setOpen(false)}>
           <div
-            className="w-full max-w-4xl max-h-[96vh] overflow-y-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-5 flex flex-col gap-3 animate-scale-in"
+            className="w-full max-w-4xl max-h-[96vh] bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg flex flex-col animate-scale-in overflow-hidden"
             style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div>
+            {/* Sticky so the title/subtitle stay in view while the long
+                form below scrolls underneath — the modal itself no longer
+                scrolls as a whole, only this inner body does. */}
+            <div className="shrink-0 sticky top-0 z-10 bg-[var(--paper-raised)] border-b border-[var(--line)] px-5 pt-5 pb-3">
               <h2 className="font-serif text-xl text-[var(--ink)] m-0 mb-1">Plan coverage — {formatWeekRange(weekStart)}</h2>
               <p className="text-sm text-[var(--muted)] m-0">
                 Headcount per station is fixed (set on Workstations) — Tenured/New Hire are pre-filled per your usual
@@ -191,6 +194,7 @@ export default function GenerateButton({
               </p>
             </div>
 
+            <div className="overflow-y-auto flex-1 flex flex-col gap-3 px-5 py-4">
             <div>
               <label className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Week</label>
               <input
@@ -333,6 +337,7 @@ export default function GenerateButton({
               >
                 {pending ? "Generating…" : "Generate"}
               </Button>
+            </div>
             </div>
           </div>
         </div>,
