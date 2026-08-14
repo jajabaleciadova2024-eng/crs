@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import ReassignForm from "./ReassignForm";
 import GenerateButton from "./GenerateButton";
@@ -17,67 +18,24 @@ function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: strin
   return aStart <= bEnd && bStart <= aEnd;
 }
 
-export default async function SchedulePage() {
-  const profile = await requireProfile();
-  const supabase = await createClient();
-  const canManage = canManageOperations(profile.role);
-
-  const thisWeekStart = startOfWorkWeek(todayInManila());
-
-  // Show whichever is more current: this work week, or the latest
-  // generated week if the Team Leader/OIC has already generated ahead.
-  // latestWeek and associates are independent — run together; assignments
-  // needs latestWeek's id first, so it follows in its own batch.
-  const [{ data: latestWeek }, { data: associates }, { data: activeWorkstations }, { data: allActive }, { data: orgSettings }] =
-    await Promise.all([
-      supabase.from("schedule_weeks").select("*").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
-      canManage
-        ? supabase.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
-        : Promise.resolve({ data: [] }),
-      canManage
-        ? supabase.from("workstations").select("id, name, headcount").eq("is_active", true).order("name")
-        : Promise.resolve({ data: [] }),
-      // Headcount/tenure totals for the stats strip + "Generate" quota modal
-      // — includes everyone active (Team Leader, OIC, associates) for the
-      // headcount total; Tenured/New Hire totals include OIC too now (Team
-      // Leader's explicit instruction: tenure applies to OIC the same as
-      // associates, not just an associate-only concept — see schedule.ts).
-      // psid is only for the Rotation Settings panel's sort order.
-      canManage
-        ? supabase.from("profiles").select("id, first_name, last_name, psid, role, is_immune, tenure_group").eq("is_active", true)
-        : Promise.resolve({ data: [] }),
-      canManage ? supabase.from("org_settings").select("schedule_cadence").limit(1).maybeSingle() : Promise.resolve({ data: null }),
-    ]);
-
-  // Default week to prefill the Generate modal's (editable) week picker
-  // with — the week after whatever's already scheduled furthest out, or
-  // after this week if nothing's scheduled yet. Just a starting
-  // suggestion: the Team Leader can change it to any week, and the API
-  // route validates/normalizes whatever they actually submit.
-  const cadenceDays = orgSettings?.schedule_cadence === "biweekly" ? 14 : 7;
-  const defaultGenerateWeekStart = addDays(
-    latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek.week_start_date : thisWeekStart,
-    cadenceDays
-  );
-
-  // Team Leader's standing station order (Screener, Collecting Officer,
-  // Premium Annotation, Releasing Officer, PACD, Electronic Endorsement),
-  // not the DB's alphabetical order — feeds the Generate modal's station
-  // table and immune-placement dropdown.
-  const sortedWorkstations = [...(activeWorkstations ?? [])].sort((a, b) => compareStationNames(a.name, b.name));
-
-  const totalMembers = allActive?.length ?? 0;
-  const totalTenured = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "tenured").length;
-  const totalNewHire = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "new_hire").length;
-  // Everyone immune (Team Leader/OIC/associates, not Team Leader — they
-  // don't rotate) must be explicitly placed at a station in the modal
-  // before generating is allowed — see GenerateButton + the API route.
-  const immuneMembers = (allActive ?? [])
-    .filter((p) => p.is_immune && p.role !== "team_leader")
-    .map((p) => ({ id: p.id, name: `${p.first_name} ${p.last_name}` }));
-
-  const week = latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek : null;
-  const weekStart = week?.week_start_date ?? thisWeekStart;
+// Renders one week's assignment table (current or next) — extracted so the
+// two simultaneous panels below don't duplicate the same fetch/sort/render
+// logic. `week` is null when nothing's been generated yet for that slot.
+async function WeekPanel({
+  supabase,
+  label,
+  week,
+  weekStart,
+  canManage,
+  associates,
+}: {
+  supabase: SupabaseClient;
+  label: string;
+  week: { id: string; week_start_date: string } | null;
+  weekStart: string;
+  canManage: boolean;
+  associates: { id: string; first_name: string; last_name: string }[];
+}) {
   // Work week is Monday–Friday, not the full calendar week — schedule
   // coverage and "on leave" overlap only care about workdays.
   const weekEnd = endOfWorkWeek(weekStart);
@@ -119,101 +77,186 @@ export default async function SchedulePage() {
   );
 
   return (
+    <Panel
+      title={`${label} — Week of ${formatWeekRange(weekStart)}`}
+      action={canManage && week ? <ClearScheduleButton scheduleWeekId={week.id} weekStart={weekStart} /> : undefined}
+      footnote={
+        canManage
+          ? "Immune members must be manually placed at a station in the Generate modal before generating — everyone else fills in from the headcount/tenure quotas. “On leave” flags approved leave overlapping this work week — reassign manually if needed."
+          : "“On leave” flags approved leave overlapping this work week."
+      }
+    >
+      {holidays.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {holidays.map((h) => (
+            <Pill key={h.date} tone="warn">
+              Holiday {h.date}: {h.name}
+            </Pill>
+          ))}
+        </div>
+      )}
+      <div className="overflow-x-auto scroll-shadow-x">
+        <table className="w-full text-[13px] border-collapse">
+          <thead>
+            <tr>
+              <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
+              <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Assigned to</th>
+              {canManage && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>}
+              <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Leave</th>
+              {canManage && <th className="py-2.5 border-b border-[var(--line)]" />}
+            </tr>
+          </thead>
+          <tbody>
+            {assignments && assignments.length > 0 ? (
+              assignments.map((a: any) => (
+                <tr key={a.id}>
+                  <td className="py-2.5 border-b border-[var(--line)]">{a.workstations?.name}</td>
+                  <td className="py-2.5 border-b border-[var(--line)]">
+                    {formatFullName(a.profiles?.first_name, a.profiles?.last_name)}
+                  </td>
+                  {canManage && (
+                    <td className="py-2.5 border-b border-[var(--line)]">
+                      {a.profiles?.is_immune ? <Pill tone="accent">Immune</Pill> : <span className="text-[var(--muted)]">—</span>}
+                    </td>
+                  )}
+                  <td className="py-2.5 border-b border-[var(--line)]">
+                    {onLeaveIds.has(a.associate_id) ? <Pill tone="bad">On leave</Pill> : <span className="text-[var(--muted)]">—</span>}
+                  </td>
+                  {canManage && (
+                    <td className="py-2.5 border-b border-[var(--line)]">
+                      <ReassignForm
+                        assignmentId={a.id}
+                        workstationName={a.workstations?.name ?? ""}
+                        associates={associates ?? []}
+                        currentAssociateId={a.associate_id}
+                      />
+                    </td>
+                  )}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={canManage ? 5 : 3} className="py-4 text-[var(--muted)]">
+                  No schedule has been generated for this week yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
+export default async function SchedulePage() {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  const canManage = canManageOperations(profile.role);
+
+  const thisWeekStart = startOfWorkWeek(todayInManila());
+
+  // latestWeek, associates, and org settings are independent — run
+  // together. orgSettings (schedule_cadence) used to be gated behind
+  // canManage, but every role now needs it to know what "next week" means
+  // for the second panel below, not just the Team Leader.
+  const [{ data: latestWeek }, { data: associates }, { data: activeWorkstations }, { data: allActive }, { data: orgSettings }] =
+    await Promise.all([
+      supabase.from("schedule_weeks").select("*").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
+      canManage
+        ? supabase.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
+        : Promise.resolve({ data: [] }),
+      canManage
+        ? supabase.from("workstations").select("id, name, headcount").eq("is_active", true).order("name")
+        : Promise.resolve({ data: [] }),
+      // Headcount/tenure totals for the stats strip + "Generate" quota modal
+      // — includes everyone active (Team Leader, OIC, associates) for the
+      // headcount total; Tenured/New Hire totals include OIC too now (Team
+      // Leader's explicit instruction: tenure applies to OIC the same as
+      // associates, not just an associate-only concept — see schedule.ts).
+      // psid is only for the Rotation Settings panel's sort order.
+      canManage
+        ? supabase.from("profiles").select("id, first_name, last_name, psid, role, is_immune, tenure_group").eq("is_active", true)
+        : Promise.resolve({ data: [] }),
+      supabase.from("org_settings").select("schedule_cadence").limit(1).maybeSingle(),
+    ]);
+
+  const cadenceDays = orgSettings?.schedule_cadence === "biweekly" ? 14 : 7;
+  const nextWeekStart = addDays(thisWeekStart, cadenceDays);
+
+  // Default week to prefill the Generate modal's (editable) week picker
+  // with — the week after whatever's already scheduled furthest out, or
+  // after this week if nothing's scheduled yet. Just a starting
+  // suggestion: the Team Leader can change it to any week, and the API
+  // route validates/normalizes whatever they actually submit.
+  const defaultGenerateWeekStart = addDays(
+    latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek.week_start_date : thisWeekStart,
+    cadenceDays
+  );
+
+  // Team Leader's standing station order (Screener, Collecting Officer,
+  // Premium Annotation, Releasing Officer, PACD, Electronic Endorsement),
+  // not the DB's alphabetical order — feeds the Generate modal's station
+  // table and immune-placement dropdown.
+  const sortedWorkstations = [...(activeWorkstations ?? [])].sort((a, b) => compareStationNames(a.name, b.name));
+
+  const totalMembers = allActive?.length ?? 0;
+  const totalTenured = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "tenured").length;
+  const totalNewHire = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "new_hire").length;
+  // Everyone immune (Team Leader/OIC/associates, not Team Leader — they
+  // don't rotate) must be explicitly placed at a station in the modal
+  // before generating is allowed — see GenerateButton + the API route.
+  const immuneMembers = (allActive ?? [])
+    .filter((p) => p.is_immune && p.role !== "team_leader")
+    .map((p) => ({ id: p.id, name: `${p.first_name} ${p.last_name}` }));
+
+  // Current and next week are looked up as exact matches now, rather than
+  // "whichever is more current" — both panels render simultaneously below.
+  const currentWeek = latestWeek && latestWeek.week_start_date === thisWeekStart ? latestWeek : null;
+  const nextWeek = latestWeek && latestWeek.week_start_date === nextWeekStart ? latestWeek : null;
+
+  return (
     <>
       <PageHeader
         title="Weekly Schedule"
         subtitle="Monday–Friday (Philippine time), regenerated every week — station headcount is fixed on Workstations"
-      />
-
-      <Panel
-        title={`Week of ${formatWeekRange(weekStart)}`}
         action={
           canManage && (
-            <div className="flex items-center gap-2">
-              {week && <ClearScheduleButton scheduleWeekId={week.id} weekStart={weekStart} />}
-              <GenerateButton
-                workstations={sortedWorkstations}
-                totalMembers={totalMembers}
-                totalTenured={totalTenured}
-                totalNewHire={totalNewHire}
-                immuneMembers={immuneMembers}
-                defaultWeekStart={defaultGenerateWeekStart}
-              />
-            </div>
+            <GenerateButton
+              workstations={sortedWorkstations}
+              totalMembers={totalMembers}
+              totalTenured={totalTenured}
+              totalNewHire={totalNewHire}
+              immuneMembers={immuneMembers}
+              defaultWeekStart={defaultGenerateWeekStart}
+            />
           )
         }
-        footnote={
-          canManage
-            ? "Immune members must be manually placed at a station in the Generate modal before generating — everyone else fills in from the headcount/tenure quotas. “On leave” flags approved leave overlapping this work week — reassign manually if needed."
-            : "“On leave” flags approved leave overlapping this work week."
-        }
-      >
-        {canManage && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
-            <Card label="Total headcount" value={String(totalMembers)} sub="Team Leader, OIC & associates" />
-            <Card label="Tenured associates" value={String(totalTenured)} sub="Available to assign" />
-            <Card label="New Hire associates" value={String(totalNewHire)} sub="Available to assign" />
-          </div>
-        )}
-        {holidays.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {holidays.map((h) => (
-              <Pill key={h.date} tone="warn">
-                Holiday {h.date}: {h.name}
-              </Pill>
-            ))}
-          </div>
-        )}
-        <div className="overflow-x-auto scroll-shadow-x">
-          <table className="w-full text-[13px] border-collapse">
-            <thead>
-              <tr>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Assigned to</th>
-                {canManage && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>}
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Leave</th>
-                {canManage && <th className="py-2.5 border-b border-[var(--line)]" />}
-              </tr>
-            </thead>
-            <tbody>
-              {assignments && assignments.length > 0 ? (
-                assignments.map((a: any) => (
-                  <tr key={a.id}>
-                    <td className="py-2.5 border-b border-[var(--line)]">{a.workstations?.name}</td>
-                    <td className="py-2.5 border-b border-[var(--line)]">
-                      {formatFullName(a.profiles?.first_name, a.profiles?.last_name)}
-                    </td>
-                    {canManage && (
-                      <td className="py-2.5 border-b border-[var(--line)]">
-                        {a.profiles?.is_immune ? <Pill tone="accent">Immune</Pill> : <span className="text-[var(--muted)]">—</span>}
-                      </td>
-                    )}
-                    <td className="py-2.5 border-b border-[var(--line)]">
-                      {onLeaveIds.has(a.associate_id) ? <Pill tone="bad">On leave</Pill> : <span className="text-[var(--muted)]">—</span>}
-                    </td>
-                    {canManage && (
-                      <td className="py-2.5 border-b border-[var(--line)]">
-                        <ReassignForm
-                          assignmentId={a.id}
-                          workstationName={a.workstations?.name ?? ""}
-                          associates={associates ?? []}
-                          currentAssociateId={a.associate_id}
-                        />
-                      </td>
-                    )}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={canManage ? 5 : 3} className="py-4 text-[var(--muted)]">
-                    No schedule has been generated for this week yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      />
+
+      {canManage && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+          <Card label="Total headcount" value={String(totalMembers)} sub="Team Leader, OIC & associates" />
+          <Card label="Tenured associates" value={String(totalTenured)} sub="Available to assign" />
+          <Card label="New Hire associates" value={String(totalNewHire)} sub="Available to assign" />
         </div>
-      </Panel>
+      )}
+
+      <WeekPanel
+        supabase={supabase}
+        label="Next Week"
+        week={nextWeek}
+        weekStart={nextWeekStart}
+        canManage={canManage}
+        associates={associates ?? []}
+      />
+      <WeekPanel
+        supabase={supabase}
+        label="Current Week"
+        week={currentWeek}
+        weekStart={thisWeekStart}
+        canManage={canManage}
+        associates={associates ?? []}
+      />
 
       {canManage && (
         <Panel

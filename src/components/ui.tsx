@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 // Title bar pinned to the top of every page inside the app shell — stays
 // in view while the page's content scrolls under it, same as the sidebar.
@@ -108,12 +109,25 @@ export function Pill({ tone = "muted", children }: { tone?: keyof typeof PILL_ST
   );
 }
 
-export function Card({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "warn" }) {
-  return (
-    <div
-      className="group bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl px-4 py-4 hover:border-[var(--accent)] hover:-translate-y-[1px] transition-all duration-200"
-      style={{ boxShadow: "var(--shadow-xs)" }}
-    >
+export function Card({
+  label,
+  value,
+  sub,
+  tone,
+  href,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: "warn";
+  // When set, the whole card becomes a link (e.g. "Next Week's Station"
+  // pointing at Weekly Schedule) instead of a plain stat display.
+  href?: string;
+}) {
+  const className =
+    "group block bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl px-4 py-4 hover:border-[var(--accent)] hover:-translate-y-[1px] transition-all duration-200";
+  const content = (
+    <>
       <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5 group-hover:text-[var(--accent-strong)] transition-colors">
         {label}
       </div>
@@ -124,6 +138,20 @@ export function Card({ label, value, sub, tone }: { label: string; value: string
         {value}
       </div>
       {sub && <div className="text-[11.5px] text-[var(--muted)] mt-1.5 leading-snug">{sub}</div>}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={className} style={{ boxShadow: "var(--shadow-xs)" }}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={className} style={{ boxShadow: "var(--shadow-xs)" }}>
+      {content}
     </div>
   );
 }
