@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button, Pill } from "@/components/ui";
 import { startOfWorkWeek, formatWeekRange } from "@/lib/scheduleDates";
@@ -166,7 +167,13 @@ export default function GenerateButton({
         Generate schedule
       </Button>
 
-      {open && (
+      {open && createPortal(
+        // Portaled to document.body instead of rendering in place: this
+        // button now lives inside PageHeader's action slot, whose <header>
+        // has backdrop-blur (a backdrop-filter) — that creates a new
+        // containing block for `position: fixed` descendants, so without
+        // the portal this modal would be clipped/positioned relative to
+        // that skinny header bar instead of the viewport.
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setOpen(false)}>
           <div
             className="w-full max-w-4xl max-h-[96vh] overflow-y-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-5 flex flex-col gap-3 animate-scale-in"
@@ -328,7 +335,8 @@ export default function GenerateButton({
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
