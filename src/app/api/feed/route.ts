@@ -50,7 +50,8 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const content = (body.content ?? "").trim();
-  if (!content) {
+  const image_url = (body.image_url ?? "").trim() || null;
+  if (!content && !image_url) {
     return NextResponse.json({ error: "Post can't be empty." }, { status: 400 });
   }
   if (content.length > 2000) {
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabase
     .from("posts")
-    .insert({ author_id: user.id, content })
+    .insert({ author_id: user.id, content: content || "", image_url })
     .select(
       `*, profiles!posts_author_id_fkey(first_name, last_name, avatar_url, role),
        post_reactions(id, profile_id, reaction),

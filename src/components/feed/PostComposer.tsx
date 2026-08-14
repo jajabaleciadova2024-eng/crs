@@ -2,38 +2,108 @@
 
 import { useState, useRef } from "react";
 
-export default function PostComposer({ onSubmit }: { onSubmit: (content: string) => Promise<void> }) {
+const MOOD_EMOJIS = [
+  "😀", "😂", "🥹", "😍", "🤩", "😎", "🤔", "😤",
+  "😭", "🥳", "😴", "🤯", "🫡", "💪", "🔥", "❤️",
+  "👏", "🙏", "😅", "🤣", "😊", "🥰", "😇", "🤗",
+];
+
+export default function PostComposer({ onSubmit }: { onSubmit: (content: string, imageUrl?: string | null) => Promise<void> }) {
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit() {
     const trimmed = content.trim();
-    if (!trimmed || submitting) return;
+    if ((!trimmed && !imageUrl) || submitting) return;
     setSubmitting(true);
-    await onSubmit(trimmed);
+    await onSubmit(trimmed, imageUrl);
     setContent("");
+    setImageUrl(null);
+    setImagePreview(null);
     setSubmitting(false);
     setFocused(false);
+    setShowEmojis(false);
     textareaRef.current?.blur();
+    // Reset textarea height
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    // Ctrl/Cmd + Enter to submit
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
     }
   }
 
-  // Auto-resize textarea
   function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setContent(e.target.value);
     const ta = e.target;
     ta.style.height = "auto";
     ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
   }
+
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 5 * 1024 * 1024) return;
+
+    // Show local preview immediately
+    const localUrl = URL.createObjectURL(file);
+    setImagePreview(localUrl);
+    setFocused(true);
+
+    // Upload to server
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/feed/image", { method: "POST", body: formData });
+    setUploading(false);
+
+    if (!res.ok) {
+      setImagePreview(null);
+      URL.revokeObjectURL(localUrl);
+      return;
+    }
+
+    const { url } = await res.json();
+    setImageUrl(url);
+  }
+
+  function removeImage() {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageUrl(null);
+    setImagePreview(null);
+  }
+
+  function insertEmoji(emoji: string) {
+    const ta = textareaRef.current;
+    if (!ta) {
+      setContent((prev) => prev + emoji);
+      return;
+    }
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const before = content.slice(0, start);
+    const after = content.slice(end);
+    const newContent = before + emoji + after;
+    setContent(newContent);
+    // Restore cursor position after the emoji
+    requestAnimationFrame(() => {
+      ta.selectionStart = ta.selectionEnd = start + emoji.length;
+      ta.focus();
+    });
+  }
+
+  const canPost = (content.trim() || imageUrl) && !submitting && !uploading;
 
   return (
     <div
@@ -48,7 +118,7 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string)
           value={content}
           onChange={handleInput}
           onFocus={() => setFocused(true)}
-          onBlur={() => !content && setFocused(false)}
+          onBlur={() => !content && !imagePreview && !showEmojis && setFocused(false)}
           onKeyDown={handleKeyDown}
           placeholder="What's on your mind?"
           maxLength={2000}
@@ -57,16 +127,104 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string)
           style={{ minHeight: "36px" }}
         />
       </div>
-      {(focused || content) && (
+
+      {/* Image preview */}
+      {imagePreview && (
+        <div className="px-4 pb-2 relative">
+          <div className="relative inline-block rounded-lg overflow-hidden border border-[var(--line)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imagePreview}
+              alt="Upload preview"
+              className="max-h-[200px] max-w-full object-contain"
+            />
+            {uploading && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={removeImage}
+              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[14px]"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Emoji picker */}
+      {showEmojis && (
+        <div className="px-4 pb-2 animate-fade-in-up">
+          <div className="bg-[var(--paper)] border border-[var(--line)] rounded-lg p-2 grid grid-cols-8 gap-0.5">
+            {MOOD_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => insertEmoji(emoji)}
+                className="text-[20px] p-1.5 rounded-md hover:bg-[var(--accent-soft)]/40 hover:scale-110 active:scale-100 transition-transform text-center"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(focused || content || imagePreview) && (
         <div className="flex items-center justify-between px-4 pb-3 pt-1 animate-fade-in-up">
-          <span className="text-[11px] text-[var(--muted)]">
-            {content.length > 0 && `${content.length}/2000`}
-            {content.length === 0 && "Ctrl+Enter to post"}
-          </span>
+          <div className="flex items-center gap-1">
+            {/* Image upload button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || !!imageUrl}
+              className="p-2 rounded-md text-[var(--muted)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              title="Add photo"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </button>
+
+            {/* Emoji button */}
+            <button
+              type="button"
+              onClick={() => setShowEmojis(!showEmojis)}
+              className={`p-2 rounded-md transition-colors ${
+                showEmojis
+                  ? "text-[var(--accent-strong)] bg-[var(--accent-soft)]/30"
+                  : "text-[var(--muted)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30"
+              }`}
+              title="Add emoji"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                <line x1="9" y1="9" x2="9.01" y2="9" />
+                <line x1="15" y1="9" x2="15.01" y2="9" />
+              </svg>
+            </button>
+
+            <span className="text-[11px] text-[var(--muted)] ml-1">
+              {content.length > 0 ? `${content.length}/2000` : "Ctrl+Enter to post"}
+            </span>
+          </div>
+
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!content.trim() || submitting}
+            disabled={!canPost}
             className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12.5px] font-bold bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:-translate-y-[0.5px] active:translate-y-0 shadow-sm"
           >
             {submitting ? (

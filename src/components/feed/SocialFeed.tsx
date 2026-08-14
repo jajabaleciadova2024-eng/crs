@@ -6,7 +6,8 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import PostComposer from "./PostComposer";
 import PostCard from "./PostCard";
 
-export type Reaction = { id: string; profile_id: string; reaction: "like" | "heart" | "angry" };
+export type ReactionType = "like" | "heart" | "angry" | "poop" | "roll_eyes";
+export type Reaction = { id: string; profile_id: string; reaction: ReactionType };
 export type CommentAuthor = { first_name: string; last_name: string; avatar_url: string | null };
 export type Comment = {
   id: string;
@@ -21,6 +22,7 @@ export type Post = {
   id: string;
   author_id: string;
   content: string;
+  image_url: string | null;
   created_at: string;
   updated_at: string;
   profiles: PostAuthor;
@@ -78,9 +80,9 @@ export default function SocialFeed({ userId }: { userId: string }) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "posts" },
         (payload) => {
-          const updated = payload.new as { id: string; content: string; updated_at: string };
+          const updated = payload.new as { id: string; content: string; image_url: string | null; updated_at: string };
           setPosts((prev) =>
-            prev.map((p) => (p.id === updated.id ? { ...p, content: updated.content, updated_at: updated.updated_at } : p))
+            prev.map((p) => (p.id === updated.id ? { ...p, content: updated.content, image_url: updated.image_url, updated_at: updated.updated_at } : p))
           );
         }
       )
@@ -228,11 +230,11 @@ export default function SocialFeed({ userId }: { userId: string }) {
     };
   }, []);
 
-  async function handleNewPost(content: string) {
+  async function handleNewPost(content: string, imageUrl?: string | null) {
     const res = await fetch("/api/feed", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, image_url: imageUrl || null }),
     });
     if (!res.ok) return;
     const { post } = await res.json();
@@ -257,7 +259,7 @@ export default function SocialFeed({ userId }: { userId: string }) {
     });
   }
 
-  async function handleReact(postId: string, reaction: "like" | "heart" | "angry") {
+  async function handleReact(postId: string, reaction: ReactionType) {
     // Optimistic update
     setPosts((prev) =>
       prev.map((p) => {

@@ -1,12 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import type { Post } from "./SocialFeed";
+import type { Post, ReactionType } from "./SocialFeed";
 import { Avatar } from "@/components/ui";
 import CommentSection from "./CommentSection";
 
-const REACTION_EMOJI: Record<string, string> = { like: "👍", heart: "❤️", angry: "😡" };
-const REACTION_LABEL: Record<string, string> = { like: "Like", heart: "Heart", angry: "Angry" };
+// Ordered: positive → love → funny → negative
+const REACTION_EMOJI: Record<string, string> = {
+  like: "👍",
+  heart: "❤️",
+  poop: "💩",
+  roll_eyes: "🙄",
+  angry: "😡",
+};
+const REACTION_LABEL: Record<string, string> = {
+  like: "Like",
+  heart: "Heart",
+  poop: "Poop",
+  roll_eyes: "Roll Eyes",
+  angry: "Angry",
+};
+const REACTION_ORDER: ReactionType[] = ["like", "heart", "poop", "roll_eyes", "angry"];
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -36,7 +50,7 @@ export default function PostCard({
   userId: string;
   onDelete: (postId: string) => void;
   onEdit: (postId: string, content: string) => void;
-  onReact: (postId: string, reaction: "like" | "heart" | "angry") => void;
+  onReact: (postId: string, reaction: ReactionType) => void;
   onAddComment: (postId: string, content: string) => Promise<void>;
   onEditComment: (postId: string, commentId: string, content: string) => void;
   onDeleteComment: (postId: string, commentId: string) => void;
@@ -46,6 +60,7 @@ export default function PostCard({
   const [showMenu, setShowMenu] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [imageExpanded, setImageExpanded] = useState(false);
 
   const isAuthor = post.author_id === userId;
   const wasEdited = post.updated_at !== post.created_at;
@@ -177,11 +192,57 @@ export default function PostCard({
             </div>
           </div>
         ) : (
-          <p className="text-[14px] text-[var(--ink)] leading-relaxed whitespace-pre-wrap break-words m-0">
-            {post.content}
-          </p>
+          <>
+            {post.content && (
+              <p className="text-[14px] text-[var(--ink)] leading-relaxed whitespace-pre-wrap break-words m-0">
+                {post.content}
+              </p>
+            )}
+          </>
         )}
       </div>
+
+      {/* Post image */}
+      {post.image_url && (
+        <div className="px-4 pb-3">
+          <button
+            type="button"
+            onClick={() => setImageExpanded(true)}
+            className="block rounded-lg overflow-hidden border border-[var(--line)] hover:border-[var(--accent)] transition-colors cursor-zoom-in"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={post.image_url}
+              alt="Post attachment"
+              className="max-h-[400px] max-w-full object-contain"
+            />
+          </button>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {imageExpanded && post.image_url && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center cursor-zoom-out"
+            onClick={() => setImageExpanded(false)}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={post.image_url}
+              alt="Post attachment"
+              className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={() => setImageExpanded(false)}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[20px]"
+            >
+              ×
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Reaction summary + comment count */}
       {(totalReactions > 0 || post.post_comments.length > 0) && (
@@ -234,7 +295,7 @@ export default function PostCard({
             <>
               <div className="fixed inset-0 z-30" onClick={() => setShowReactionPicker(false)} />
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-40 flex gap-1 bg-[var(--paper-raised)] border border-[var(--line)] rounded-full px-2 py-1.5 shadow-lg animate-fade-in-up">
-                {(["like", "heart", "angry"] as const).map((type) => (
+                {REACTION_ORDER.map((type) => (
                   <button
                     key={type}
                     type="button"
