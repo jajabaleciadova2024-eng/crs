@@ -45,7 +45,6 @@ function CommentItem({
 }) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
-  const [showActions, setShowActions] = useState(false);
   const editInputRef = useRef<HTMLInputElement>(null);
   const editMention = useMentionAutocomplete(mentionable);
   const isAuthor = comment.author_id === userId;
@@ -93,11 +92,17 @@ function CommentItem({
 
   const showEditDropdown = editMention.trigger !== null && editMention.suggestions.length > 0;
 
+  // On touch devices (no hover), always show Edit/Delete actions.
+  // On hover-capable devices, show them on mouse-enter only.
+  const [hovered, setHovered] = useState(false);
+  const isTouchDevice = typeof window !== "undefined" && !window.matchMedia("(hover: hover)").matches;
+  const actionsVisible = isTouchDevice || hovered;
+
   return (
     <div
       className="flex gap-2 group"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <div className="shrink-0 mt-0.5">
         <Avatar firstName={first} lastName={last} avatarUrl={avatar} size="sm" />
@@ -140,7 +145,7 @@ function CommentItem({
         <div className="flex items-center gap-2 mt-0.5 px-1">
           <span className="text-[10.5px] text-[var(--muted)]">{timeAgo(comment.created_at)}</span>
           {wasEdited && <span className="text-[10.5px] text-[var(--muted)]">· edited</span>}
-          {showActions && !editing && isAuthor && (
+          {actionsVisible && !editing && isAuthor && (
             <button
               type="button"
               onClick={() => {
@@ -152,7 +157,7 @@ function CommentItem({
               Edit
             </button>
           )}
-          {showActions && !editing && isTeamLeader && (
+          {actionsVisible && !editing && isTeamLeader && (
             <button
               type="button"
               onClick={() => onDelete(comment.id)}

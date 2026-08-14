@@ -320,7 +320,7 @@ export default function PostCard({
           {showReactionPicker && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setShowReactionPicker(false)} />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-40 flex gap-1 bg-[var(--paper-raised)] border border-[var(--line)] rounded-full px-2 py-1.5 shadow-lg animate-fade-in-up">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-40 flex gap-1 bg-[var(--paper-raised)] border border-[var(--line)] rounded-full px-1.5 sm:px-2 py-1.5 shadow-lg animate-fade-in-up max-w-[calc(100vw-32px)]">
                 {REACTION_ORDER.map((type) => (
                   <button
                     key={type}

@@ -209,7 +209,7 @@ export default function PostComposer({
       {/* Emoji picker */}
       {showEmojis && (
         <div className="px-4 pb-2 animate-fade-in-up">
-          <div className="bg-[var(--paper)] border border-[var(--line)] rounded-lg p-2 grid grid-cols-8 gap-0.5">
+          <div className="bg-[var(--paper)] border border-[var(--line)] rounded-lg p-2 grid grid-cols-6 sm:grid-cols-8 gap-0.5">
             {MOOD_EMOJIS.map((emoji) => (
               <button
                 key={emoji}

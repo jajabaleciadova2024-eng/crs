@@ -145,7 +145,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
       {open && (
         <div
-          className="absolute right-0 top-12 z-50 w-[340px] max-w-[90vw] bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-fade-in-up"
+          className="fixed right-2 top-14 md:absolute md:right-0 md:top-12 z-50 w-[calc(100vw-16px)] md:w-[340px] max-w-[380px] bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-fade-in-up"
           style={{ boxShadow: "var(--shadow-lg, 0 10px 25px rgba(0,0,0,0.15))" }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">

@@ -118,7 +118,7 @@ export default async function DashboardPage() {
       </PageHeader>
 
       <div
-        className={`grid grid-cols-2 ${
+        className={`grid grid-cols-1 min-[400px]:grid-cols-2 ${
           profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-4"
         } gap-3 mb-8`}
       >

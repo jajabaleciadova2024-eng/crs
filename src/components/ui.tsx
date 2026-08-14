@@ -48,10 +48,10 @@ export function PageHeader({
           to jump up underneath it. Same content/width as the visible
           copy so its height always matches, however long a given page's
           title/subtitle/action ends up being. */}
-      <div aria-hidden="true" className="invisible px-4 md:px-10 py-3.5 md:py-5 mb-4 md:mb-6 border-b border-transparent">
+      <div aria-hidden="true" className="invisible px-3 sm:px-4 md:px-10 py-3.5 md:py-5 mb-4 md:mb-6 border-b border-transparent">
         {content}
       </div>
-      <header className="fixed z-20 top-[calc(52px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-4 md:px-10 py-3.5 md:py-5 bg-[var(--paper)]/85 backdrop-blur-md border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out">
+      <header className="fixed z-20 top-[calc(52px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-3 sm:px-4 md:px-10 py-3.5 md:py-5 bg-[var(--paper)]/85 backdrop-blur-md border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out">
         {content}
       </header>
     </>
