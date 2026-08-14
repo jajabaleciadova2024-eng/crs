@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Post, ReactionType } from "./SocialFeed";
 import { Avatar } from "@/components/ui";
 import CommentSection from "./CommentSection";
+import { renderTextWithMentions, type Mentionable } from "./mentions";
 
 // Ordered: positive → love → funny → negative
 const REACTION_EMOJI: Record<string, string> = {
@@ -39,6 +40,7 @@ function timeAgo(dateStr: string): string {
 export default function PostCard({
   post,
   userId,
+  mentionable,
   onDelete,
   onEdit,
   onReact,
@@ -48,6 +50,7 @@ export default function PostCard({
 }: {
   post: Post;
   userId: string;
+  mentionable: Mentionable[];
   onDelete: (postId: string) => void;
   onEdit: (postId: string, content: string) => void;
   onReact: (postId: string, reaction: ReactionType) => void;
@@ -195,7 +198,7 @@ export default function PostCard({
           <>
             {post.content && (
               <p className="text-[14px] text-[var(--ink)] leading-relaxed whitespace-pre-wrap break-words m-0">
-                {post.content}
+                {renderTextWithMentions(post.content, mentionable)}
               </p>
             )}
           </>
@@ -335,6 +338,7 @@ export default function PostCard({
           postId={post.id}
           comments={post.post_comments}
           userId={userId}
+          mentionable={mentionable}
           onAdd={(content) => onAddComment(post.id, content)}
           onEdit={(commentId, content) => onEditComment(post.id, commentId, content)}
           onDelete={(commentId) => onDeleteComment(post.id, commentId)}

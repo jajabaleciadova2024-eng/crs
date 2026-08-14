@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import PostComposer from "./PostComposer";
 import PostCard from "./PostCard";
+import type { Mentionable } from "./mentions";
 
 export type ReactionType = "like" | "heart" | "angry" | "poop" | "roll_eyes";
 export type Reaction = { id: string; profile_id: string; reaction: ReactionType };
@@ -30,7 +31,7 @@ export type Post = {
   post_comments: Comment[];
 };
 
-export default function SocialFeed({ userId }: { userId: string }) {
+export default function SocialFeed({ userId, mentionable }: { userId: string; mentionable: Mentionable[] }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -352,7 +353,7 @@ export default function SocialFeed({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-4">
-      <PostComposer onSubmit={handleNewPost} />
+      <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />
       {posts.length === 0 ? (
         <div className="text-center py-12 text-[var(--muted)] text-sm">
           <div className="text-3xl mb-2">💬</div>
@@ -364,6 +365,7 @@ export default function SocialFeed({ userId }: { userId: string }) {
             key={post.id}
             post={post}
             userId={userId}
+            mentionable={mentionable}
             onDelete={handleDeletePost}
             onEdit={handleEditPost}
             onReact={handleReact}

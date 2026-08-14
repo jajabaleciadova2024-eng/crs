@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { useMentionAutocomplete, MentionDropdown, type Mentionable } from "./mentions";
 
 const MOOD_EMOJIS = [
   "😀", "😂", "🥹", "😍", "🤩", "😎", "🤔", "😤",
@@ -8,7 +9,13 @@ const MOOD_EMOJIS = [
   "👏", "🙏", "😅", "🤣", "😊", "🥰", "😇", "🤗",
 ];
 
-export default function PostComposer({ onSubmit }: { onSubmit: (content: string, imageUrl?: string | null) => Promise<void> }) {
+export default function PostComposer({
+  onSubmit,
+  mentionable,
+}: {
+  onSubmit: (content: string, imageUrl?: string | null) => Promise<void>;
+  mentionable: Mentionable[];
+}) {
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -20,6 +27,7 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
+  const mention = useMentionAutocomplete(mentionable);
 
   // Delayed blur: only collapse if focus truly left the entire composer.
   // Without this, clicking image/emoji buttons fires textarea blur →
@@ -30,6 +38,8 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
       if (!content && !imagePreview && !showEmojis) setFocused(false);
     });
   }, [content, imagePreview, showEmojis]);
+
+  const showMentionDropdown = mention.trigger !== null && mention.suggestions.length > 0;
 
   async function handleSubmit() {
     const trimmed = content.trim();
@@ -42,11 +52,13 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
     setSubmitting(false);
     setFocused(false);
     setShowEmojis(false);
+    mention.reset();
     textareaRef.current?.blur();
     if (textareaRef.current) textareaRef.current.style.height = "auto";
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
+    if (mention.handleKeyDown(e, pickMention)) return;
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
@@ -55,9 +67,23 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
 
   function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setContent(e.target.value);
+    mention.onChange(e.target);
     const ta = e.target;
     ta.style.height = "auto";
     ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
+  }
+
+  function pickMention(name: string) {
+    const result = mention.applyMention(content, name);
+    if (!result) return;
+    setContent(result.text);
+    mention.reset();
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = result.cursor;
+    });
   }
 
   async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -146,6 +172,11 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
           style={{ minHeight: "36px" }}
         />
       </div>
+
+      {/* @mention autocomplete */}
+      {showMentionDropdown && (
+        <MentionDropdown suggestions={mention.suggestions} activeIndex={mention.activeIndex} onPick={pickMention} />
+      )}
 
       {/* Image preview */}
       {imagePreview && (

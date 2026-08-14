@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   // this was a big chunk of page-load delay (6+ round-trips one after
   // another). Assignments/recent-leave depend on the first batch's results
   // (week id, role), so they go in a second parallel batch.
-  const [{ data: week }, { data: latestWeekRow }, { data: activeWorkstations }, { count: pendingCount }, { count: immuneCount }, { count: pendingAccessCount }] =
+  const [{ data: week }, { data: latestWeekRow }, { data: activeWorkstations }, { count: pendingCount }, { count: immuneCount }, { count: pendingAccessCount }, { data: mentionableProfiles }] =
     await Promise.all([
       supabase.from("schedule_weeks").select("*").eq("week_start_date", weekStart).maybeSingle(),
       // Dashboard only ever shows the CURRENT week's assignments above —
@@ -46,6 +46,9 @@ export default async function DashboardPage() {
       profile.role === "team_leader"
         ? supabase.from("access_requests").select("id", { count: "exact", head: true }).eq("status", "pending")
         : Promise.resolve({ count: null as number | null }),
+      // @mention autocomplete source for the Team Feed — first names only,
+      // every active member (all roles) is mentionable.
+      supabase.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name"),
     ]);
 
   const leaveQuery = supabase
@@ -137,7 +140,7 @@ export default async function DashboardPage() {
       </div>
 
       <Panel title="Team Feed" hint="What's happening">
-        <SocialFeed userId={profile.id} />
+        <SocialFeed userId={profile.id} mentionable={mentionableProfiles ?? []} />
       </Panel>
 
       <Panel title={approver ? "Recent leave activity" : "Your recent leave activity"} hint="Last 5 requests">

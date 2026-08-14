@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Avatar } from "@/components/ui";
 import type { Comment } from "./SocialFeed";
+import { useMentionAutocomplete, MentionDropdown, renderTextWithMentions, type Mentionable } from "./mentions";
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -30,17 +31,21 @@ function toTitleCase(value: string | null | undefined): string {
 function CommentItem({
   comment,
   userId,
+  mentionable,
   onEdit,
   onDelete,
 }: {
   comment: Comment;
   userId: string;
+  mentionable: Mentionable[];
   onEdit: (commentId: string, content: string) => void;
   onDelete: (commentId: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showActions, setShowActions] = useState(false);
+  const editInputRef = useRef<HTMLInputElement>(null);
+  const editMention = useMentionAutocomplete(mentionable);
   const isAuthor = comment.author_id === userId;
   const wasEdited = comment.updated_at !== comment.created_at;
 
@@ -49,9 +54,11 @@ function CommentItem({
     if (!trimmed) return;
     onEdit(comment.id, trimmed);
     setEditing(false);
+    editMention.reset();
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
+    if (editMention.handleKeyDown(e, pickMention)) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSave();
@@ -59,8 +66,24 @@ function CommentItem({
     if (e.key === "Escape") {
       setEditing(false);
       setEditContent(comment.content);
+      editMention.reset();
     }
   }
+
+  function pickMention(name: string) {
+    const result = editMention.applyMention(editContent, name);
+    if (!result) return;
+    setEditContent(result.text);
+    editMention.reset();
+    requestAnimationFrame(() => {
+      const el = editInputRef.current;
+      if (!el) return;
+      el.focus();
+      el.selectionStart = el.selectionEnd = result.cursor;
+    });
+  }
+
+  const showEditDropdown = editMention.trigger !== null && editMention.suggestions.length > 0;
 
   return (
     <div
@@ -78,16 +101,25 @@ function CommentItem({
       </div>
       <div className="flex-1 min-w-0">
         {editing ? (
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 relative">
             <input
+              ref={editInputRef}
               type="text"
               value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
+              onChange={(e) => {
+                setEditContent(e.target.value);
+                editMention.onChange(e.target);
+              }}
               onKeyDown={handleKeyDown}
               maxLength={1000}
               autoFocus
               className="w-full bg-[var(--paper)] border border-[var(--accent)] rounded-lg px-3 py-1.5 text-[13px] text-[var(--ink)] outline-none"
             />
+            {showEditDropdown && (
+              <div className="absolute left-0 right-0 top-full mt-1 z-10">
+                <MentionDropdown suggestions={editMention.suggestions} activeIndex={editMention.activeIndex} onPick={pickMention} />
+              </div>
+            )}
             <div className="flex gap-1.5 text-[11px]">
               <span className="text-[var(--muted)]">Enter to save · Esc to cancel</span>
             </div>
@@ -98,7 +130,7 @@ function CommentItem({
               {toTitleCase(comment.profiles.first_name)} {toTitleCase(comment.profiles.last_name)}
             </span>
             <p className="text-[13px] text-[var(--ink)] leading-relaxed m-0 whitespace-pre-wrap break-words">
-              {comment.content}
+              {renderTextWithMentions(comment.content, mentionable)}
             </p>
           </div>
         )}
@@ -136,6 +168,7 @@ export default function CommentSection({
   postId,
   comments,
   userId,
+  mentionable,
   onAdd,
   onEdit,
   onDelete,
@@ -143,6 +176,7 @@ export default function CommentSection({
   postId: string;
   comments: Comment[];
   userId: string;
+  mentionable: Mentionable[];
   onAdd: (content: string) => Promise<void>;
   onEdit: (commentId: string, content: string) => void;
   onDelete: (commentId: string) => void;
@@ -151,6 +185,7 @@ export default function CommentSection({
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const mention = useMentionAutocomplete(mentionable);
 
   // Auto-scroll to bottom when new comments arrive
   useEffect(() => {
@@ -163,16 +198,33 @@ export default function CommentSection({
     setSubmitting(true);
     await onAdd(trimmed);
     setNewComment("");
+    mention.reset();
     setSubmitting(false);
     inputRef.current?.focus();
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
+    if (mention.handleKeyDown(e, pickMention)) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
   }
+
+  function pickMention(name: string) {
+    const result = mention.applyMention(newComment, name);
+    if (!result) return;
+    setNewComment(result.text);
+    mention.reset();
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus();
+      el.selectionStart = el.selectionEnd = result.cursor;
+    });
+  }
+
+  const showMentionDropdown = mention.trigger !== null && mention.suggestions.length > 0;
 
   return (
     <div className="border-t border-[var(--line)] bg-[var(--paper)]/40">
@@ -180,9 +232,16 @@ export default function CommentSection({
       {comments.length > 0 && (
         <div className="px-4 pt-3 space-y-3 max-h-[300px] overflow-y-auto">
           {comments.map((c) => (
-            <CommentItem key={c.id} comment={c} userId={userId} onEdit={onEdit} onDelete={onDelete} />
+            <CommentItem key={c.id} comment={c} userId={userId} mentionable={mentionable} onEdit={onEdit} onDelete={onDelete} />
           ))}
           <div ref={bottomRef} />
+        </div>
+      )}
+
+      {/* @mention autocomplete for the new-comment input */}
+      {showMentionDropdown && (
+        <div className="px-4">
+          <MentionDropdown suggestions={mention.suggestions} activeIndex={mention.activeIndex} onPick={pickMention} />
         </div>
       )}
 
@@ -192,9 +251,12 @@ export default function CommentSection({
           ref={inputRef}
           type="text"
           value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
+          onChange={(e) => {
+            setNewComment(e.target.value);
+            mention.onChange(e.target);
+          }}
           onKeyDown={handleKeyDown}
-          placeholder="Write a comment…"
+          placeholder="Write a comment… (@ to mention)"
           maxLength={1000}
           className="flex-1 bg-[var(--paper)] border border-[var(--line)] rounded-full px-4 py-2 text-[13px] text-[var(--ink)] placeholder:text-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors"
         />
