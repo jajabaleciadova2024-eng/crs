@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 
 const MOOD_EMOJIS = [
   "😀", "😂", "🥹", "😍", "🤩", "😎", "🤔", "😤",
@@ -19,6 +19,17 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
   const [showEmojis, setShowEmojis] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+
+  // Delayed blur: only collapse if focus truly left the entire composer.
+  // Without this, clicking image/emoji buttons fires textarea blur →
+  // toolbar unmounts → button click never registers.
+  const handleBlur = useCallback(() => {
+    requestAnimationFrame(() => {
+      if (composerRef.current?.contains(document.activeElement)) return;
+      if (!content && !imagePreview && !showEmojis) setFocused(false);
+    });
+  }, [content, imagePreview, showEmojis]);
 
   async function handleSubmit() {
     const trimmed = content.trim();
@@ -32,7 +43,6 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
     setFocused(false);
     setShowEmojis(false);
     textareaRef.current?.blur();
-    // Reset textarea height
     if (textareaRef.current) textareaRef.current.style.height = "auto";
   }
 
@@ -64,12 +74,10 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
       return;
     }
 
-    // Show local preview immediately
     const localUrl = URL.createObjectURL(file);
     setImagePreview(localUrl);
     setFocused(true);
 
-    // Upload to server
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
@@ -92,6 +100,7 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImageUrl(null);
     setImagePreview(null);
+    setUploadError(null);
   }
 
   function insertEmoji(emoji: string) {
@@ -104,9 +113,7 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
     const end = ta.selectionEnd;
     const before = content.slice(0, start);
     const after = content.slice(end);
-    const newContent = before + emoji + after;
-    setContent(newContent);
-    // Restore cursor position after the emoji
+    setContent(before + emoji + after);
     requestAnimationFrame(() => {
       ta.selectionStart = ta.selectionEnd = start + emoji.length;
       ta.focus();
@@ -114,9 +121,11 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
   }
 
   const canPost = (content.trim() || imageUrl) && !submitting && !uploading;
+  const expanded = focused || !!content || !!imagePreview;
 
   return (
     <div
+      ref={composerRef}
       className={`bg-[var(--paper-raised)] border rounded-xl overflow-hidden transition-all duration-200 ${
         focused ? "border-[var(--accent)] shadow-[0_0_0_1px_var(--accent)]" : "border-[var(--line)]"
       }`}
@@ -128,7 +137,7 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
           value={content}
           onChange={handleInput}
           onFocus={() => setFocused(true)}
-          onBlur={() => !content && !imagePreview && !showEmojis && setFocused(false)}
+          onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           placeholder="What's on your mind?"
           maxLength={2000}
@@ -140,14 +149,10 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
 
       {/* Image preview */}
       {imagePreview && (
-        <div className="px-4 pb-2 relative">
+        <div className="px-4 pb-2">
           <div className="relative inline-block rounded-lg overflow-hidden border border-[var(--line)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imagePreview}
-              alt="Upload preview"
-              className="max-h-[200px] max-w-full object-contain"
-            />
+            <img src={imagePreview} alt="Upload preview" className="max-h-[200px] max-w-full object-contain" />
             {uploading && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                 <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -155,6 +160,7 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
             )}
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={removeImage}
               className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[14px]"
             >
@@ -177,6 +183,7 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
               <button
                 key={emoji}
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => insertEmoji(emoji)}
                 className="text-[20px] p-1.5 rounded-md hover:bg-[var(--accent-soft)]/40 hover:scale-110 active:scale-100 transition-transform text-center"
               >
@@ -187,10 +194,10 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
         </div>
       )}
 
-      {(focused || content || imagePreview) && (
+      {expanded && (
         <div className="flex items-center justify-between px-4 pb-3 pt-1 animate-fade-in-up">
           <div className="flex items-center gap-1">
-            {/* Image upload button */}
+            {/* Hidden file input */}
             <input
               ref={fileInputRef}
               type="file"
@@ -198,8 +205,11 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
               onChange={handleImageSelect}
               className="hidden"
             />
+
+            {/* Image upload button */}
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || !!imageUrl}
               className="p-2 rounded-md text-[var(--muted)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -212,9 +222,10 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
               </svg>
             </button>
 
-            {/* Emoji button */}
+            {/* Emoji toggle */}
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => setShowEmojis(!showEmojis)}
               className={`p-2 rounded-md transition-colors ${
                 showEmojis
@@ -236,8 +247,10 @@ export default function PostComposer({ onSubmit }: { onSubmit: (content: string,
             </span>
           </div>
 
+          {/* Post button */}
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={handleSubmit}
             disabled={!canPost}
             className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12.5px] font-bold bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:-translate-y-[0.5px] active:translate-y-0 shadow-sm"
