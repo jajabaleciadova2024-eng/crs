@@ -209,10 +209,16 @@ export default async function SchedulePage() {
     .filter((p) => p.is_immune && p.role !== "team_leader")
     .map((p) => ({ id: p.id, name: `${p.first_name} ${p.last_name}` }));
 
-  // Current and next week are looked up as exact matches now, rather than
-  // "whichever is more current" — both panels render simultaneously below.
-  const currentWeek = latestWeek && latestWeek.week_start_date === thisWeekStart ? latestWeek : null;
-  const nextWeek = latestWeek && latestWeek.week_start_date === nextWeekStart ? latestWeek : null;
+  // Current and next week are looked up as their own exact-date queries —
+  // NOT derived from `latestWeek` (the single most-recently-generated row
+  // overall). Once a week further out than "this week" gets generated,
+  // `latestWeek` becomes THAT row, and comparing it against thisWeekStart
+  // would always miss an already-generated current week's schedule (this
+  // was hiding an existing current-week schedule entirely).
+  const [{ data: currentWeek }, { data: nextWeek }] = await Promise.all([
+    supabase.from("schedule_weeks").select("id, week_start_date").eq("week_start_date", thisWeekStart).maybeSingle(),
+    supabase.from("schedule_weeks").select("id, week_start_date").eq("week_start_date", nextWeekStart).maybeSingle(),
+  ]);
 
   return (
     <>
