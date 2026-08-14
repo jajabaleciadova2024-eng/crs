@@ -40,6 +40,7 @@ function timeAgo(dateStr: string): string {
 export default function PostCard({
   post,
   userId,
+  currentUserRole,
   mentionable,
   onDelete,
   onEdit,
@@ -50,6 +51,7 @@ export default function PostCard({
 }: {
   post: Post;
   userId: string;
+  currentUserRole: string;
   mentionable: Mentionable[];
   onDelete: (postId: string) => void;
   onEdit: (postId: string, content: string) => void;
@@ -66,7 +68,20 @@ export default function PostCard({
   const [imageExpanded, setImageExpanded] = useState(false);
 
   const isAuthor = post.author_id === userId;
+  const isTeamLeader = currentUserRole === "team_leader";
+  // Edit is author-only; delete is Team Leader only (moderation).
+  const canEdit = isAuthor;
+  const canDelete = isTeamLeader;
+  const showMenuButton = canEdit || canDelete;
   const wasEdited = post.updated_at !== post.created_at;
+
+  // Defensive fallback — profiles CAN come back null in edge cases
+  // (deleted/inactive author, RLS quirks) and reading `.first_name`
+  // directly used to crash the whole feed for anyone but leadership.
+  const authorFirst = post.profiles?.first_name ?? "";
+  const authorLast = post.profiles?.last_name ?? "";
+  const authorRole = post.profiles?.role ?? "";
+  const authorAvatar = post.profiles?.avatar_url ?? null;
 
   // Group reactions by type with counts
   const reactionCounts: Record<string, number> = {};
@@ -90,23 +105,18 @@ export default function PostCard({
     >
       {/* Header */}
       <div className="flex items-start gap-3 px-4 pt-4 pb-2">
-        <Avatar
-          firstName={post.profiles.first_name}
-          lastName={post.profiles.last_name}
-          avatarUrl={post.profiles.avatar_url}
-          size="md"
-        />
+        <Avatar firstName={authorFirst} lastName={authorLast} avatarUrl={authorAvatar} size="md" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-[13.5px] font-bold text-[var(--ink)] truncate">
-              {toTitleCase(post.profiles.first_name)} {toTitleCase(post.profiles.last_name)}
+              {toTitleCase(authorFirst)} {toTitleCase(authorLast)}
             </span>
-            {post.profiles.role === "team_leader" && (
+            {authorRole === "team_leader" && (
               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--accent-soft)] text-[var(--accent-strong)]">
                 TL
               </span>
             )}
-            {post.profiles.role === "oic" && (
+            {authorRole === "oic" && (
               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--warn-soft)] text-[var(--warn)]">
                 OIC
               </span>
@@ -119,7 +129,7 @@ export default function PostCard({
         </div>
 
         {/* Menu */}
-        {isAuthor && (
+        {showMenuButton && (
           <div className="relative">
             <button
               type="button"
@@ -136,27 +146,31 @@ export default function PostCard({
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
                 <div className="absolute right-0 top-8 z-40 bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg shadow-lg py-1 min-w-[120px] animate-fade-in-up">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMenu(false);
-                      setEditContent(post.content);
-                      setEditing(true);
-                    }}
-                    className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--accent-soft)]/40 text-[var(--ink)] transition-colors"
-                  >
-                    ✏️ Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMenu(false);
-                      onDelete(post.id);
-                    }}
-                    className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--bad-soft)]/40 text-[var(--bad)] transition-colors"
-                  >
-                    🗑️ Delete
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenu(false);
+                        setEditContent(post.content);
+                        setEditing(true);
+                      }}
+                      className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--accent-soft)]/40 text-[var(--ink)] transition-colors"
+                    >
+                      ✏️ Edit
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenu(false);
+                        onDelete(post.id);
+                      }}
+                      className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--bad-soft)]/40 text-[var(--bad)] transition-colors"
+                    >
+                      🗑️ Delete
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -338,6 +352,7 @@ export default function PostCard({
           postId={post.id}
           comments={post.post_comments}
           userId={userId}
+          currentUserRole={currentUserRole}
           mentionable={mentionable}
           onAdd={(content) => onAddComment(post.id, content)}
           onEdit={(commentId, content) => onEditComment(post.id, commentId, content)}

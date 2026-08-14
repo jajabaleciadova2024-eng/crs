@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import Sidebar from "@/components/Sidebar";
 import SidebarShell from "@/components/SidebarShell";
 import PreviewBanner from "@/components/PreviewBanner";
+import NotificationBell from "@/components/NotificationBell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, realRole, previewing } = await requireProfileWithPreview();
@@ -63,6 +64,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {previewing && <PreviewBanner label={ROLE_LABEL[profile.role]} />}
         {children}
       </main>
+      {/* Notification bell — fixed top-right, above the PageHeader so it
+          stays visible while the page scrolls. Extra top offset on mobile
+          keeps it clear of the hamburger bar. */}
+      <div className="fixed top-2.5 right-4 md:top-3 md:right-6 z-40">
+        <NotificationBell userId={profile.id} />
+      </div>
     </div>
   );
 }

@@ -31,12 +31,14 @@ function toTitleCase(value: string | null | undefined): string {
 function CommentItem({
   comment,
   userId,
+  currentUserRole,
   mentionable,
   onEdit,
   onDelete,
 }: {
   comment: Comment;
   userId: string;
+  currentUserRole: string;
   mentionable: Mentionable[];
   onEdit: (commentId: string, content: string) => void;
   onDelete: (commentId: string) => void;
@@ -47,7 +49,13 @@ function CommentItem({
   const editInputRef = useRef<HTMLInputElement>(null);
   const editMention = useMentionAutocomplete(mentionable);
   const isAuthor = comment.author_id === userId;
+  const isTeamLeader = currentUserRole === "team_leader";
   const wasEdited = comment.updated_at !== comment.created_at;
+  // Defensive: profiles can be null in edge cases (deleted/inactive
+  // author) — reading .first_name blind used to crash the page.
+  const first = comment.profiles?.first_name ?? "";
+  const last = comment.profiles?.last_name ?? "";
+  const avatar = comment.profiles?.avatar_url ?? null;
 
   function handleSave() {
     const trimmed = editContent.trim();
@@ -92,12 +100,7 @@ function CommentItem({
       onMouseLeave={() => setShowActions(false)}
     >
       <div className="shrink-0 mt-0.5">
-        <Avatar
-          firstName={comment.profiles.first_name}
-          lastName={comment.profiles.last_name}
-          avatarUrl={comment.profiles.avatar_url}
-          size="sm"
-        />
+        <Avatar firstName={first} lastName={last} avatarUrl={avatar} size="sm" />
       </div>
       <div className="flex-1 min-w-0">
         {editing ? (
@@ -127,7 +130,7 @@ function CommentItem({
         ) : (
           <div className="bg-[var(--paper)] rounded-xl px-3 py-2 inline-block max-w-full">
             <span className="text-[12.5px] font-bold text-[var(--ink)]">
-              {toTitleCase(comment.profiles.first_name)} {toTitleCase(comment.profiles.last_name)}
+              {toTitleCase(first)} {toTitleCase(last)}
             </span>
             <p className="text-[13px] text-[var(--ink)] leading-relaxed m-0 whitespace-pre-wrap break-words">
               {renderTextWithMentions(comment.content, mentionable)}
@@ -137,26 +140,26 @@ function CommentItem({
         <div className="flex items-center gap-2 mt-0.5 px-1">
           <span className="text-[10.5px] text-[var(--muted)]">{timeAgo(comment.created_at)}</span>
           {wasEdited && <span className="text-[10.5px] text-[var(--muted)]">· edited</span>}
-          {isAuthor && showActions && !editing && (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditContent(comment.content);
-                  setEditing(true);
-                }}
-                className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--accent-strong)] transition-colors"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete(comment.id)}
-                className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors"
-              >
-                Delete
-              </button>
-            </>
+          {showActions && !editing && isAuthor && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditContent(comment.content);
+                setEditing(true);
+              }}
+              className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--accent-strong)] transition-colors"
+            >
+              Edit
+            </button>
+          )}
+          {showActions && !editing && isTeamLeader && (
+            <button
+              type="button"
+              onClick={() => onDelete(comment.id)}
+              className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors"
+            >
+              Delete
+            </button>
           )}
         </div>
       </div>
@@ -168,6 +171,7 @@ export default function CommentSection({
   postId,
   comments,
   userId,
+  currentUserRole,
   mentionable,
   onAdd,
   onEdit,
@@ -176,6 +180,7 @@ export default function CommentSection({
   postId: string;
   comments: Comment[];
   userId: string;
+  currentUserRole: string;
   mentionable: Mentionable[];
   onAdd: (content: string) => Promise<void>;
   onEdit: (commentId: string, content: string) => void;
@@ -232,7 +237,7 @@ export default function CommentSection({
       {comments.length > 0 && (
         <div className="px-4 pt-3 space-y-3 max-h-[300px] overflow-y-auto">
           {comments.map((c) => (
-            <CommentItem key={c.id} comment={c} userId={userId} mentionable={mentionable} onEdit={onEdit} onDelete={onDelete} />
+            <CommentItem key={c.id} comment={c} userId={userId} currentUserRole={currentUserRole} mentionable={mentionable} onEdit={onEdit} onDelete={onDelete} />
           ))}
           <div ref={bottomRef} />
         </div>

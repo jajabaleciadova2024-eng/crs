@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { notifyPostReaction, clearReactionNotification } from "@/lib/feedNotify";
 
 const VALID_REACTIONS = ["like", "heart", "angry", "poop", "roll_eyes"] as const;
 
@@ -28,16 +29,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (existing) {
     if (existing.reaction === reaction) {
-      // Same reaction — toggle off (remove)
+      // Same reaction — toggle off (remove) + clear the notification
       await supabase.from("post_reactions").delete().eq("id", existing.id);
+      await clearReactionNotification(postId, user.id);
       return NextResponse.json({ action: "removed" });
     }
-    // Different reaction — switch
+    // Different reaction — switch, update notification to the new one
     await supabase.from("post_reactions").update({ reaction }).eq("id", existing.id);
+    await notifyPostReaction(postId, user.id, reaction);
     return NextResponse.json({ action: "switched", reaction });
   }
 
-  // No existing reaction — insert
+  // No existing reaction — insert + notify
   const { error } = await supabase
     .from("post_reactions")
     .insert({ post_id: postId, profile_id: user.id, reaction });
@@ -46,5 +49,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  await notifyPostReaction(postId, user.id, reaction);
   return NextResponse.json({ action: "added", reaction });
 }

@@ -34,7 +34,14 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
-  // RLS: own post, or Team Leader (moderation policy)
+  // Team Leader only — post authors can no longer self-delete. Explicit
+  // check (not just left to RLS) so a non-TL caller gets a clear 403
+  // rather than a silent no-op delete.
+  const { data: callerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (callerProfile?.role !== "team_leader") {
+    return NextResponse.json({ error: "Only the Team Leader can delete posts." }, { status: 403 });
+  }
+
   const { error } = await supabase.from("posts").delete().eq("id", id);
   if (error) {
     console.error("[feed] DELETE error:", error);

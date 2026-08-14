@@ -140,7 +140,7 @@ export default async function DashboardPage() {
       </div>
 
       <Panel title="Team Feed" hint="What's happening">
-        <SocialFeed userId={profile.id} mentionable={mentionableProfiles ?? []} />
+        <SocialFeed userId={profile.id} currentUserRole={profile.role} mentionable={mentionableProfiles ?? []} />
       </Panel>
 
       <Panel title={approver ? "Recent leave activity" : "Your recent leave activity"} hint="Last 5 requests">

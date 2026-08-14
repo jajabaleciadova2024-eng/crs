@@ -1,8 +1,25 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+const FEED_SELECT = `*, profiles!posts_author_id_fkey(first_name, last_name, avatar_url, role),
+   post_reactions(id, profile_id, reaction),
+   post_comments(id, author_id, content, created_at, updated_at,
+     profiles!post_comments_author_id_fkey(first_name, last_name, avatar_url))`;
 
 // GET  — paginated feed (newest first)
 // POST — create a new post
+//
+// Reads go through the admin client (service role, bypasses RLS) — every
+// route here still gates on a real signed-in session first, but the actual
+// SELECT can't use the request-scoped client: profiles RLS
+// ("profiles_select_own_or_leadership") only lets a caller see their OWN
+// profile row unless they're Team Leader/OIC, so a plain associate's joined
+// `profiles!posts_author_id_fkey(...)` on anyone else's post would come
+// back null — and the client renders `post.profiles.first_name` without a
+// null-check, which crashed the whole feed (and the page it's on) for
+// every non-leadership member. The admin client here only ever returns the
+// specific display columns listed in FEED_SELECT, never full rows.
 export async function GET(request: Request) {
   const supabase = await createClient();
   const {
@@ -14,14 +31,10 @@ export async function GET(request: Request) {
   const cursor = searchParams.get("cursor"); // ISO timestamp of last post seen
   const limit = Math.min(Number(searchParams.get("limit")) || 20, 50);
 
-  let query = supabase
+  const admin = createAdminClient();
+  let query = admin
     .from("posts")
-    .select(
-      `*, profiles!posts_author_id_fkey(first_name, last_name, avatar_url, role),
-       post_reactions(id, profile_id, reaction),
-       post_comments(id, author_id, content, created_at, updated_at,
-         profiles!post_comments_author_id_fkey(first_name, last_name, avatar_url))`
-    )
+    .select(FEED_SELECT)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -58,21 +71,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Post can't be longer than 2000 characters." }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  // Insert with the request-scoped client — respects "posts_insert_own" RLS
+  // (author_id must equal the caller). The joined re-select below uses the
+  // admin client purely for consistency with GET, though a self-join here
+  // would actually already be allowed under RLS since it's the caller's
+  // own row.
+  const { data: inserted, error } = await supabase
     .from("posts")
     .insert({ author_id: user.id, content: content || "", image_url })
-    .select(
-      `*, profiles!posts_author_id_fkey(first_name, last_name, avatar_url, role),
-       post_reactions(id, profile_id, reaction),
-       post_comments(id, author_id, content, created_at, updated_at,
-         profiles!post_comments_author_id_fkey(first_name, last_name, avatar_url))`
-    )
+    .select("id")
     .single();
 
-  if (error) {
+  if (error || !inserted) {
     console.error("[feed] POST error:", error);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error?.message ?? "Couldn't post." }, { status: 400 });
   }
 
-  return NextResponse.json({ post: data });
+  const admin = createAdminClient();
+  const { data: post } = await admin.from("posts").select(FEED_SELECT).eq("id", inserted.id).single();
+
+  return NextResponse.json({ post });
 }

@@ -31,7 +31,15 @@ export type Post = {
   post_comments: Comment[];
 };
 
-export default function SocialFeed({ userId, mentionable }: { userId: string; mentionable: Mentionable[] }) {
+export default function SocialFeed({
+  userId,
+  currentUserRole,
+  mentionable,
+}: {
+  userId: string;
+  currentUserRole: string;
+  mentionable: Mentionable[];
+}) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -159,12 +167,12 @@ export default function SocialFeed({ userId, mentionable }: { userId: string; me
         { event: "INSERT", schema: "public", table: "post_comments" },
         async (payload) => {
           const newComment = payload.new as { id: string; post_id: string; author_id: string; content: string; created_at: string; updated_at: string };
-          // We need the author profile — fetch it
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("first_name, last_name, avatar_url")
-            .eq("id", newComment.author_id)
-            .single();
+          // Fetch the joined comment through our API — reading profiles
+          // directly from the browser client would fail for non-leadership
+          // viewers under RLS (same reason we introduced the admin-backed
+          // /api/feed GET in the first place).
+          const res = await fetch(`/api/feed/${newComment.post_id}/comments/${newComment.id}`);
+          const joined = res.ok ? (await res.json()).comment : null;
 
           setPosts((prev) =>
             prev.map((p) =>
@@ -173,13 +181,13 @@ export default function SocialFeed({ userId, mentionable }: { userId: string; me
                     ...p,
                     post_comments: [
                       ...p.post_comments.filter((c) => c.id !== newComment.id),
-                      {
+                      joined ?? {
                         id: newComment.id,
                         author_id: newComment.author_id,
                         content: newComment.content,
                         created_at: newComment.created_at,
                         updated_at: newComment.updated_at,
-                        profiles: profileData ?? { first_name: "", last_name: "", avatar_url: null },
+                        profiles: { first_name: "", last_name: "", avatar_url: null },
                       },
                     ],
                   }
@@ -365,6 +373,7 @@ export default function SocialFeed({ userId, mentionable }: { userId: string; me
             key={post.id}
             post={post}
             userId={userId}
+            currentUserRole={currentUserRole}
             mentionable={mentionable}
             onDelete={handleDeletePost}
             onEdit={handleEditPost}
