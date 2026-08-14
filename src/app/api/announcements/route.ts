@@ -80,6 +80,9 @@ export async function POST(request: Request) {
 
   const { data: announcement } = await admin.from("announcements").select(ANN_SELECT).eq("id", inserted.id).single();
 
+  // Mark as seen for the poster so they don't get the unseen modal
+  await supabase.from("announcement_seen").insert({ announcement_id: inserted.id, profile_id: user.id });
+
   // Notify all active members (except the TL posting)
   const { data: members } = await admin
     .from("profiles")

@@ -136,13 +136,19 @@ create policy "announcement_comments_delete_leader"
   on public.announcement_comments for delete
   using (public.current_role() = 'team_leader');
 
--- seen: users can read & insert their own rows
+-- seen: users can read, insert, and update their own rows (upsert
+-- needs both insert + update policies to work through RLS)
 create policy "announcement_seen_select_own"
   on public.announcement_seen for select
   using (profile_id = auth.uid());
 
 create policy "announcement_seen_insert_own"
   on public.announcement_seen for insert
+  with check (profile_id = auth.uid());
+
+create policy "announcement_seen_update_own"
+  on public.announcement_seen for update
+  using (profile_id = auth.uid())
   with check (profile_id = auth.uid());
 
 -- ---------------------------------------------------------------------------
