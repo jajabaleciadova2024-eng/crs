@@ -135,6 +135,38 @@ export interface AnnouncementSeen {
   seen_at: string;
 }
 
+export type TicketStatus = "open" | "closed";
+
+export interface Ticket {
+  id: string;
+  reporter_id: string;
+  subject: string;
+  description: string;
+  status: TicketStatus;
+  closed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TicketAttachment {
+  id: string;
+  ticket_id: string;
+  file_path: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  created_at: string;
+}
+
+export interface TicketMessage {
+  id: string;
+  ticket_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
