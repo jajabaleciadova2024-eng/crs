@@ -80,7 +80,11 @@ export default async function DashboardPage() {
       : Promise.resolve({ data: null }),
   ]);
 
-  const stationsManned = assignments?.length ?? 0;
+  // Distinct stations with at least one person seated — NOT a raw count of
+  // assignment rows, since a station can have more than one seat filled
+  // (e.g. Collecting Officer has 4). Counting rows would show something
+  // like "15 / 6", which reads as more stations manned than exist.
+  const stationsManned = new Set((assignments ?? []).map((a) => a.workstation_id)).size;
   const totalStations = activeWorkstations?.length ?? 0;
   const myCurrentAssignment = assignments?.find((a) => a.associate_id === profile.id);
   const myCurrentStationName = (myCurrentAssignment as any)?.workstations?.name as string | undefined;
