@@ -10,6 +10,7 @@ import { todayInManila, startOfWorkWeek } from "@/lib/scheduleDates";
 import { toTitleCase, formatFullName } from "@/lib/format";
 import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
 import SocialFeed from "@/components/feed/SocialFeed";
+import QuickPostButton from "@/components/feed/QuickPostButton";
 
 const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   pending: "warn",
@@ -103,17 +104,20 @@ export default async function DashboardPage() {
   return (
     <>
       <PageHeader>
-        <div className="flex items-center gap-3 sm:gap-5">
-          <ProfilePhotoFrame
-            firstName={profile.first_name}
-            lastName={profile.last_name}
-            avatarUrl={profile.avatar_url}
-          />
-          <div>
-            <h1 className="font-serif text-lg sm:text-2xl md:text-[28px] m-0 tracking-tight">
-              Good day, {toTitleCase(profile.first_name)}
-            </h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+            <ProfilePhotoFrame
+              firstName={profile.first_name}
+              lastName={profile.last_name}
+              avatarUrl={profile.avatar_url}
+            />
+            <div className="min-w-0">
+              <h1 className="font-serif text-lg sm:text-2xl md:text-[28px] m-0 tracking-tight truncate">
+                Good day, {toTitleCase(profile.first_name)}
+              </h1>
+            </div>
           </div>
+          <QuickPostButton />
         </div>
       </PageHeader>
 

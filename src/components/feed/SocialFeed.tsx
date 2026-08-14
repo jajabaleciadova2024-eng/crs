@@ -402,8 +402,13 @@ export default function SocialFeed({
   return (
     <div className="space-y-4">
       <div
-        className={stickyComposer ? "sticky z-10" : undefined}
-        style={stickyComposer ? { top: "calc(var(--header-bottom, 140px) + 12px)" } : undefined}
+        id="whats-on-your-mind"
+        className={
+          stickyComposer
+            ? "sticky z-10 -mx-3 sm:-mx-4 md:-mx-10 px-3 sm:px-4 md:px-10 pt-3 pb-3 bg-[var(--paper)]"
+            : undefined
+        }
+        style={stickyComposer ? { top: "var(--header-bottom, 140px)" } : undefined}
       >
         <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />
       </div>
