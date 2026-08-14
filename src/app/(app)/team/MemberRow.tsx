@@ -7,9 +7,6 @@ import { Pill, Button } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
 import type { AppRole, Profile } from "@/lib/database.types";
 
-// Team Leader and OIC share the same pill color — role hierarchy isn't
-// what the color is communicating, so there's no reason for OIC to stand
-// out in a different tone than the role right above it.
 const ROLE_TONE: Record<AppRole, "warn" | "accent"> = {
   team_leader: "warn",
   oic: "warn",
@@ -17,11 +14,6 @@ const ROLE_TONE: Record<AppRole, "warn" | "accent"> = {
 };
 const ROLE_LABEL: Record<AppRole, string> = { team_leader: "Team Leader", oic: "OIC", associate: "Associate" };
 
-// Compact icon button for the roster row's action rail — four full text
-// buttons (Edit/Reset password/Deactivate/Remove) per row was wrapping
-// onto two lines and looking cluttered; icons + a title tooltip keep it
-// to one row without losing the label (still available on hover/focus,
-// and to screen readers via aria-label).
 function IconButton({
   label,
   onClick,
@@ -61,14 +53,11 @@ function Icon({ children }: { children: ReactNode }) {
   );
 }
 
-// Shared input style for the inline edit form — matches the compact
-// roster aesthetic, using design tokens for theme consistency.
 const INPUT_CLS =
-  "w-full text-[12.5px] border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent-soft)] transition-colors";
+  "mt-1 w-full text-[13px] border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--paper)] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent-soft)] transition-colors";
 
 export default function MemberRow({ member, isSelf }: { member: Profile; isSelf: boolean }) {
   const [editing, setEditing] = useState(false);
-  // Editable fields
   const [psid, setPsid] = useState(member.psid);
   const [firstName, setFirstName] = useState(member.first_name);
   const [middleName, setMiddleName] = useState(member.middle_name ?? "");
@@ -85,8 +74,6 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
   const router = useRouter();
 
   function startEdit() {
-    // Reset form fields to current member values (in case a previous
-    // edit was cancelled and member data was refreshed since).
     setPsid(member.psid);
     setFirstName(member.first_name);
     setMiddleName(member.middle_name ?? "");
@@ -155,81 +142,6 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
     });
   }
 
-  // ── Inline edit mode: full-width row replaced by a form ──────────
-  if (editing) {
-    return (
-      <>
-        <tr className="bg-[var(--accent-soft)]/20">
-          <td colSpan={6} className="py-3 px-2 border-b border-[var(--line)]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2.5">
-              {/* PSID */}
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">PSID</span>
-                <input type="text" value={psid} onChange={(e) => setPsid(e.target.value)} className={INPUT_CLS} required />
-              </label>
-              {/* First name */}
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">First name</span>
-                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={INPUT_CLS} required />
-              </label>
-              {/* Middle name */}
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Middle name</span>
-                <input type="text" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className={INPUT_CLS} placeholder="Optional" />
-              </label>
-              {/* Last name */}
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Last name</span>
-                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={INPUT_CLS} required />
-              </label>
-              {/* Email */}
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Email</span>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLS} required />
-              </label>
-              {/* Mobile */}
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Mobile</span>
-                <input type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} className={INPUT_CLS} placeholder="Optional" />
-              </label>
-              {/* Role */}
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Role</span>
-                <select value={role} onChange={(e) => setRole(e.target.value as AppRole)} className={INPUT_CLS}>
-                  <option value="associate">Associate</option>
-                  <option value="oic">OIC</option>
-                  <option value="team_leader">Team Leader</option>
-                </select>
-              </label>
-            </div>
-
-            {saveError && (
-              <p className="text-[12px] text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-1.5 mt-2 mb-0">{saveError}</p>
-            )}
-
-            <div className="flex gap-2 mt-3">
-              <Button
-                variant="primary"
-                style={{ padding: "5px 14px", fontSize: 12 }}
-                disabled={pending || !psid.trim() || !firstName.trim() || !lastName.trim() || !email.trim()}
-                onClick={save}
-              >
-                {pending ? "Saving…" : "Save"}
-              </Button>
-              <Button
-                style={{ padding: "5px 14px", fontSize: 12 }}
-                onClick={() => { setEditing(false); setSaveError(null); }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </td>
-        </tr>
-      </>
-    );
-  }
-
-  // ── Normal display row ───────────────────────────────────────────
   return (
     <>
       <tr className={member.is_active ? "" : "opacity-50"}>
@@ -256,9 +168,7 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
               disabled={pending || resetSent}
             >
               {resetSent ? (
-                <Icon>
-                  <path d="M20 6 9 17l-5-5" />
-                </Icon>
+                <Icon><path d="M20 6 9 17l-5-5" /></Icon>
               ) : (
                 <Icon>
                   <circle cx="7.5" cy="15.5" r="4.5" />
@@ -282,10 +192,7 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
                   label="Remove"
                   tone="danger"
                   disabled={pending}
-                  onClick={() => {
-                    setRemoveError(null);
-                    setConfirmingRemove(true);
-                  }}
+                  onClick={() => { setRemoveError(null); setConfirmingRemove(true); }}
                 >
                   <Icon>
                     <polyline points="3 6 5 6 21 6" />
@@ -299,6 +206,82 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
         </td>
       </tr>
 
+      {/* ── Edit modal ──────────────────────────────────────────────── */}
+      {editing && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in"
+          onClick={() => { setEditing(false); setSaveError(null); }}
+        >
+          <div
+            className="w-full max-w-lg bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl p-6 flex flex-col gap-4 animate-scale-in"
+            style={{ boxShadow: "var(--shadow-lg)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-serif text-xl text-[var(--ink)] m-0">
+              Edit {formatFullName(member.first_name, member.last_name)}
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">PSID</span>
+                <input type="text" value={psid} onChange={(e) => setPsid(e.target.value)} className={INPUT_CLS} required />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">First name</span>
+                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={INPUT_CLS} required autoFocus />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Middle name</span>
+                <input type="text" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className={INPUT_CLS} placeholder="Optional" />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Last name</span>
+                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={INPUT_CLS} required />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Email</span>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLS} required />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Mobile</span>
+                <input type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} className={INPUT_CLS} placeholder="Optional" />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Role</span>
+                <select value={role} onChange={(e) => setRole(e.target.value as AppRole)} className={INPUT_CLS}>
+                  <option value="associate">Associate</option>
+                  <option value="oic">OIC</option>
+                  <option value="team_leader">Team Leader</option>
+                </select>
+              </label>
+            </div>
+
+            {saveError && (
+              <p className="text-[12px] text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{saveError}</p>
+            )}
+
+            <div className="flex justify-end gap-2 mt-1">
+              <Button
+                style={{ padding: "7px 14px" }}
+                disabled={pending}
+                onClick={() => { setEditing(false); setSaveError(null); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                style={{ padding: "7px 14px" }}
+                disabled={pending || !psid.trim() || !firstName.trim() || !lastName.trim() || !email.trim()}
+                onClick={save}
+              >
+                {pending ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Remove confirmation modal ───────────────────────────────── */}
       {confirmingRemove && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in"
@@ -315,9 +298,7 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
               can&apos;t be undone. Their past schedule assignments and leave requests are removed with them. If you
               just want to disable their access without losing their history, use <strong className="text-[var(--ink)]">Deactivate</strong> instead.
             </p>
-
             {removeError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{removeError}</p>}
-
             <div className="flex justify-end gap-2 mt-1">
               <Button style={{ padding: "7px 14px" }} disabled={pending} onClick={() => setConfirmingRemove(false)}>
                 Cancel

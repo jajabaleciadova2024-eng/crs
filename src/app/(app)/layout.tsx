@@ -5,6 +5,8 @@ import Sidebar from "@/components/Sidebar";
 import SidebarShell from "@/components/SidebarShell";
 import PreviewBanner from "@/components/PreviewBanner";
 import NotificationBell from "@/components/NotificationBell";
+import UnseenAnnouncementModal from "@/components/announcements/UnseenAnnouncementModal";
+import AutoLogout from "@/components/AutoLogout";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, realRole, previewing } = await requireProfileWithPreview();
@@ -70,6 +72,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="fixed top-2 right-14 md:top-3 md:right-6 z-30 md:z-40">
         <NotificationBell userId={profile.id} />
       </div>
+      <UnseenAnnouncementModal />
+      <AutoLogout />
     </div>
   );
 }

@@ -119,6 +119,22 @@ export interface AccessRequest {
   created_at: string;
 }
 
+export interface Announcement {
+  id: string;
+  author_id: string;
+  title: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnnouncementSeen {
+  id: string;
+  announcement_id: string;
+  profile_id: string;
+  seen_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {

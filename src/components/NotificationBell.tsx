@@ -10,7 +10,7 @@ type Notification = {
   id: string;
   recipient_id: string;
   actor_id: string;
-  type: "post_reaction" | "post_comment" | "comment_mention";
+  type: "post_reaction" | "post_comment" | "comment_mention" | "announcement";
   post_id: string | null;
   comment_id: string | null;
   reaction: string | null;
@@ -49,6 +49,7 @@ function describe(n: Notification): string {
   if (n.type === "post_reaction") return `${name} reacted ${n.reaction ? REACTION_EMOJI[n.reaction] ?? "" : ""} to your post`;
   if (n.type === "post_comment") return `${name} commented on your post`;
   if (n.type === "comment_mention") return `${name} mentioned you in a comment`;
+  if (n.type === "announcement") return `${name} posted a new announcement`;
   return "";
 }
 
@@ -201,7 +202,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
               items.map((n) => (
                 <Link
                   key={n.id}
-                  href={n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
+                  href={n.type === "announcement" ? "/announcements" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
                   onClick={() => setOpen(false)}
                   className={`flex items-start gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0 hover:bg-[var(--accent-soft)]/30 transition-colors ${
                     !n.read ? "bg-[var(--accent-soft)]/15" : ""
