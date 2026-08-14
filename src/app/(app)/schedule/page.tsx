@@ -76,6 +76,14 @@ async function WeekPanel({
       .map((lr: any) => lr.associate_id)
   );
 
+  // Who's already seated where this week, by associate id — passed into
+  // ReassignForm so its dropdown can warn "picking them swaps with
+  // Station X" instead of a surprise when the two rows trade places.
+  const stationByAssociate: Record<string, string> = {};
+  for (const a of assignments ?? []) {
+    stationByAssociate[a.associate_id] = a.workstations?.name ?? "";
+  }
+
   return (
     <Panel
       title={`${label} — Week of ${formatWeekRange(weekStart)}`}
@@ -129,6 +137,7 @@ async function WeekPanel({
                         workstationName={a.workstations?.name ?? ""}
                         associates={associates ?? []}
                         currentAssociateId={a.associate_id}
+                        stationByAssociate={stationByAssociate}
                       />
                     </td>
                   )}
@@ -247,22 +256,27 @@ export default async function SchedulePage() {
         </div>
       )}
 
-      <WeekPanel
-        supabase={supabase}
-        label="Next Week"
-        week={nextWeek}
-        weekStart={nextWeekStart}
-        canManage={canManage}
-        associates={associates ?? []}
-      />
-      <WeekPanel
-        supabase={supabase}
-        label="Current Week"
-        week={currentWeek}
-        weekStart={thisWeekStart}
-        canManage={canManage}
-        associates={associates ?? []}
-      />
+      {/* Side by side on wide screens so both weeks are visible without
+          scrolling through one to reach the other — stacks back to one
+          column once there's no room for two side-by-side tables. */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+        <WeekPanel
+          supabase={supabase}
+          label="Next Week"
+          week={nextWeek}
+          weekStart={nextWeekStart}
+          canManage={canManage}
+          associates={associates ?? []}
+        />
+        <WeekPanel
+          supabase={supabase}
+          label="Current Week"
+          week={currentWeek}
+          weekStart={thisWeekStart}
+          canManage={canManage}
+          associates={associates ?? []}
+        />
+      </div>
 
       {canManage && (
         <Panel

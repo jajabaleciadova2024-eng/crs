@@ -11,11 +11,17 @@ export default function ReassignForm({
   workstationName,
   associates,
   currentAssociateId,
+  stationByAssociate,
 }: {
   assignmentId: string;
   workstationName: string;
   associates: Pick<Profile, "id" | "first_name" | "last_name">[];
   currentAssociateId: string;
+  // Who's already seated where this week (associate id -> station name) —
+  // picking someone who's already on this map (at a different station)
+  // swaps the two instead of a plain reassignment; shown in the dropdown
+  // so that's not a surprise.
+  stationByAssociate?: Record<string, string>;
 }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(currentAssociateId);
@@ -62,11 +68,16 @@ export default function ReassignForm({
           className="text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
           aria-label={`Reassign ${workstationName}`}
         >
-          {associates.map((a) => (
-            <option key={a.id} value={a.id}>
-              {formatFullName(a.first_name, a.last_name)}
-            </option>
-          ))}
+          <option value="">— Unassigned —</option>
+          {associates.map((a) => {
+            const elsewhere = a.id !== currentAssociateId ? stationByAssociate?.[a.id] : undefined;
+            return (
+              <option key={a.id} value={a.id}>
+                {formatFullName(a.first_name, a.last_name)}
+                {elsewhere ? ` — swap with ${elsewhere}` : ""}
+              </option>
+            );
+          })}
         </select>
         <Button variant="primary" onClick={handleSave} disabled={pending} style={{ padding: "5px 10px" }}>
           {pending ? "Saving…" : "Save"}
