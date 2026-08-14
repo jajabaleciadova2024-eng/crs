@@ -11,15 +11,16 @@ import { useState, type ReactNode } from "react";
 export default function WeekTabs({ current, next }: { current: ReactNode; next: ReactNode }) {
   const [tab, setTab] = useState<"current" | "next">("current");
 
-  const tabBase =
-    "px-4 py-2 text-[13px] font-bold rounded-t-lg border border-b-0 transition-colors -mb-px";
-  const activeTab = "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--accent-strong)]";
-  const inactiveTab =
-    "bg-transparent border-transparent text-[var(--muted)] hover:text-[var(--ink)]";
+  // Equal halves, corner to corner — flex-1 on each button instead of
+  // left-aligned auto-width tabs, so the divider between them always sits
+  // exactly at the frame's midpoint regardless of label length.
+  const tabBase = "flex-1 py-2.5 text-[13px] font-bold border-b-2 transition-colors text-center";
+  const activeTab = "border-[var(--accent)] text-[var(--accent-strong)]";
+  const inactiveTab = "border-transparent text-[var(--muted)] hover:text-[var(--ink)]";
 
   return (
     <div>
-      <div className="flex gap-1 px-1">
+      <div className="flex border-b border-[var(--line)] mb-4">
         <button type="button" className={`${tabBase} ${tab === "current" ? activeTab : inactiveTab}`} onClick={() => setTab("current")}>
           Current Week
         </button>
