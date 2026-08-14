@@ -33,5 +33,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .eq("id", inserted.id)
     .single();
 
+  // Notify announcement author (TL) about the comment
+  const { data: ann } = await admin.from("announcements").select("author_id").eq("id", announcementId).single();
+  if (ann && ann.author_id !== user.id) {
+    const { error: notifError } = await admin.from("notifications").insert({
+      recipient_id: ann.author_id,
+      actor_id: user.id,
+      type: "post_comment",
+      post_id: null,
+      comment_id: inserted.id,
+    });
+    if (notifError) console.error("[announcements] comment notification error:", notifError);
+  }
+
   return NextResponse.json({ comment });
 }

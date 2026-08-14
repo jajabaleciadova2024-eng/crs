@@ -314,8 +314,17 @@ export default function PostCard({
                 : "text-[var(--muted)] hover:bg-[var(--paper)] hover:text-[var(--ink)]"
             }`}
           >
-            <span className="text-[15px]">{myReaction ? REACTION_EMOJI[myReaction] : "👍"}</span>
-            {myReaction ? REACTION_LABEL[myReaction] : "Like"}
+            {myReaction ? (
+              <span className="text-[15px]">{REACTION_EMOJI[myReaction]}</span>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                <line x1="9" y1="9" x2="9.01" y2="9" />
+                <line x1="15" y1="9" x2="15.01" y2="9" />
+              </svg>
+            )}
+            {myReaction ? REACTION_LABEL[myReaction] : "React"}
           </button>
           {showReactionPicker && (
             <>
