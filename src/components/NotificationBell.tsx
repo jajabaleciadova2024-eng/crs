@@ -83,7 +83,14 @@ export default function NotificationBell({ userId }: { userId: string }) {
     fetchAll();
   }, [fetchAll]);
 
-  // Realtime — refetch on any change to my notifications (simple + reliable)
+  // Realtime — refetch on any change to my notifications (simple + reliable).
+  // Belt-and-suspenders: realtime subscriptions can silently miss events
+  // right after mount (the socket/auth handshake racing the initial
+  // render) or after the tab was backgrounded, which used to leave the
+  // badge stuck at a stale count until the user happened to open the
+  // dropdown (which itself never re-fetched). A short poll + a refetch
+  // whenever the tab regains focus/visibility closes that gap without
+  // relying on the realtime channel alone.
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -95,9 +102,20 @@ export default function NotificationBell({ userId }: { userId: string }) {
       )
       .subscribe();
     channelRef.current = channel;
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchAll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", fetchAll);
+    const poll = window.setInterval(fetchAll, 30000);
+
     return () => {
       supabase.removeChannel(channel);
       channelRef.current = null;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", fetchAll);
+      window.clearInterval(poll);
     };
   }, [userId, fetchAll]);
 
@@ -119,7 +137,11 @@ export default function NotificationBell({ userId }: { userId: string }) {
   }, [open]);
 
   async function markAllRead() {
-    if (unread === 0) return;
+    // No `unread === 0` early-return guard: this now runs right after a
+    // fresh fetchAll() resolves (see handleOpen), and reading `unread`
+    // here would close over its value from before that fetch — stale by
+    // definition. Unconditionally marking read is harmless when there's
+    // nothing to mark.
     setUnread(0);
     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
     await fetch("/api/notifications/read-all", { method: "POST" });
@@ -128,7 +150,9 @@ export default function NotificationBell({ userId }: { userId: string }) {
   function handleOpen() {
     setOpen((prev) => {
       const next = !prev;
-      if (next && unread > 0) markAllRead();
+      if (next) {
+        fetchAll().then(() => markAllRead());
+      }
       return next;
     });
   }
