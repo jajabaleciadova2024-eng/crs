@@ -119,15 +119,30 @@ export default function AssignmentCard({
         {/* Status as a small colored dot inline with the name, not a
             separate pill row below it — keeps every card the same height
             regardless of who's immune/on leave (see the mixed-height rows
-            this used to cause), while staying always-visible (not
-            hover-only, which would hide it entirely on touch devices). */}
+            this used to cause), and stays visible on touch devices (no
+            hover there). On a device that actually supports hover
+            (desktop), each dot also reveals a small floating label on
+            hover — Tailwind's hover/group-hover variants already compile
+            to `@media (hover: hover)`, so this never triggers via a touch
+            tap, only a real mouse hover. Absolutely positioned so it never
+            affects the card's own layout/height. */}
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-[12px] sm:text-[12.5px] font-medium text-[var(--ink)] truncate">{name}</span>
           {canManage && isImmune && (
-            <span className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--accent)] shrink-0" title="Immune" aria-label="Immune" />
+            <span className="group/dot relative inline-flex shrink-0">
+              <span className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--accent)]" aria-label="Immune" />
+              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 opacity-0 group-hover/dot:opacity-100 transition-opacity duration-150 whitespace-nowrap rounded bg-[var(--ink)] text-[var(--paper)] text-[10px] font-bold px-1.5 py-0.5 z-20">
+                Immune
+              </span>
+            </span>
           )}
           {onLeave && (
-            <span className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--bad)] shrink-0" title="On leave" aria-label="On leave" />
+            <span className="group/dot relative inline-flex shrink-0">
+              <span className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--bad)]" aria-label="On leave" />
+              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 opacity-0 group-hover/dot:opacity-100 transition-opacity duration-150 whitespace-nowrap rounded bg-[var(--ink)] text-[var(--paper)] text-[10px] font-bold px-1.5 py-0.5 z-20">
+                On leave
+              </span>
+            </span>
           )}
         </div>
         {error && <div className="text-[10px] text-[var(--bad)] mt-1">{error}</div>}
