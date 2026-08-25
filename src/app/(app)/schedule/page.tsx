@@ -10,7 +10,7 @@ import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
 import RotationSettingsPanel from "./RotationSettingsPanel";
 import WeekTabs from "./WeekTabs";
-import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays, workDatesForWeek, weekdayShortLabel } from "@/lib/scheduleDates";
 import { holidaysInRange } from "@/lib/phHolidays";
 import { formatFullName } from "@/lib/format";
 import { compareStationNames } from "@/lib/stationOrder";
@@ -36,9 +36,14 @@ async function WeekPanel({
   associates: { id: string; first_name: string; last_name: string }[];
 }) {
   // Work week is Monday–Friday, not the full calendar week — schedule
-  // coverage and "on leave" overlap only care about workdays.
+  // coverage and "on leave" overlap only care about workdays. Each of
+  // these 5 dates is now its own column: a station can have a different
+  // person each day (see 0022_daily_assignments.sql), not one static
+  // assignment for the whole week.
   const weekEnd = endOfWorkWeek(weekStart);
+  const workDates = workDatesForWeek(weekStart);
   const holidays = holidaysInRange(weekStart, weekEnd);
+  const holidayByDate = new Map(holidays.map((h) => [h.date, h.name]));
 
   const { data: rawAssignments } = week
     ? await supabase
@@ -53,10 +58,31 @@ async function WeekPanel({
     ? [...rawAssignments].sort((a: any, b: any) => compareStationNames(a.workstations?.name ?? "", b.workstations?.name ?? ""))
     : rawAssignments;
 
-  // "On leave" flag: approved leave overlapping this work week, for
-  // whoever's assigned — visibility only, TL decides whether/how to
-  // reassign (see ReassignForm above).
-  const assignedIds = (assignments ?? []).map((a: any) => a.associate_id);
+  // Distinct stations in that standing order, deduped from the flat
+  // assignment list (a station might not have an assignment on every day).
+  const stationOrder: { id: string; name: string }[] = [];
+  const seenStations = new Set<string>();
+  for (const a of assignments ?? []) {
+    if (seenStations.has(a.workstation_id)) continue;
+    seenStations.add(a.workstation_id);
+    stationOrder.push({ id: a.workstation_id, name: a.workstations?.name ?? "" });
+  }
+
+  // (workstation_id, assignment_date) -> that cell's assignment row(s) —
+  // usually one, but a station's headcount can allow more than one person
+  // the same day.
+  const cellAssignments = new Map<string, any[]>();
+  for (const a of assignments ?? []) {
+    const key = `${a.workstation_id}::${a.assignment_date}`;
+    const list = cellAssignments.get(key) ?? [];
+    list.push(a);
+    cellAssignments.set(key, list);
+  }
+
+  // "On leave" flag: approved leave overlapping the SPECIFIC day being
+  // shown, for whoever's assigned that day — visibility only, TL decides
+  // whether/how to reassign (see ReassignForm above).
+  const assignedIds = [...new Set((assignments ?? []).map((a: any) => a.associate_id))];
   const { data: leaveOnRecord } =
     assignedIds.length > 0
       ? await supabase
@@ -66,21 +92,26 @@ async function WeekPanel({
           .in("associate_id", assignedIds)
       : { data: [] };
 
-  const onLeaveIds = new Set(
-    (leaveOnRecord ?? [])
-      .filter((lr: any) => {
-        const ranges = [{ start_date: lr.start_date, end_date: lr.end_date }, ...(lr.leave_request_ranges ?? [])];
-        return ranges.some((r) => rangesOverlap(r.start_date, r.end_date, weekStart, weekEnd));
-      })
-      .map((lr: any) => lr.associate_id)
-  );
+  const leaveRangesByAssociate = new Map<string, { start_date: string; end_date: string }[]>();
+  for (const lr of leaveOnRecord ?? []) {
+    const ranges = [{ start_date: lr.start_date, end_date: lr.end_date }, ...(lr.leave_request_ranges ?? [])];
+    leaveRangesByAssociate.set(lr.associate_id, [...(leaveRangesByAssociate.get(lr.associate_id) ?? []), ...ranges]);
+  }
+  function isOnLeave(associateId: string, date: string): boolean {
+    return (leaveRangesByAssociate.get(associateId) ?? []).some((r) => rangesOverlap(r.start_date, r.end_date, date, date));
+  }
 
-  // Who's already seated where this week, by associate id — passed into
-  // ReassignForm so its dropdown can warn "picking them swaps with
-  // Station X" instead of a surprise when the two rows trade places.
-  const stationByAssociate: Record<string, string> = {};
-  for (const a of assignments ?? []) {
-    stationByAssociate[a.associate_id] = a.workstations?.name ?? "";
+  // Who's already seated where on EACH day, by associate id — passed into
+  // that day's ReassignForm so its dropdown can warn "picking them swaps
+  // with Station X" instead of a surprise, scoped to that one day since a
+  // person is normally at a different station on different days now.
+  const stationByAssociatePerDate = new Map<string, Record<string, string>>();
+  for (const date of workDates) {
+    const map: Record<string, string> = {};
+    for (const a of assignments ?? []) {
+      if (a.assignment_date === date) map[a.associate_id] = a.workstations?.name ?? "";
+    }
+    stationByAssociatePerDate.set(date, map);
   }
 
   return (
@@ -89,62 +120,67 @@ async function WeekPanel({
       action={canManage && week ? <ClearScheduleButton scheduleWeekId={week.id} weekStart={weekStart} /> : undefined}
       footnote={
         canManage
-          ? "Immune members must be manually placed at a station in the Generate modal before generating — everyone else fills in from the headcount/tenure quotas. “On leave” flags approved leave overlapping this work week — reassign manually if needed."
-          : "“On leave” flags approved leave overlapping this work week."
+          ? "Immune members must be manually placed at a station (and which day(s)) in the Generate modal before generating — everyone else fills in from the headcount/tenure quotas, freshly shuffled each day. “On leave” flags approved leave overlapping that specific day — reassign manually if needed."
+          : "“On leave” flags approved leave overlapping that specific day."
       }
     >
-      {holidays.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {holidays.map((h) => (
-            <Pill key={h.date} tone="warn">
-              Holiday {h.date}: {h.name}
-            </Pill>
-          ))}
-        </div>
-      )}
       <div className="overflow-x-auto scroll-shadow-x">
         <table className="w-full text-[13px] border-collapse">
           <thead>
             <tr>
               <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
-              <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Assigned to</th>
-              {canManage && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>}
-              <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Leave</th>
-              {canManage && <th className="py-2.5 border-b border-[var(--line)]" />}
+              {workDates.map((date) => (
+                <th key={date} className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)] align-bottom">
+                  <div>{weekdayShortLabel(date)}</div>
+                  <div className="normal-case font-normal text-[10.5px] text-[var(--muted)]">{date.slice(5)}</div>
+                  {holidayByDate.has(date) && (
+                    <Pill tone="warn">{holidayByDate.get(date)}</Pill>
+                  )}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {assignments && assignments.length > 0 ? (
-              assignments.map((a: any) => (
-                <tr key={a.id}>
-                  <td className="py-2.5 border-b border-[var(--line)]">{a.workstations?.name}</td>
-                  <td className="py-2.5 border-b border-[var(--line)]">
-                    {formatFullName(a.profiles?.first_name, a.profiles?.last_name)}
-                  </td>
-                  {canManage && (
-                    <td className="py-2.5 border-b border-[var(--line)]">
-                      {a.profiles?.is_immune ? <Pill tone="accent">Immune</Pill> : <span className="text-[var(--muted)]">—</span>}
-                    </td>
-                  )}
-                  <td className="py-2.5 border-b border-[var(--line)]">
-                    {onLeaveIds.has(a.associate_id) ? <Pill tone="bad">On leave</Pill> : <span className="text-[var(--muted)]">—</span>}
-                  </td>
-                  {canManage && (
-                    <td className="py-2.5 border-b border-[var(--line)]">
-                      <ReassignForm
-                        assignmentId={a.id}
-                        workstationName={a.workstations?.name ?? ""}
-                        associates={associates ?? []}
-                        currentAssociateId={a.associate_id}
-                        stationByAssociate={stationByAssociate}
-                      />
-                    </td>
-                  )}
+            {stationOrder.length > 0 ? (
+              stationOrder.map((station) => (
+                <tr key={station.id}>
+                  <td className="py-2.5 border-b border-[var(--line)] font-semibold align-top whitespace-nowrap">{station.name}</td>
+                  {workDates.map((date) => {
+                    const cell = cellAssignments.get(`${station.id}::${date}`) ?? [];
+                    return (
+                      <td key={date} className="py-2.5 border-b border-[var(--line)] align-top min-w-[140px]">
+                        {cell.length === 0 ? (
+                          <span className="text-[var(--muted)]">—</span>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {cell.map((a: any) => (
+                              <div key={a.id} className="flex flex-col gap-1">
+                                <span>{formatFullName(a.profiles?.first_name, a.profiles?.last_name)}</span>
+                                <div className="flex flex-wrap items-center gap-1">
+                                  {canManage && a.profiles?.is_immune && <Pill tone="accent">Immune</Pill>}
+                                  {isOnLeave(a.associate_id, date) && <Pill tone="bad">On leave</Pill>}
+                                </div>
+                                {canManage && (
+                                  <ReassignForm
+                                    assignmentId={a.id}
+                                    workstationName={station.name}
+                                    associates={associates ?? []}
+                                    currentAssociateId={a.associate_id}
+                                    stationByAssociate={stationByAssociatePerDate.get(date)}
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={canManage ? 5 : 3} className="py-4 text-[var(--muted)]">
+                <td colSpan={workDates.length + 1} className="py-4 text-[var(--muted)]">
                   No schedule has been generated for this week yet.
                 </td>
               </tr>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateAssignments } from "./schedule";
+import { generateAssignments, generateDailyAssignments } from "./schedule";
 
 // Deterministic "shuffle" for tests: rand always returns 0, which makes the
 // Fisher-Yates shuffle a no-op (keeps input order) — lets us assert exact
@@ -204,5 +204,52 @@ describe("generateAssignments with quotas", () => {
     const quotas = [{ workstation_id: "w1", headcount: 1, tenured: 0, newHire: 0 }];
     const result = generateAssignments(workstations, associates, [], noShuffle, quotas);
     expect(result).toEqual([{ workstation_id: "w1", associate_id: "oic1" }]);
+  });
+});
+
+describe("generateDailyAssignments", () => {
+  const workDates = ["2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28"]; // Mon-Fri
+
+  it("produces one assignment per work date, each tagged with its date", () => {
+    const workstations = [{ id: "w1" }];
+    const associates = [{ id: "a1", is_immune: false }];
+    const quotas = [{ workstation_id: "w1", headcount: 1, tenured: 0, newHire: 0 }];
+    const result = generateDailyAssignments(workDates, workstations, associates, quotas, [], noShuffle);
+
+    expect(result).toHaveLength(5);
+    expect(result.map((r) => r.assignment_date)).toEqual(workDates);
+    expect(result.every((r) => r.workstation_id === "w1" && r.associate_id === "a1")).toBe(true);
+  });
+
+  it("pins an immune placement only on its selected dates — free-roaming on the others", () => {
+    const workstations = [{ id: "w1" }, { id: "w2" }];
+    const associates = [
+      { id: "immune1", is_immune: true },
+      { id: "a2", is_immune: false },
+    ];
+    const quotas = [
+      { workstation_id: "w1", headcount: 1, tenured: 0, newHire: 1 },
+      { workstation_id: "w2", headcount: 1, tenured: 0, newHire: 1 },
+    ];
+    // Pinned to w1 on Monday and Tuesday only.
+    const immunePlacements = [{ associate_id: "immune1", workstation_id: "w1", dates: ["2026-08-24", "2026-08-25"] }];
+    const result = generateDailyAssignments(workDates, workstations, associates, quotas, immunePlacements, noShuffle);
+
+    const byDate = new Map(workDates.map((d) => [d, result.filter((r) => r.assignment_date === d)]));
+    for (const pinnedDate of ["2026-08-24", "2026-08-25"]) {
+      const row = byDate.get(pinnedDate)!.find((r) => r.associate_id === "immune1");
+      expect(row?.workstation_id).toBe("w1");
+    }
+    // On the other 3 days, immune1 isn't force-pinned to w1 — still seated
+    // somewhere (only 2 associates, 2 stations, headcount 1 each) via the
+    // normal fallback/tenure fill, same as any other eligible associate.
+    for (const freeDate of ["2026-08-26", "2026-08-27", "2026-08-28"]) {
+      const rows = byDate.get(freeDate)!;
+      expect(rows.some((r) => r.associate_id === "immune1")).toBe(true);
+    }
+  });
+
+  it("returns an empty array for an empty workDates list", () => {
+    expect(generateDailyAssignments([], [{ id: "w1" }], [{ id: "a1", is_immune: false }], [], [], noShuffle)).toEqual([]);
   });
 });

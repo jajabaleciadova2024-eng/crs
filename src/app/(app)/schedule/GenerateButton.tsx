@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button, Pill } from "@/components/ui";
-import { startOfWorkWeek, formatWeekRange } from "@/lib/scheduleDates";
+import { startOfWorkWeek, formatWeekRange, workDatesForWeek, weekdayShortLabel } from "@/lib/scheduleDates";
 
 type Workstation = { id: string; name: string; headcount: number };
 type ImmuneMember = { id: string; name: string };
@@ -55,10 +55,14 @@ export default function GenerateButton({
   const [rows, setRows] = useState<Record<string, QuotaRow>>(() =>
     Object.fromEntries(workstations.map((w) => [w.id, defaultQuotaRow(w)]))
   );
-  const [immunePlacements, setImmunePlacements] = useState<Record<string, string>>({});
+  // Immune placement is now day-scoped: a station PLUS which of the week's
+  // 5 workdays (not necessarily all of them) they're pinned there for.
+  const [immunePlacements, setImmunePlacements] = useState<Record<string, { workstationId: string; dates: string[] }>>({});
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  const workDates = useMemo(() => workDatesForWeek(weekStart), [weekStart]);
 
   const fixedHeadcount = useMemo(() => workstations.reduce((sum, w) => sum + w.headcount, 0), [workstations]);
 
@@ -72,28 +76,49 @@ export default function GenerateButton({
     return { tenured, newHire };
   }, [rows]);
 
-  const unplacedImmune = immuneMembers.filter((m) => !immunePlacements[m.id]);
+  const unplacedImmune = immuneMembers.filter((m) => !immunePlacements[m.id]?.workstationId || (immunePlacements[m.id]?.dates.length ?? 0) === 0);
 
   // Catches an over-full station BEFORE submitting, not just after the
-  // server rejects it — if more immune members are pointed at one station
-  // than it has seats for, some of them can't actually be honored there,
-  // which the API refuses to silently paper over (see the route's own
-  // validation). Surfacing it here means the Team Leader sees exactly
-  // which station and who, immediately, instead of a round-trip error.
+  // server rejects it — if more immune members are pointed at the same
+  // station on the same day than it has seats for, some of them can't
+  // actually be honored there, which the API refuses to silently paper
+  // over (see the route's own validation). Checked per (station, date) now,
+  // not just per station, since a station can be over capacity on one day
+  // and fine on another.
   const immuneOverflow = useMemo(() => {
-    const countByStation = new Map<string, number>();
+    const countByStationDate = new Map<string, number>();
     for (const m of immuneMembers) {
-      const stationId = immunePlacements[m.id];
-      if (!stationId) continue;
-      countByStation.set(stationId, (countByStation.get(stationId) ?? 0) + 1);
+      const placement = immunePlacements[m.id];
+      if (!placement?.workstationId) continue;
+      for (const date of placement.dates) {
+        const key = `${placement.workstationId}::${date}`;
+        countByStationDate.set(key, (countByStationDate.get(key) ?? 0) + 1);
+      }
     }
-    return workstations
-      .filter((w) => (countByStation.get(w.id) ?? 0) > w.headcount)
-      .map((w) => ({ name: w.name, placed: countByStation.get(w.id) ?? 0, headcount: w.headcount }));
-  }, [immuneMembers, immunePlacements, workstations]);
+    const overflows: { name: string; date: string; placed: number; headcount: number }[] = [];
+    for (const w of workstations) {
+      for (const date of workDates) {
+        const placed = countByStationDate.get(`${w.id}::${date}`) ?? 0;
+        if (placed > w.headcount) overflows.push({ name: w.name, date, placed, headcount: w.headcount });
+      }
+    }
+    return overflows;
+  }, [immuneMembers, immunePlacements, workstations, workDates]);
 
   function updateRow(id: string, field: keyof QuotaRow, value: number) {
     setRows((prev) => ({ ...prev, [id]: { ...prev[id], [field]: Math.max(0, value) } }));
+  }
+
+  function updateImmuneStation(memberId: string, workstationId: string) {
+    setImmunePlacements((prev) => ({ ...prev, [memberId]: { workstationId, dates: prev[memberId]?.dates ?? [] } }));
+  }
+
+  function toggleImmuneDate(memberId: string, date: string) {
+    setImmunePlacements((prev) => {
+      const current = prev[memberId] ?? { workstationId: "", dates: [] };
+      const dates = current.dates.includes(date) ? current.dates.filter((d) => d !== date) : [...current.dates, date];
+      return { ...prev, [memberId]: { ...current, dates } };
+    });
   }
 
   // Whatever day the Team Leader actually clicks in the date picker,
@@ -114,9 +139,9 @@ export default function GenerateButton({
     }
     if (immuneOverflow.length > 0) {
       setError(
-        `Too many immune members placed at the same station: ${immuneOverflow
-          .map((o) => `${o.name} (${o.placed} placed, only ${o.headcount} seat${o.headcount === 1 ? "" : "s"})`)
-          .join("; ")}. Move some to a different station, or increase that station's headcount on Workstations.`
+        `Too many immune members placed at the same station on the same day: ${immuneOverflow
+          .map((o) => `${o.name} on ${weekdayShortLabel(o.date)} (${o.placed} placed, only ${o.headcount} seat${o.headcount === 1 ? "" : "s"})`)
+          .join("; ")}. Move some to a different station/day, or increase that station's headcount on Workstations.`
       );
       return;
     }
@@ -127,7 +152,11 @@ export default function GenerateButton({
       tenured: rows[w.id]?.tenured ?? 0,
       newHire: rows[w.id]?.newHire ?? 0,
     }));
-    const immune_placements = immuneMembers.map((m) => ({ associate_id: m.id, workstation_id: immunePlacements[m.id] }));
+    const immune_placements = immuneMembers.map((m) => ({
+      associate_id: m.id,
+      workstation_id: immunePlacements[m.id]?.workstationId ?? "",
+      dates: immunePlacements[m.id]?.dates ?? [],
+    }));
 
     startTransition(async () => {
       // Wrapped in try/catch: an unparseable response (e.g. a raw crash
@@ -186,10 +215,12 @@ export default function GenerateButton({
             <div className="shrink-0 sticky top-0 z-10 bg-[var(--paper-raised)] border-b border-[var(--line)] px-5 pt-5 pb-3">
               <h2 className="font-serif text-xl text-[var(--ink)] m-0 mb-1">Plan coverage — {formatWeekRange(weekStart)}</h2>
               <p className="text-sm text-[var(--muted)] m-0">
-                Headcount per station is fixed (set on Workstations) — Tenured/New Hire are pre-filled per your usual
-                split, adjust as needed. OIC is included and eligible for seating too. Required Tenured per station is
-                filled first; any station seats still open after that (including New Hire targets short on New Hires)
-                get filled by whoever&apos;s left over, tenured or not — every station&apos;s fixed headcount takes
+                Generates a fresh, independent shuffle for each work day (Mon–Fri) — the same station can (and
+                usually will) have a different person each day. Headcount per station is fixed (set on Workstations)
+                — Tenured/New Hire are pre-filled per your usual split, adjust as needed; that same split applies to
+                every day. OIC is included and eligible for seating too. Required Tenured per station is filled
+                first; any station seats still open after that (including New Hire targets short on New Hires) get
+                filled by whoever&apos;s left over, tenured or not — every station&apos;s fixed headcount takes
                 priority over an exact tenure-label match.
               </p>
             </div>
@@ -214,27 +245,48 @@ export default function GenerateButton({
                 <h3 className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Immune members — place them first (required)
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
-                  {immuneMembers.map((m) => (
-                    <div key={m.id} className="flex items-center gap-2">
-                      <span className="text-sm flex-1 truncate">{m.name}</span>
-                      <select
-                        value={immunePlacements[m.id] ?? ""}
-                        onChange={(e) => setImmunePlacements((prev) => ({ ...prev, [m.id]: e.target.value }))}
-                        className="text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)] min-w-[150px]"
-                      >
-                        <option value="">Select a station…</option>
-                        {workstations.map((w) => (
-                          <option key={w.id} value={w.id}>
-                            {w.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
+                <div className="flex flex-col gap-2">
+                  {immuneMembers.map((m) => {
+                    const placement = immunePlacements[m.id];
+                    return (
+                      <div key={m.id} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 border border-[var(--line)] rounded-md px-2.5 py-2">
+                        <span className="text-sm flex-1 truncate min-w-[120px]">{m.name}</span>
+                        <select
+                          value={placement?.workstationId ?? ""}
+                          onChange={(e) => updateImmuneStation(m.id, e.target.value)}
+                          className="text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)] min-w-[150px]"
+                        >
+                          <option value="">Select a station…</option>
+                          {workstations.map((w) => (
+                            <option key={w.id} value={w.id}>
+                              {w.name}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="flex flex-wrap gap-1.5">
+                          {workDates.map((date) => (
+                            <label
+                              key={date}
+                              className="flex items-center gap-1 text-[11px] border border-[var(--line)] rounded px-1.5 py-0.5 cursor-pointer select-none bg-[var(--paper)]"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={placement?.dates.includes(date) ?? false}
+                                onChange={() => toggleImmuneDate(m.id, date)}
+                                className="w-3 h-3 accent-[var(--accent)] cursor-pointer"
+                              />
+                              {weekdayShortLabel(date)}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 <p className="text-[11px] text-[var(--muted)] mt-1.5 m-0">
-                  No automatic carryover from last week — place immune members at a station yourself every time.
+                  No automatic carryover from last week — place immune members at a station and pick which day(s)
+                  they&apos;re pinned there yourself, every time. On any day left unchecked, they join the normal
+                  random shuffle just like everyone else.
                 </p>
               </div>
             )}
@@ -310,16 +362,18 @@ export default function GenerateButton({
 
             {unplacedImmune.length > 0 && (
               <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
-                {unplacedImmune.length} immune member{unplacedImmune.length > 1 ? "s" : ""} still need a station before
-                you can generate.
+                {unplacedImmune.length} immune member{unplacedImmune.length > 1 ? "s" : ""} still need a station and
+                at least one day checked before you can generate.
               </p>
             )}
 
             {immuneOverflow.length > 0 && (
               <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
-                Too many immune members at one station —{" "}
-                {immuneOverflow.map((o) => `${o.name}: ${o.placed} placed, only ${o.headcount} seat${o.headcount === 1 ? "" : "s"}`).join("; ")}.
-                Move some to a different station, or increase that station&apos;s headcount on Workstations.
+                Too many immune members at one station on the same day —{" "}
+                {immuneOverflow
+                  .map((o) => `${o.name} on ${weekdayShortLabel(o.date)}: ${o.placed} placed, only ${o.headcount} seat${o.headcount === 1 ? "" : "s"}`)
+                  .join("; ")}
+                . Move some to a different station/day, or increase that station&apos;s headcount on Workstations.
               </p>
             )}
 

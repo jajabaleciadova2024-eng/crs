@@ -55,6 +55,7 @@ export interface Assignment {
   schedule_week_id: string;
   workstation_id: string;
   associate_id: string;
+  assignment_date: string;
   created_at: string;
 }
 
@@ -217,8 +218,8 @@ export interface Database {
       };
       assignments: {
         Row: Assignment;
-        Insert: { schedule_week_id: string; workstation_id: string; associate_id: string };
-        Update: { schedule_week_id?: string; workstation_id?: string; associate_id?: string };
+        Insert: { schedule_week_id: string; workstation_id: string; associate_id: string; assignment_date: string };
+        Update: { schedule_week_id?: string; workstation_id?: string; associate_id?: string; assignment_date?: string };
         Relationships: [];
       };
       leave_requests: {

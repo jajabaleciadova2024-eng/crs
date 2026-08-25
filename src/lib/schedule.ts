@@ -196,3 +196,43 @@ export function generateAssignments(
 
   return result;
 }
+
+// ----------------------------------------------------------------------------
+// Daily rotation — one call to generateAssignments() per work day, instead
+// of once for the whole week. A station can (and normally will) get a
+// different person Monday vs. Tuesday vs. ... Friday now.
+//
+// Quotas stay the same across all 5 days (same headcount/tenure split every
+// day — no per-day quota config). Immune placements are day-scoped: an
+// immune associate is only pinned to their placed station on the specific
+// dates they were placed for; on any other day in the week they're just a
+// normal eligible associate, free to land anywhere (including nowhere, if
+// unlucky) like anyone else. There's no repeat-avoidance across days by
+// design — each day is an independent shuffle, so the same person can land
+// at the same station more than once in a week purely by chance.
+// ----------------------------------------------------------------------------
+
+export type DailyImmunePlacement = { associate_id: string; workstation_id: string; dates: string[] };
+export type DailyAssignment = { workstation_id: string; associate_id: string; assignment_date: string };
+
+export function generateDailyAssignments(
+  workDates: string[],
+  workstations: ShuffleWorkstation[],
+  associates: ShuffleAssociate[],
+  quotas: StationQuota[],
+  immunePlacements: DailyImmunePlacement[],
+  rand: () => number = Math.random
+): DailyAssignment[] {
+  const result: DailyAssignment[] = [];
+  for (const date of workDates) {
+    const dayImmune: ImmunePlacement[] = immunePlacements
+      .filter((p) => p.dates.includes(date))
+      .map((p) => ({ associate_id: p.associate_id, workstation_id: p.workstation_id }));
+    // No previousAssignments/carryover here — immune placements are always
+    // explicit in daily mode, same as the existing quota+immunePlacements
+    // path above.
+    const dayResult = generateAssignments(workstations, associates, [], rand, quotas, dayImmune);
+    for (const a of dayResult) result.push({ ...a, assignment_date: date });
+  }
+  return result;
+}

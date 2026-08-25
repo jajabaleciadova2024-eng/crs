@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
-import { todayInManila, startOfWorkWeek } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, isWorkday } from "@/lib/scheduleDates";
 import { toTitleCase, formatFullName } from "@/lib/format";
 import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
 import SocialFeed from "@/components/feed/SocialFeed";
@@ -24,6 +24,11 @@ export default async function DashboardPage() {
   const approver = isApprover(profile.role);
 
   const weekStart = startOfWorkWeek(todayInManila());
+  // Stations now get a different person per day (see
+  // 0022_daily_assignments.sql) — the Dashboard's "today" cards need an
+  // actual date, not just the week. Falls back to Monday on a weekend,
+  // since there's no "today" assignment then.
+  const displayDate = isWorkday(todayInManila()) ? todayInManila() : weekStart;
 
   // Independent queries run in parallel instead of stacking sequentially —
   // this was a big chunk of page-load delay (6+ round-trips one after
@@ -72,29 +77,39 @@ export default async function DashboardPage() {
     latestWeekRow && latestWeekRow.week_start_date > weekStart ? latestWeekRow.week_start_date : null;
 
   const [{ data: assignments }, { data: recentLeave }, { data: myNextAssignment }] = await Promise.all([
+    // Scoped to displayDate (today, or Monday on a weekend) — a station
+    // can have a different person each day now, so "this week's
+    // assignments" is no longer a single static list.
     week
-      ? supabase.from("assignments").select("*, workstations(name), profiles(first_name, last_name, avatar_url)").eq("schedule_week_id", week.id)
+      ? supabase
+          .from("assignments")
+          .select("*, workstations(name), profiles(first_name, last_name, avatar_url)")
+          .eq("schedule_week_id", week.id)
+          .eq("assignment_date", displayDate)
       : Promise.resolve({ data: null }),
     approver ? leaveQuery : leaveQuery.eq("associate_id", profile.id),
     // Own station for the ALREADY-generated next week, if there is one —
     // Dashboard otherwise only ever shows the current week (see the
     // "View next week" link below), so this is the only place a rotating
     // member would see where they land next week without navigating away.
+    // Monday is used as the representative day for this single-value
+    // preview card — the full day-by-day breakdown is on /schedule.
     isRotatingRole && nextWeekStart
       ? supabase
           .from("assignments")
           .select("workstations(name)")
           .eq("schedule_week_id", latestWeekRow!.id)
           .eq("associate_id", profile.id)
+          .eq("assignment_date", nextWeekStart)
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
   // Seats filled vs. total seats — a station can have several seats (e.g.
   // Collecting Officer has 4 headcount), so this counts by headcount, not
-  // by station: assignments.length is already one row per seated person,
-  // and totalSeats sums each active station's fixed headcount rather than
-  // just counting stations.
+  // by station: assignments.length is already one row per seated person
+  // for displayDate, and totalSeats sums each active station's fixed
+  // headcount rather than just counting stations.
   const stationsManned = assignments?.length ?? 0;
   const totalStations = (activeWorkstations ?? []).reduce((sum, w) => sum + (w.headcount ?? 0), 0);
   const myCurrentAssignment = assignments?.find((a) => a.associate_id === profile.id);
@@ -126,13 +141,13 @@ export default async function DashboardPage() {
           profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-4"
         } gap-3 mb-8`}
       >
-        <Card label="Seats filled" value={`${stationsManned} / ${totalStations}`} sub={week ? "This week's coverage" : "No schedule published yet"} />
+        <Card label="Seats filled" value={`${stationsManned} / ${totalStations}`} sub={week ? "Today's coverage" : "No schedule published yet"} />
         {isRotatingRole && (
           <Card
-            label="Next Week's Station"
+            label="Next Week's Station (Mon)"
             href="/schedule"
             value={nextWeekStart ? (myNextStationName ?? "Not assigned") : "Not yet generated"}
-            sub={`This week: ${week ? (myCurrentStationName ?? "not assigned") : "no schedule yet"}`}
+            sub={`Today: ${week ? (myCurrentStationName ?? "not assigned") : "no schedule yet"}`}
           />
         )}
         <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} />

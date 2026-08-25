@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
-import { generateAssignments, type StationQuota, type ImmunePlacement } from "@/lib/schedule";
+import { generateDailyAssignments, type StationQuota, type DailyImmunePlacement } from "@/lib/schedule";
 import { notifySchedulePublished } from "@/lib/notify";
-import { todayInManila, startOfWorkWeek, addDays, formatWeekRange } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, addDays, formatWeekRange, workDatesForWeek } from "@/lib/scheduleDates";
 
 // Generates a schedule for the Team-Leader-chosen week (the modal's date
 // picker, defaulted to the next open week but editable) — or, if no week
@@ -30,23 +30,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only the Team Leader can generate a schedule." }, { status: 403 });
     }
 
-    const { data: latestWeek, error: latestWeekError } = await supabase
-      .from("schedule_weeks")
-      .select("id, week_start_date")
-      .order("week_start_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (latestWeekError) {
-      return NextResponse.json({ error: `Couldn't check existing schedules: ${latestWeekError.message}` }, { status: 500 });
-    }
-
     // Optional per-station headcount/tenure quotas and immune placements
     // from the Generate modal — see src/lib/schedule.ts for how these
     // change the assignment algorithm. Omitted (or empty body) falls back
-    // to the original one-per-station, no-tenure-preference behavior.
+    // to a default one-per-station quota (see below) so a hypothetical
+    // non-modal caller still gets a sane daily result instead of an error.
+    // Immune placements are now day-scoped: each entry names the specific
+    // dates (a subset of that week's 5 workdays) the person is pinned to
+    // that station for — see generateDailyAssignments.
     const body = await request.json().catch(() => ({}));
     const quotas: StationQuota[] | undefined = Array.isArray(body?.quotas) && body.quotas.length > 0 ? body.quotas : undefined;
-    const immunePlacements: ImmunePlacement[] | undefined = Array.isArray(body?.immune_placements) ? body.immune_placements : undefined;
+    const immunePlacements: DailyImmunePlacement[] = Array.isArray(body?.immune_placements) ? body.immune_placements : [];
     const requestedWeekStart: string | undefined = typeof body?.week_start_date === "string" ? body.week_start_date : undefined;
 
     let targetWeekStart: string;
@@ -130,53 +124,63 @@ export async function POST(request: Request) {
       );
     }
 
+    // Every work day (Mon-Fri) in the target week — the algorithm now
+    // generates once per day instead of once for the whole week.
+    const workDates = workDatesForWeek(targetWeekStart);
+
     // Required step (Team Leader's explicit rule): when using the quota
     // modal, EVERY currently-immune, active, non-Team-Leader profile must be
-    // explicitly placed at a station before generating — no automatic
-    // carryover from last week. Generation is blocked until all of them are
-    // accounted for.
+    // explicitly placed at a station, for at least one day, before
+    // generating — no automatic carryover from last week. Generation is
+    // blocked until all of them are accounted for. Each placement's `dates`
+    // must also be a non-empty subset of this week's actual workdays.
     if (quotas) {
       const immuneRequired = eligiblePool.filter((p) => p.is_immune);
-      const placedIds = new Set((immunePlacements ?? []).map((p) => p.associate_id));
+      const placedIds = new Set(immunePlacements.filter((p) => p.dates?.length > 0).map((p) => p.associate_id));
       const missing = immuneRequired.filter((p) => !placedIds.has(p.id));
       if (missing.length > 0) {
         const names = missing.map((p) => `${p.first_name} ${p.last_name}`).join(", ");
         return NextResponse.json(
-          { error: `Place every immune member at a station before generating. Still missing: ${names}` },
+          { error: `Place every immune member at a station, on at least one day, before generating. Still missing: ${names}` },
+          { status: 400 }
+        );
+      }
+      const invalidDates = immunePlacements.filter((p) => (p.dates ?? []).some((d) => !workDates.includes(d)));
+      if (invalidDates.length > 0) {
+        return NextResponse.json(
+          { error: "One or more immune placements named a day outside this week — refresh and try again." },
           { status: 400 }
         );
       }
     }
 
-    const { data: previousAssignments, error: previousError } = latestWeek
-      ? await supabase.from("assignments").select("workstation_id, associate_id").eq("schedule_week_id", latestWeek.id)
-      : { data: [], error: null };
-    if (previousError) {
-      return NextResponse.json({ error: `Couldn't load the previous week's assignments: ${previousError.message}` }, { status: 500 });
-    }
+    // If no quotas were submitted (legacy/direct caller — the modal always
+    // sends them), fall back to one seat per station per day, no tenure
+    // preference, so this route never regresses a hypothetical non-modal
+    // caller.
+    const effectiveQuotas: StationQuota[] =
+      quotas ?? workstations.map((w) => ({ workstation_id: w.id, headcount: w.headcount, tenured: 0, newHire: w.headcount }));
 
-    const newAssignments = generateAssignments(
-      workstations,
-      eligiblePool,
-      previousAssignments ?? [],
-      Math.random,
-      quotas,
-      immunePlacements
-    );
+    const newAssignments = generateDailyAssignments(workDates, workstations, eligiblePool, effectiveQuotas, immunePlacements, Math.random);
 
     // Safety net: every explicit immune placement the Team Leader made in
-    // the modal must show up in the actual result at that exact station —
-    // if a station's fixed headcount can't fit everyone placed there (e.g.
-    // two immune members sent to a 1-seat station), generateAssignments
-    // silently drops whichever one doesn't fit and the algorithm's normal
-    // fallback fill reseats them somewhere else entirely, with no
-    // indication anything went wrong. That "silently placed somewhere I
-    // didn't choose" behavior is exactly what was reported — refuse to
-    // generate at all instead, with a clear reason, rather than ever
-    // silently disregard a placement the Team Leader explicitly made.
-    if (immunePlacements && immunePlacements.length > 0) {
-      const seated = new Set(newAssignments.map((a) => `${a.associate_id}::${a.workstation_id}`));
-      const unhonored = immunePlacements.filter((p) => !seated.has(`${p.associate_id}::${p.workstation_id}`));
+    // the modal must show up in the actual result at that exact station on
+    // every one of its selected dates — if a station's fixed headcount
+    // can't fit everyone placed there on some day (e.g. two immune members
+    // sent to a 1-seat station), generateAssignments silently drops
+    // whichever one doesn't fit and the algorithm's normal fallback fill
+    // reseats them somewhere else entirely, with no indication anything
+    // went wrong. That "silently placed somewhere I didn't choose"
+    // behavior is exactly what was reported — refuse to generate at all
+    // instead, with a clear reason, rather than ever silently disregard a
+    // placement the Team Leader explicitly made.
+    if (immunePlacements.length > 0) {
+      const seated = new Set(newAssignments.map((a) => `${a.associate_id}::${a.workstation_id}::${a.assignment_date}`));
+      const unhonored = immunePlacements.flatMap((p) =>
+        (p.dates ?? [])
+          .filter((d) => !seated.has(`${p.associate_id}::${p.workstation_id}::${d}`))
+          .map((d) => ({ ...p, date: d }))
+      );
       if (unhonored.length > 0) {
         const profileById = new Map((allActive ?? []).map((p) => [p.id, p]));
         const workstationById = new Map(workstations.map((w) => [w.id, w]));
@@ -185,12 +189,12 @@ export async function POST(request: Request) {
             const person = profileById.get(p.associate_id);
             const station = workstationById.get(p.workstation_id);
             const name = person ? `${person.first_name} ${person.last_name}` : "Someone";
-            return `${name} → ${station?.name ?? "that station"} (headcount ${station?.headcount ?? "?"})`;
+            return `${name} → ${station?.name ?? "that station"} on ${p.date} (headcount ${station?.headcount ?? "?"})`;
           })
           .join("; ");
         return NextResponse.json(
           {
-            error: `Couldn't honor every immune placement — the target station's fixed headcount is full: ${details}. Increase that station's headcount on Workstations, or place fewer immune members there, then try again.`,
+            error: `Couldn't honor every immune placement — the target station's fixed headcount is full that day: ${details}. Increase that station's headcount on Workstations, or place fewer immune members there, then try again.`,
           },
           { status: 400 }
         );
@@ -222,6 +226,7 @@ export async function POST(request: Request) {
         schedule_week_id: newWeek.id,
         workstation_id: a.workstation_id,
         associate_id: a.associate_id,
+        assignment_date: a.assignment_date,
       }))
     );
     if (assignError) {

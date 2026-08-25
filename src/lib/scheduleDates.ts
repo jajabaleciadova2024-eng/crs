@@ -43,6 +43,30 @@ export function endOfWorkWeek(weekStartDateStr: string): string {
   return addDays(weekStartDateStr, 4);
 }
 
+// The 5 Monday–Friday calendar dates for the work week starting at
+// `weekStartDateStr` — one assignment slot per workstation per day now
+// (see 0022_daily_assignments.sql), so generation/display both need the
+// actual dates, not just the week's Monday.
+export function workDatesForWeek(weekStartDateStr: string): string[] {
+  return [0, 1, 2, 3, 4].map((n) => addDays(weekStartDateStr, n));
+}
+
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// "Mon"/"Tue"/etc. for `dateStr` — used for the Generate modal's per-day
+// immune checkboxes and the schedule grid's day-column headers.
+export function weekdayShortLabel(dateStr: string): string {
+  return WEEKDAY_SHORT[toDate(dateStr).getUTCDay()];
+}
+
+// True for a Monday–Friday date. Used by the Dashboard to fall back to a
+// representative workday (Monday) when "today" itself is a weekend and so
+// has no assignment of its own.
+export function isWorkday(dateStr: string): boolean {
+  const day = toDate(dateStr).getUTCDay();
+  return day >= 1 && day <= 5;
+}
+
 const MONTH_LABEL = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",

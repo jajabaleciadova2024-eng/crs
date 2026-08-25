@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     const { data: current, error: currentError } = await supabase
       .from("assignments")
-      .select("id, schedule_week_id, workstation_id, associate_id")
+      .select("id, schedule_week_id, workstation_id, associate_id, assignment_date")
       .eq("id", assignment_id)
       .single();
     if (currentError || !current) {
@@ -63,15 +63,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // assignments has a unique (schedule_week_id, associate_id) constraint —
-    // one person can't hold two stations the same week. If the picked
-    // person already has a different station this week, a plain update
-    // would violate that constraint. Swap the two instead: they take this
-    // station, and whoever was here takes theirs.
+    // assignments has a unique (schedule_week_id, associate_id,
+    // assignment_date) constraint — one person can't hold two stations on
+    // the same day (different days are fine — that's the whole point of
+    // daily rotation). If the picked person already has a different
+    // station on THIS SAME day, a plain update would violate that
+    // constraint. Swap the two instead: they take this station, and
+    // whoever was here takes theirs — scoped to this one day only.
     const { data: collision, error: collisionError } = await supabase
       .from("assignments")
       .select("id, workstation_id")
       .eq("schedule_week_id", current.schedule_week_id)
+      .eq("assignment_date", current.assignment_date)
       .eq("associate_id", associate_id)
       .neq("id", assignment_id)
       .maybeSingle();
@@ -98,15 +101,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: deleteError.message }, { status: 400 });
     }
     const { error: insertError } = await supabase.from("assignments").insert([
-      { schedule_week_id: current.schedule_week_id, workstation_id: current.workstation_id, associate_id },
-      { schedule_week_id: current.schedule_week_id, workstation_id: collision.workstation_id, associate_id: current.associate_id },
+      { schedule_week_id: current.schedule_week_id, workstation_id: current.workstation_id, associate_id, assignment_date: current.assignment_date },
+      { schedule_week_id: current.schedule_week_id, workstation_id: collision.workstation_id, associate_id: current.associate_id, assignment_date: current.assignment_date },
     ]);
     if (insertError) {
       // Best-effort restore of the two rows just deleted, so a failed swap
       // doesn't leave both stations empty instead of merely unswapped.
       await supabase.from("assignments").insert([
-        { schedule_week_id: current.schedule_week_id, workstation_id: current.workstation_id, associate_id: current.associate_id },
-        { schedule_week_id: current.schedule_week_id, workstation_id: collision.workstation_id, associate_id },
+        { schedule_week_id: current.schedule_week_id, workstation_id: current.workstation_id, associate_id: current.associate_id, assignment_date: current.assignment_date },
+        { schedule_week_id: current.schedule_week_id, workstation_id: collision.workstation_id, associate_id, assignment_date: current.assignment_date },
       ]);
       return NextResponse.json({ error: `Couldn't complete the swap: ${insertError.message}` }, { status: 400 });
     }
