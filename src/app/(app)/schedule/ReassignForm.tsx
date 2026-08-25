@@ -75,7 +75,11 @@ export default function ReassignForm({
   }
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    // w-full: this renders inline inside a flex-wrap chip alongside the
+    // person's name (see schedule/page.tsx) — forcing full width makes it
+    // wrap onto its own line under the name instead of getting squeezed
+    // into whatever space happens to be left over.
+    <div className="flex flex-col items-start gap-1 w-full">
       <div className="flex items-center gap-1.5 flex-wrap">
         <select
           value={selected}

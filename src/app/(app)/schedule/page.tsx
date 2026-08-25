@@ -128,11 +128,18 @@ async function WeekPanel({
         <table className="w-full text-[13px] border-collapse">
           <thead>
             <tr>
-              <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
+              <th className="sticky left-0 z-[1] bg-[var(--paper-raised)] text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] min-w-[96px] sm:min-w-[120px]">
+                Station
+              </th>
               {workDates.map((date) => (
-                <th key={date} className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)] align-bottom">
-                  <div>{weekdayShortLabel(date)}</div>
-                  <div className="normal-case font-normal text-[10.5px] text-[var(--muted)]">{date.slice(5)}</div>
+                <th
+                  key={date}
+                  className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-l border-[var(--line)] align-bottom min-w-[122px] sm:min-w-[150px]"
+                >
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[var(--ink)]">{weekdayShortLabel(date)}</span>
+                    <span className="normal-case font-normal text-[10.5px] text-[var(--muted)]">{date.slice(5)}</span>
+                  </div>
                   {holidayByDate.has(date) && (
                     <Pill tone="warn">{holidayByDate.get(date)}</Pill>
                   )}
@@ -142,23 +149,38 @@ async function WeekPanel({
           </thead>
           <tbody>
             {stationOrder.length > 0 ? (
-              stationOrder.map((station) => (
-                <tr key={station.id}>
-                  <td className="py-2.5 border-b border-[var(--line)] font-semibold align-top whitespace-nowrap">{station.name}</td>
+              stationOrder.map((station, i) => (
+                <tr key={station.id} className={i % 2 === 1 ? "bg-[var(--paper)]/60" : undefined}>
+                  <td
+                    className={`sticky left-0 z-[1] px-2 sm:px-3 py-2.5 border-b border-[var(--line)] font-semibold text-[12.5px] sm:text-[13px] align-top whitespace-nowrap ${
+                      i % 2 === 1 ? "bg-[var(--paper)]/60" : "bg-[var(--paper-raised)]"
+                    }`}
+                  >
+                    {station.name}
+                  </td>
                   {workDates.map((date) => {
                     const cell = cellAssignments.get(`${station.id}::${date}`) ?? [];
                     return (
-                      <td key={date} className="py-2.5 border-b border-[var(--line)] align-top min-w-[140px]">
+                      <td key={date} className="px-2 sm:px-3 py-2 border-b border-l border-[var(--line)] align-top">
                         {cell.length === 0 ? (
                           <span className="text-[var(--muted)]">—</span>
                         ) : (
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-1.5">
                             {cell.map((a: any) => (
-                              <div key={a.id} className="flex flex-col gap-1">
-                                <span>{formatFullName(a.profiles?.first_name, a.profiles?.last_name)}</span>
-                                <div className="flex flex-wrap items-center gap-1">
-                                  {canManage && a.profiles?.is_immune && <Pill tone="accent">Immune</Pill>}
-                                  {isOnLeave(a.associate_id, date) && <Pill tone="bad">On leave</Pill>}
+                              <div
+                                key={a.id}
+                                className="flex items-center flex-wrap gap-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] px-2 py-1.5"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-[12px] sm:text-[12.5px] font-medium text-[var(--ink)] truncate">
+                                    {formatFullName(a.profiles?.first_name, a.profiles?.last_name)}
+                                  </div>
+                                  {(a.profiles?.is_immune || isOnLeave(a.associate_id, date)) && (
+                                    <div className="flex flex-wrap items-center gap-1 mt-1">
+                                      {canManage && a.profiles?.is_immune && <Pill tone="accent">Immune</Pill>}
+                                      {isOnLeave(a.associate_id, date) && <Pill tone="bad">On leave</Pill>}
+                                    </div>
+                                  )}
                                 </div>
                                 {canManage && (
                                   <ReassignForm
