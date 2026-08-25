@@ -49,7 +49,7 @@ export default function PreviewRoleSwitcher({ currentRole }: { currentRole: AppR
   const current = OPTIONS.find((o) => o.role === currentRole) ?? OPTIONS[0];
 
   return (
-    <div ref={ref} className="relative group-data-[collapsed=true]/sidebar:hidden">
+    <div ref={ref} className="relative md:group-data-[collapsed=true]/sidebar:hidden">
       {/* Trigger */}
       <button
         type="button"

@@ -174,11 +174,11 @@ export default function Sidebar({
 
   return (
     <aside className="px-3 pt-5 pb-4 flex flex-col gap-5 h-full w-full overflow-y-auto overflow-x-hidden shrink-0 bg-[var(--paper)]">
-      <div className="px-1 flex items-center gap-2.5 group-data-[collapsed=true]/sidebar:justify-center group-data-[collapsed=true]/sidebar:px-0">
-        <span className="hidden group-data-[collapsed=true]/sidebar:flex w-9 h-9 rounded-lg bg-[var(--accent)] text-white items-center justify-center font-serif font-bold text-sm shrink-0 shadow-sm">
+      <div className="px-1 flex items-center gap-2.5 md:group-data-[collapsed=true]/sidebar:justify-center md:group-data-[collapsed=true]/sidebar:px-0">
+        <span className="hidden md:group-data-[collapsed=true]/sidebar:flex w-9 h-9 rounded-lg bg-[var(--accent)] text-white items-center justify-center font-serif font-bold text-sm shrink-0 shadow-sm">
           CN
         </span>
-        <div className="group-data-[collapsed=true]/sidebar:hidden min-w-0">
+        <div className="md:group-data-[collapsed=true]/sidebar:hidden min-w-0">
           <div className="font-serif text-[19px] font-bold text-[var(--ink)] tracking-tight leading-tight">CRS Naga</div>
           <span className="block text-[9.5px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)] mt-0.5">
             Field Operations
@@ -196,13 +196,13 @@ export default function Sidebar({
 
       <div className="mt-auto flex flex-col gap-3">
         {realRole === "team_leader" && (
-          <div className="group-data-[collapsed=true]/sidebar:hidden">
+          <div className="md:group-data-[collapsed=true]/sidebar:hidden">
             <PreviewRoleSwitcher currentRole={profile.role} />
           </div>
         )}
       </div>
 
-      <div className="border-t border-[var(--line)] pt-3.5 flex items-center gap-2.5 group-data-[collapsed=true]/sidebar:justify-center">
+      <div className="border-t border-[var(--line)] pt-3.5 flex items-center gap-2.5 md:group-data-[collapsed=true]/sidebar:justify-center">
         {profile.avatar_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -215,13 +215,13 @@ export default function Sidebar({
             {initials}
           </span>
         )}
-        <div className="min-w-0 flex-1 group-data-[collapsed=true]/sidebar:hidden">
+        <div className="min-w-0 flex-1 md:group-data-[collapsed=true]/sidebar:hidden">
           <div className="text-[12.5px] font-semibold text-[var(--ink)] truncate leading-tight">
             {formatFullName(profile.first_name, profile.last_name)}
           </div>
           <div className="text-[10.5px] text-[var(--muted)] mt-0.5">{ROLE_LABEL[profile.role]}</div>
         </div>
-        <div className="group-data-[collapsed=true]/sidebar:hidden">
+        <div className="md:group-data-[collapsed=true]/sidebar:hidden">
           <SignOutButton />
         </div>
       </div>
