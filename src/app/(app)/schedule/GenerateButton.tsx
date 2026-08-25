@@ -377,6 +377,17 @@ export default function GenerateButton({
               </div>
             </div>
 
+            {fixedHeadcount > totalMembers && (
+              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
+                Fixed headcount across all stations ({fixedHeadcount}) is {fixedHeadcount - totalMembers} more than
+                your total active headcount ({totalMembers}) — every day, {fixedHeadcount - totalMembers === 1 ? "one seat" : `${fixedHeadcount - totalMembers} seats`}{" "}
+                somewhere will go unfilled, and it&apos;ll be a different station each time (whoever the random fill
+                runs out of people for that day). Reduce a station&apos;s headcount on Workstations, or bring
+                {fixedHeadcount - totalMembers === 1 ? " one more person" : " more people"} active, if every seat
+                needs to be filled every day.
+              </p>
+            )}
+
             {unplacedImmune.length > 0 && (
               <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
                 {unplacedImmune.length} immune member{unplacedImmune.length > 1 ? "s" : ""} still need a station and
