@@ -111,7 +111,7 @@ export default function AssignmentCard({
       onDragOver={canManage ? handleDragOver : undefined}
       onDragLeave={canManage ? handleDragLeave : undefined}
       onDrop={canManage ? handleDrop : undefined}
-      className={`flex items-center flex-wrap gap-1.5 rounded-md border px-2 py-1.5 transition-colors ${
+      className={`group/card flex items-center flex-wrap gap-1.5 rounded-md border px-2 py-1.5 transition-colors ${
         dragOver ? "border-[var(--accent)] bg-[var(--accent-soft)]/50" : "border-[var(--line)] bg-[var(--paper)]"
       } ${canManage ? "cursor-grab active:cursor-grabbing" : ""} ${pending ? "opacity-50" : ""}`}
     >
@@ -121,25 +121,27 @@ export default function AssignmentCard({
             regardless of who's immune/on leave (see the mixed-height rows
             this used to cause), and stays visible on touch devices (no
             hover there). On a device that actually supports hover
-            (desktop), each dot also reveals a small floating label on
-            hover — Tailwind's hover/group-hover variants already compile
-            to `@media (hover: hover)`, so this never triggers via a touch
-            tap, only a real mouse hover. Absolutely positioned so it never
-            affects the card's own layout/height. */}
+            (desktop), hovering ANYWHERE on the card (group/card, on the
+            outer div above — not just the tiny dot itself, too small a
+            target on its own) reveals a small floating label next to the
+            relevant dot — Tailwind's hover/group-hover variants already
+            compile to `@media (hover: hover)`, so this never triggers via
+            a touch tap, only a real mouse hover. Absolutely positioned so
+            it never affects the card's own layout/height. */}
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-[12px] sm:text-[12.5px] font-medium text-[var(--ink)] truncate">{name}</span>
           {canManage && isImmune && (
-            <span className="group/dot relative inline-flex shrink-0">
+            <span className="relative inline-flex shrink-0">
               <span className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--accent)]" aria-label="Immune" />
-              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 opacity-0 group-hover/dot:opacity-100 transition-opacity duration-150 whitespace-nowrap rounded bg-[var(--ink)] text-[var(--paper)] text-[10px] font-bold px-1.5 py-0.5 z-20">
+              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-150 whitespace-nowrap rounded bg-[var(--ink)] text-[var(--paper)] text-[10px] font-bold px-1.5 py-0.5 z-20">
                 Immune
               </span>
             </span>
           )}
           {onLeave && (
-            <span className="group/dot relative inline-flex shrink-0">
+            <span className="relative inline-flex shrink-0">
               <span className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--bad)]" aria-label="On leave" />
-              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 opacity-0 group-hover/dot:opacity-100 transition-opacity duration-150 whitespace-nowrap rounded bg-[var(--ink)] text-[var(--paper)] text-[10px] font-bold px-1.5 py-0.5 z-20">
+              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-150 whitespace-nowrap rounded bg-[var(--ink)] text-[var(--paper)] text-[10px] font-bold px-1.5 py-0.5 z-20">
                 On leave
               </span>
             </span>
