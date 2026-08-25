@@ -34,6 +34,9 @@ export default async function LeaveHistoryPage() {
     .from("leave_requests")
     // Must disambiguate: leave_requests has two FKs to profiles
     // (associate_id, reviewed_by) — see /leave/page.tsx for the full note.
+    // review_note covers two cases: the rejection reason, and the
+    // Team-Leader-override note when approving a request that still has no
+    // document (see LeaveQueueTable).
     .select(
       "id, associate_id, leave_type, start_date, end_date, status, document_path, reviewed_at, review_note, final_rejection, is_half_day, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)"
     )
@@ -109,6 +112,9 @@ export default async function LeaveHistoryPage() {
                           <div className="flex items-center gap-1.5">
                             <span>{typeConfig?.label ?? r.leave_type}</span>
                             {r.is_half_day && <Pill>Half Day</Pill>}
+                            {typeConfig?.behavior === "auto_approve_document" && r.status === "approved" && !r.document_path && (
+                              <Pill tone="warn">Approved w/o document</Pill>
+                            )}
                           </div>
                         </td>
                         <td className="py-2.5 border-b border-[var(--line)]">
@@ -119,7 +125,7 @@ export default async function LeaveHistoryPage() {
                           {r.status === "rejected" && r.final_rejection && (
                             <div className="text-[10.5px] font-bold text-[var(--bad)] mt-1">Final — closed</div>
                           )}
-                          {r.status === "rejected" && r.review_note && (
+                          {r.review_note && (r.status === "rejected" || (r.status === "approved" && !r.document_path)) && (
                             <div className="text-[10.5px] text-[var(--muted)] mt-1 max-w-[180px]">{r.review_note}</div>
                           )}
                         </td>

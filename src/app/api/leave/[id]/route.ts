@@ -36,9 +36,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   // Pre-approved types (Sick/Bereavement) can be filed before the document
-  // is in hand, but can't actually be approved until it's uploaded —
-  // enforced here too, not just by disabling the button client-side, since
-  // this route can be hit directly.
+  // is in hand. Normally the Team Leader can't approve until it's uploaded
+  // — but they CAN override that and approve anyway, as long as they leave
+  // a note explaining why (mirrors the rejection note requirement above).
+  // The client only offers this path through a confirmation dialog, not a
+  // second button, but it's enforced here too since this route can be hit
+  // directly.
+  let approvedWithoutDocument = false;
   if (status === "approved") {
     const { data: leaveRequest } = await supabase.from("leave_requests").select("leave_type, document_path").eq("id", id).single();
     if (leaveRequest) {
@@ -46,7 +50,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const configs: LeaveTypeConfig[] = orgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
       const typeConfig = findLeaveTypeConfig(configs, leaveRequest.leave_type);
       if (typeConfig?.behavior === "auto_approve_document" && !leaveRequest.document_path) {
-        return NextResponse.json({ error: "This request needs a supporting document uploaded before it can be approved." }, { status: 400 });
+        if (!String(note ?? "").trim()) {
+          return NextResponse.json(
+            { error: "This request has no supporting document. Add a note explaining why you're approving it anyway." },
+            { status: 400 }
+          );
+        }
+        approvedWithoutDocument = true;
       }
     }
   }
@@ -58,7 +68,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       reviewed_by: user.id,
       reviewed_at: new Date().toISOString(),
       seen_by_associate: false,
-      review_note: status === "rejected" ? String(note).trim() : null,
+      review_note: status === "rejected" || approvedWithoutDocument ? String(note).trim() : null,
       // A final rejection ends the reject -> re-upload -> re-review cycle
       // for good (see 0012_leave_final_rejection.sql) -- reset to false
       // on approval too, so a fresh cycle starts clean if this row is

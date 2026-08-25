@@ -57,12 +57,20 @@ export default function LeaveQueueTable({
   const [rejectError, setRejectError] = useState<string | null>(null);
   const [deletingRequest, setDeletingRequest] = useState<QueueRequest | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Approving a pre-approved-type (Sick/Bereavement) request that has no
+  // document yet — the Team Leader can override, but has to leave a note
+  // explaining why (same shape as the reject-note requirement above), so
+  // there's still a deliberate, auditable trail instead of a bare bypass
+  // button.
+  const [approvingRequest, setApprovingRequest] = useState<QueueRequest | null>(null);
+  const [approveNote, setApproveNote] = useState("");
+  const [approveError, setApproveError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
   const colCount = 4 + (canViewAll ? 1 : 0) + 2; // Type, Dates, Reason, Status + Associate? + Actions/Document
 
-  function decide(id: string, status: "approved" | "rejected", note?: string, final?: boolean) {
+  function decide(id: string, status: "approved" | "rejected", note?: string, final?: boolean, onDone?: (ok: boolean, error?: string) => void) {
     setPendingId(id);
     startTransition(async () => {
       const res = await fetch(`/api/leave/${id}`, {
@@ -72,16 +80,12 @@ export default function LeaveQueueTable({
       });
       setPendingId(null);
 
-      if (status === "rejected") {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          setRejectError(body.error ?? "Couldn't reject that request.");
-          return;
-        }
-        setRejectingRequest(null);
-        setRejectNote("");
-        setRejectError(null);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        onDone?.(false, body.error);
+        return;
       }
+      onDone?.(true);
       router.refresh();
     });
   }
@@ -91,7 +95,30 @@ export default function LeaveQueueTable({
   // gets uploaded afterward -- see 0012_leave_final_rejection.sql.
   function submitReject(final: boolean) {
     if (!rejectingRequest || !rejectNote.trim()) return;
-    decide(rejectingRequest.id, "rejected", rejectNote.trim(), final);
+    decide(rejectingRequest.id, "rejected", rejectNote.trim(), final, (ok, error) => {
+      if (!ok) {
+        setRejectError(error ?? "Couldn't reject that request.");
+        return;
+      }
+      setRejectingRequest(null);
+      setRejectNote("");
+      setRejectError(null);
+    });
+  }
+
+  // Team-Leader override: approve a pre-approved-type request that has no
+  // document attached yet, with a required note explaining why.
+  function submitApproveWithoutDocument() {
+    if (!approvingRequest || !approveNote.trim()) return;
+    decide(approvingRequest.id, "approved", approveNote.trim(), undefined, (ok, error) => {
+      if (!ok) {
+        setApproveError(error ?? "Couldn't approve that request.");
+        return;
+      }
+      setApprovingRequest(null);
+      setApproveNote("");
+      setApproveError(null);
+    });
   }
 
   function cancelRequest(id: string) {
@@ -181,6 +208,9 @@ export default function LeaveQueueTable({
                     <span className="capitalize">{typeConfig?.label ?? r.leave_type}</span>
                     {r.is_half_day && <Pill>Half Day</Pill>}
                     {typeConfig?.behavior === "auto_approve_document" && <Pill tone="accent">Pre-approved</Pill>}
+                    {typeConfig?.behavior === "auto_approve_document" && r.status === "approved" && !r.document_path && (
+                      <Pill tone="warn">Approved w/o document</Pill>
+                    )}
                     {r.flagged_conflict && <Pill tone="warn">Possible conflict</Pill>}
                   </div>
                 </td>
@@ -191,7 +221,7 @@ export default function LeaveQueueTable({
                   {r.status === "rejected" && r.final_rejection && (
                     <div className="text-[10.5px] font-bold text-[var(--bad)] mt-1">Final — closed</div>
                   )}
-                  {r.status === "rejected" && r.review_note && (
+                  {r.review_note && (r.status === "rejected" || (r.status === "approved" && !r.document_path)) && (
                     <div className="text-[10.5px] text-[var(--muted)] mt-1 max-w-[180px]">{r.review_note}</div>
                   )}
                 </td>
@@ -235,9 +265,17 @@ export default function LeaveQueueTable({
                         <Button
                           variant="primary"
                           style={{ padding: "5px 10px" }}
-                          disabled={pendingId === r.id || needsDocument}
-                          title={needsDocument ? "Waiting on a supporting document before this can be approved." : undefined}
-                          onClick={() => decide(r.id, "approved")}
+                          disabled={pendingId === r.id}
+                          title={needsDocument ? "No document attached yet — you'll be asked for a note before this approves." : undefined}
+                          onClick={() => {
+                            if (needsDocument) {
+                              setApprovingRequest(r);
+                              setApproveNote("");
+                              setApproveError(null);
+                              return;
+                            }
+                            decide(r.id, "approved");
+                          }}
                         >
                           Approve
                         </Button>
@@ -253,7 +291,7 @@ export default function LeaveQueueTable({
                           Reject
                         </Button>
                       </div>
-                      {needsDocument && <span className="text-[10.5px] text-[var(--muted)]">Awaiting document</span>}
+                      {needsDocument && <span className="text-[10.5px] text-[var(--muted)]">No document attached yet</span>}
                     </div>
                   )}
                   {canManage && (
@@ -346,6 +384,44 @@ export default function LeaveQueueTable({
                   {busy ? "Rejecting…" : "⛔ Reject — Final"}
                 </Button>
               )}
+            </div>
+          </div>
+        </div>
+      );
+    })()}
+
+    {approvingRequest && (() => {
+      const busy = pendingId === approvingRequest.id;
+      const typeConfig = leaveTypeConfigs.find((c) => c.key === approvingRequest.leave_type);
+      return (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setApprovingRequest(null)}>
+          <div
+            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in"
+            style={{ boxShadow: "var(--shadow-lg)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-serif text-xl text-[var(--ink)] m-0">Approve without a document?</h2>
+            <p className="text-sm text-[var(--muted)] m-0">
+              {typeConfig?.label ?? approvingRequest.leave_type} requests are normally held until a supporting
+              document is uploaded. You can still approve this one on your own judgment — add a short note
+              explaining why, so there&apos;s a record of it.
+            </p>
+            <textarea
+              value={approveNote}
+              onChange={(e) => setApproveNote(e.target.value)}
+              rows={3}
+              placeholder="e.g. Verbally confirmed, document to follow"
+              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-none"
+              autoFocus
+            />
+            {approveError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{approveError}</p>}
+            <div className="flex justify-end gap-2 mt-1">
+              <Button style={{ padding: "7px 14px" }} disabled={busy} onClick={() => setApprovingRequest(null)}>
+                Cancel
+              </Button>
+              <Button variant="primary" style={{ padding: "7px 14px" }} disabled={busy || !approveNote.trim()} onClick={submitApproveWithoutDocument}>
+                {busy ? "Approving…" : "Approve anyway"}
+              </Button>
             </div>
           </div>
         </div>
