@@ -126,9 +126,20 @@ export default function GenerateButton({
   // the same way, so this just keeps what's displayed here honest about
   // what week will actually get generated instead of silently differing
   // from the submitted value.
+  //
+  // Also clears every immune member's checked days: they're checkboxes
+  // against THIS week's actual calendar dates (e.g. 2026-08-24), not just
+  // "Monday" in the abstract — carrying them over to a different week
+  // would silently submit dates that don't belong to the new target week,
+  // which the API correctly rejects but with a confusing "day outside
+  // this week" error instead of just... not happening. The station choice
+  // itself is kept, only the day picks reset.
   function handleWeekChange(value: string) {
     if (!value) return;
     setWeekStart(startOfWorkWeek(value));
+    setImmunePlacements((prev) =>
+      Object.fromEntries(Object.entries(prev).map(([id, p]) => [id, { ...p, dates: [] }]))
+    );
   }
 
   function generate() {
@@ -190,6 +201,12 @@ export default function GenerateButton({
         variant="primary"
         onClick={() => {
           setWeekStart(defaultWeekStart);
+          // Same reasoning as handleWeekChange: a previous session's
+          // checked days are calendar dates for whatever week that was,
+          // which may not be this one — start clean rather than carry
+          // over stale dates the next Generate submission would silently
+          // fail on.
+          setImmunePlacements((prev) => Object.fromEntries(Object.entries(prev).map(([id, p]) => [id, { ...p, dates: [] }])));
           setOpen(true);
         }}
       >
