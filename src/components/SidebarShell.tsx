@@ -135,7 +135,7 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
         }`}
       >
         <div
-          className={`group/sidebar relative h-full border-r border-[var(--line)] bg-[var(--paper)] transition-[width] duration-200 ease-out w-[264px] max-md:shadow-2xl md:w-[220px] ${
+          className={`group/sidebar relative h-full border-r border-[var(--line)] bg-[var(--paper)] transition-[width] duration-200 ease-out w-[264px] max-md:shadow-2xl ${
             collapsed ? "md:w-[72px]" : "md:w-[220px]"
           }`}
           data-collapsed={collapsed ? "true" : "false"}

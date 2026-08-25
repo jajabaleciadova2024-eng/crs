@@ -30,10 +30,25 @@ export default function ReassignForm({
   const router = useRouter();
 
   if (!open) {
+    // Icon-only trigger — the grid now has one of these per assigned
+    // person per day, and a full "Reassign" text button in every cell
+    // got noisy fast (see the daily-rotation grid in schedule/page.tsx).
+    // Two arrows cycling into each other reads as "swap" at a glance.
     return (
-      <Button onClick={() => setOpen(true)} style={{ padding: "5px 10px" }}>
-        Reassign
-      </Button>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`Reassign ${workstationName}`}
+        title="Reassign"
+        className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 2l4 4-4 4" />
+          <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+          <path d="M7 22l-4-4 4-4" />
+          <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+        </svg>
+      </button>
     );
   }
 
@@ -61,7 +76,7 @@ export default function ReassignForm({
 
   return (
     <div className="flex flex-col items-start gap-1">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
