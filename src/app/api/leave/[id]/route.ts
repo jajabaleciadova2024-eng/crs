@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { notifyLeaveStatusChange } from "@/lib/notify";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
+import { recomputeVacationConflicts } from "@/lib/leaveConflict";
 
 // Approves/rejects a leave request as the signed-in Team Leader (update
 // respects the "leave_requests_update_team_leader_not_self" RLS policy — no
@@ -70,6 +71,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  // A rejection removes this request from the vacation-conflict pool, which
+  // can clear the "Possible conflict" flag on whatever it used to overlap.
+  if (status === "rejected") {
+    await recomputeVacationConflicts();
+  }
+
   await notifyLeaveStatusChange(id);
 
   return NextResponse.json({ ok: true });
@@ -109,6 +116,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (!count) {
     return NextResponse.json({ error: "That request can no longer be cancelled." }, { status: 400 });
   }
+
+  // Deleting a request removes it from the vacation-conflict pool, which
+  // can clear the "Possible conflict" flag on whatever it used to overlap
+  // (this is the whole reason the Team Leader deletes an approved leave —
+  // e.g. it turned out to be the one causing the conflict).
+  await recomputeVacationConflicts();
 
   return NextResponse.json({ ok: true });
 }

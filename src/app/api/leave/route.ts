@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyApproversNewLeave } from "@/lib/notify";
-import { hasVacationConflict } from "@/lib/leaveConflict";
+import { hasVacationConflict, recomputeVacationConflicts } from "@/lib/leaveConflict";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
 
 // Files a leave request as the signed-in associate (insert respects the
@@ -80,6 +80,13 @@ export async function POST(request: Request) {
         end_date: r.end_date,
       }))
     );
+  }
+
+  // This new request can itself be the thing that puts an EXISTING pending
+  // request into conflict for the first time — recompute everyone's flag,
+  // not just the one just inserted.
+  if (typeConfig.behavior === "vacation_conflict") {
+    await recomputeVacationConflicts();
   }
 
   await notifyApproversNewLeave(inserted.id);

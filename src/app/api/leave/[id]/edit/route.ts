@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { hasVacationConflict } from "@/lib/leaveConflict";
+import { hasVacationConflict, recomputeVacationConflicts } from "@/lib/leaveConflict";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
 
 // Lets the requester edit their OWN request while it's still pending
@@ -87,6 +87,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }))
     );
   }
+
+  // Changed dates/type here can resolve a conflict for the request being
+  // edited, or newly create one for some OTHER pending request — recompute
+  // everyone's flag, not just this one.
+  await recomputeVacationConflicts();
 
   return NextResponse.json({ ok: true, flagged_conflict: flaggedConflict });
 }
