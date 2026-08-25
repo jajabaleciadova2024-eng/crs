@@ -5,7 +5,7 @@ import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Panel, Pill, Card, PageHeader } from "@/components/ui";
-import ReassignForm from "./ReassignForm";
+import ScheduleCell from "./ScheduleCell";
 import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
 import RotationSettingsPanel from "./RotationSettingsPanel";
@@ -120,7 +120,7 @@ async function WeekPanel({
       action={canManage && week ? <ClearScheduleButton scheduleWeekId={week.id} weekStart={weekStart} /> : undefined}
       footnote={
         canManage
-          ? "Immune members must be manually placed at a station (and which day(s)) in the Generate modal before generating — everyone else fills in from the headcount/tenure quotas, freshly shuffled each day. “On leave” flags approved leave overlapping that specific day — reassign manually if needed."
+          ? "Immune members must be manually placed at a station (and which day(s)) in the Generate modal before generating — everyone else fills in from the headcount/tenure quotas, freshly shuffled each day. Drag a card onto another station (same day) to move them, or onto another person to swap — or use the ↻ icon. “On leave” flags approved leave overlapping that specific day."
           : "“On leave” flags approved leave overlapping that specific day."
       }
     >
@@ -160,41 +160,24 @@ async function WeekPanel({
                   </td>
                   {workDates.map((date) => {
                     const cell = cellAssignments.get(`${station.id}::${date}`) ?? [];
+                    const entries = cell.map((a: any) => ({
+                      assignmentId: a.id as string,
+                      associateId: a.associate_id as string,
+                      name: formatFullName(a.profiles?.first_name, a.profiles?.last_name),
+                      isImmune: Boolean(a.profiles?.is_immune),
+                      onLeave: isOnLeave(a.associate_id, date),
+                    }));
                     return (
                       <td key={date} className="px-2 sm:px-3 py-2 border-b border-l border-[var(--line)] align-top">
-                        {cell.length === 0 ? (
-                          <span className="text-[var(--muted)]">—</span>
-                        ) : (
-                          <div className="flex flex-col gap-1.5">
-                            {cell.map((a: any) => (
-                              <div
-                                key={a.id}
-                                className="flex items-center flex-wrap gap-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] px-2 py-1.5"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-[12px] sm:text-[12.5px] font-medium text-[var(--ink)] truncate">
-                                    {formatFullName(a.profiles?.first_name, a.profiles?.last_name)}
-                                  </div>
-                                  {(a.profiles?.is_immune || isOnLeave(a.associate_id, date)) && (
-                                    <div className="flex flex-wrap items-center gap-1 mt-1">
-                                      {canManage && a.profiles?.is_immune && <Pill tone="accent">Immune</Pill>}
-                                      {isOnLeave(a.associate_id, date) && <Pill tone="bad">On leave</Pill>}
-                                    </div>
-                                  )}
-                                </div>
-                                {canManage && (
-                                  <ReassignForm
-                                    assignmentId={a.id}
-                                    workstationName={station.name}
-                                    associates={associates ?? []}
-                                    currentAssociateId={a.associate_id}
-                                    stationByAssociate={stationByAssociatePerDate.get(date)}
-                                  />
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        <ScheduleCell
+                          workstationId={station.id}
+                          workstationName={station.name}
+                          date={date}
+                          entries={entries}
+                          canManage={canManage}
+                          associates={associates ?? []}
+                          stationByAssociate={stationByAssociatePerDate.get(date)}
+                        />
                       </td>
                     );
                   })}
