@@ -19,6 +19,7 @@ export default function LeaveRequestForm({
 }) {
   const router = useRouter();
   const [leaveType, setLeaveType] = useState(leaveTypeConfigs[0]?.key ?? "");
+  const [halfDay, setHalfDay] = useState(false);
   const [ranges, setRanges] = useState<DateRange[]>([{ ...BLANK_RANGE }]);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +90,7 @@ export default function LeaveRequestForm({
     const res = await fetch("/api/leave", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ leave_type: leaveType, ranges: validRanges, reason: reason.trim() || null }),
+      body: JSON.stringify({ leave_type: leaveType, ranges: validRanges, reason: reason.trim() || null, is_half_day: halfDay }),
     });
     const body = await res.json().catch(() => ({}));
 
@@ -122,6 +123,7 @@ export default function LeaveRequestForm({
     setRanges([{ ...BLANK_RANGE }]);
     setReason("");
     setFile(null);
+    setHalfDay(false);
     router.refresh();
   }
 
@@ -140,6 +142,15 @@ export default function LeaveRequestForm({
             </option>
           ))}
         </select>
+        <label className="flex items-center gap-1.5 mt-1.5 text-[12.5px] text-[var(--muted)] cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={halfDay}
+            onChange={(e) => setHalfDay(e.target.checked)}
+            className="w-3.5 h-3.5 accent-[var(--accent)] cursor-pointer"
+          />
+          Half Day
+        </label>
       </div>
       <div className="flex flex-col gap-2">
         <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">

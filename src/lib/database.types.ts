@@ -74,6 +74,7 @@ export interface LeaveRequest {
   seen_by_associate: boolean;
   review_note: string | null;
   final_rejection: boolean;
+  is_half_day: boolean;
   created_at: string;
 }
 
@@ -237,6 +238,7 @@ export interface Database {
           seen_by_associate?: boolean;
           review_note?: string | null;
           final_rejection?: boolean;
+          is_half_day?: boolean;
         };
         Update: {
           associate_id?: string;
@@ -253,6 +255,7 @@ export interface Database {
           seen_by_associate?: boolean;
           review_note?: string | null;
           final_rejection?: boolean;
+          is_half_day?: boolean;
         };
         Relationships: [];
       };

@@ -15,6 +15,7 @@ export default function EditLeaveRequestForm({
   initialLeaveType,
   initialRanges,
   initialReason,
+  initialHalfDay,
   onCancel,
 }: {
   requestId: string;
@@ -23,10 +24,12 @@ export default function EditLeaveRequestForm({
   initialLeaveType: string;
   initialRanges: DateRange[];
   initialReason: string | null;
+  initialHalfDay?: boolean;
   onCancel: () => void;
 }) {
   const router = useRouter();
   const [leaveType, setLeaveType] = useState(initialLeaveType);
+  const [halfDay, setHalfDay] = useState(initialHalfDay ?? false);
   const [ranges, setRanges] = useState<DateRange[]>(initialRanges.length > 0 ? initialRanges : [{ start_date: "", end_date: "" }]);
   const [reason, setReason] = useState(initialReason ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +94,7 @@ export default function EditLeaveRequestForm({
     const res = await fetch(`/api/leave/${requestId}/edit`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ leave_type: leaveType, ranges: validRanges, reason: reason.trim() || null }),
+      body: JSON.stringify({ leave_type: leaveType, ranges: validRanges, reason: reason.trim() || null, is_half_day: halfDay }),
     });
     setSaving(false);
 
@@ -121,6 +124,15 @@ export default function EditLeaveRequestForm({
               </option>
             ))}
           </select>
+          <label className="flex items-center gap-1.5 mt-1.5 text-[11.5px] text-[var(--muted)] cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={halfDay}
+              onChange={(e) => setHalfDay(e.target.checked)}
+              className="w-3.5 h-3.5 accent-[var(--accent)] cursor-pointer"
+            />
+            Half Day
+          </label>
         </div>
         <div className="flex flex-col gap-1.5">
           {ranges.map((r, i) => (

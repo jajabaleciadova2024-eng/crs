@@ -24,6 +24,7 @@ export type QueueRequest = {
   flagged_conflict: boolean;
   review_note: string | null;
   final_rejection: boolean;
+  is_half_day: boolean;
   leave_request_ranges: Range[];
   profiles: { first_name: string; last_name: string; avatar_url?: string | null } | null;
 };
@@ -155,6 +156,7 @@ export default function LeaveQueueTable({
                 <td className="py-2.5 border-b border-[var(--line)]">
                   <div className="flex items-center gap-1.5">
                     <span className="capitalize">{typeConfig?.label ?? r.leave_type}</span>
+                    {r.is_half_day && <Pill>Half Day</Pill>}
                     {typeConfig?.behavior === "auto_approve_document" && <Pill tone="accent">Pre-approved</Pill>}
                     {r.flagged_conflict && <Pill tone="warn">Possible conflict</Pill>}
                   </div>
@@ -243,6 +245,7 @@ export default function LeaveQueueTable({
                       initialLeaveType={r.leave_type}
                       initialRanges={[{ start_date: r.start_date, end_date: r.end_date }, ...r.leave_request_ranges]}
                       initialReason={r.reason}
+                      initialHalfDay={r.is_half_day}
                       onCancel={() => setEditingId(null)}
                     />
                   </td>

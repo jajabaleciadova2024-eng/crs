@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { leave_type, ranges, reason } = body ?? {};
+  const { leave_type, ranges, reason, is_half_day } = body ?? {};
 
   if (!leave_type || !Array.isArray(ranges) || ranges.length === 0) {
     return NextResponse.json({ error: "Leave type and at least one date range are required." }, { status: 400 });
@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       end_date: primary.end_date,
       reason: reason || null,
       flagged_conflict: flaggedConflict,
+      is_half_day: Boolean(is_half_day),
     })
     .select("id")
     .single();

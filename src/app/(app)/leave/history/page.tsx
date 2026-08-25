@@ -35,7 +35,7 @@ export default async function LeaveHistoryPage() {
     // Must disambiguate: leave_requests has two FKs to profiles
     // (associate_id, reviewed_by) — see /leave/page.tsx for the full note.
     .select(
-      "id, associate_id, leave_type, start_date, end_date, status, document_path, reviewed_at, review_note, final_rejection, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)"
+      "id, associate_id, leave_type, start_date, end_date, status, document_path, reviewed_at, review_note, final_rejection, is_half_day, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)"
     )
     .lt("reviewed_at", weekStart)
     // Approved requests roll in normally; rejected ones roll in unless
@@ -105,7 +105,12 @@ export default async function LeaveHistoryPage() {
                         {canViewAll && (
                           <td className="py-2.5 border-b border-[var(--line)]">{formatFullName(p?.first_name, p?.last_name)}</td>
                         )}
-                        <td className="py-2.5 border-b border-[var(--line)] capitalize">{typeConfig?.label ?? r.leave_type}</td>
+                        <td className="py-2.5 border-b border-[var(--line)] capitalize">
+                          <div className="flex items-center gap-1.5">
+                            <span>{typeConfig?.label ?? r.leave_type}</span>
+                            {r.is_half_day && <Pill>Half Day</Pill>}
+                          </div>
+                        </td>
                         <td className="py-2.5 border-b border-[var(--line)]">
                           {formatLeaveRanges({ start_date: r.start_date, end_date: r.end_date }, r.leave_request_ranges)}
                         </td>
