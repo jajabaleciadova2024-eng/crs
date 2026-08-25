@@ -435,7 +435,7 @@ export default function SocialFeed({
           <div
             id="whats-on-your-mind"
             ref={composerFixedRef}
-            className="fixed z-10 left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-3 sm:px-4 md:px-10 pt-3 pb-3 bg-[var(--paper)] transition-[left,width] duration-200 ease-out"
+            className="fixed z-10 left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] px-3 sm:px-4 md:px-10 pt-3 pb-3 bg-[var(--paper)] transition-[left,width] duration-200 ease-out"
             style={{ top: "var(--header-bottom, 140px)" }}
           >
             <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />

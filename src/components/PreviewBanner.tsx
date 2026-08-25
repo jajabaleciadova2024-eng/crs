@@ -42,7 +42,7 @@ export default function PreviewBanner({ label }: { label: string }) {
       <div aria-hidden="true" className="invisible px-4 md:px-10 py-2 mb-6 flex flex-col sm:flex-row gap-1.5 sm:gap-0 text-[12.5px]">
         {content}
       </div>
-      <div className="fixed z-[25] top-[52px] md:top-0 left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-4 md:px-10 py-2 bg-[var(--warn)] text-white text-[12.5px] font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-0 transition-[left,width] duration-200 ease-out">
+      <div className="fixed z-[25] top-[52px] md:top-0 left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] px-4 md:px-10 py-2 bg-[var(--warn)] text-white text-[12.5px] font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-0 transition-[left,width] duration-200 ease-out">
         {content}
       </div>
     </>

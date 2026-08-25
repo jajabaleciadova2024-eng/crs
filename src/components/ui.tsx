@@ -78,7 +78,7 @@ export function PageHeader({
       </div>
       <header
         ref={headerRef}
-        className="fixed z-20 top-[calc(56px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] max-w-[1000px] px-3 sm:px-4 md:px-10 py-3.5 md:py-5 bg-[var(--paper)]/85 backdrop-blur-md border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out"
+        className="fixed z-20 top-[calc(56px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] px-3 sm:px-4 md:px-10 py-3.5 md:py-5 bg-[var(--paper)]/85 backdrop-blur-md border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out"
       >
         {content}
       </header>
