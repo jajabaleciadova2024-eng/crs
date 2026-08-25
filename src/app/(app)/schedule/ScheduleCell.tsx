@@ -19,6 +19,7 @@ export default function ScheduleCell({
   workstationName,
   date,
   entries,
+  headcount,
   canManage,
   associates,
   stationByAssociate,
@@ -27,6 +28,11 @@ export default function ScheduleCell({
   workstationName: string;
   date: string;
   entries: CellEntry[];
+  // Fixed seats for this station — when there are fewer entries than this,
+  // the remainder render as dashed "Open seat" placeholders so a manpower
+  // shortfall (see the Generate modal's headcount-vs-active warning) is
+  // visible right where it landed, not just a shorter list of cards.
+  headcount?: number;
   canManage: boolean;
   associates: Pick<Profile, "id" | "first_name" | "last_name">[];
   stationByAssociate?: Record<string, string>;
@@ -92,26 +98,32 @@ export default function ScheduleCell({
       onDrop={handleDrop}
       className={`flex flex-col gap-1.5 min-h-[34px] rounded-md transition-colors ${dragOver ? "bg-[var(--accent-soft)]/40 ring-2 ring-[var(--accent)] ring-inset" : ""}`}
     >
-      {entries.length === 0 ? (
-        <span className="text-[var(--muted)]">—</span>
-      ) : (
-        entries.map((entry) => (
-          <AssignmentCard
-            key={entry.assignmentId}
-            assignmentId={entry.assignmentId}
-            associateId={entry.associateId}
-            name={entry.name}
-            isImmune={entry.isImmune}
-            onLeave={entry.onLeave}
-            canManage={canManage}
-            workstationId={workstationId}
-            workstationName={workstationName}
-            date={date}
-            associates={associates}
-            stationByAssociate={stationByAssociate}
-          />
-        ))
-      )}
+      {entries.length === 0 && !headcount ? <span className="text-[var(--muted)]">—</span> : null}
+      {entries.map((entry) => (
+        <AssignmentCard
+          key={entry.assignmentId}
+          assignmentId={entry.assignmentId}
+          associateId={entry.associateId}
+          name={entry.name}
+          isImmune={entry.isImmune}
+          onLeave={entry.onLeave}
+          canManage={canManage}
+          workstationId={workstationId}
+          workstationName={workstationName}
+          date={date}
+          associates={associates}
+          stationByAssociate={stationByAssociate}
+        />
+      ))}
+      {headcount != null &&
+        Array.from({ length: Math.max(headcount - entries.length, 0) }).map((_, i) => (
+          <div
+            key={`open-${i}`}
+            className="rounded-md border border-dashed border-[var(--line)] px-2 py-1.5 text-[11px] text-[var(--muted)] text-center"
+          >
+            Open seat
+          </div>
+        ))}
       {error && <span className="text-[10.5px] text-[var(--bad)]">{error}</span>}
     </div>
   );

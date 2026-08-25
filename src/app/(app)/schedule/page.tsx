@@ -28,12 +28,19 @@ async function WeekPanel({
   weekStart,
   canManage,
   associates,
+  workstationHeadcounts,
 }: {
   supabase: SupabaseClient;
   week: { id: string; week_start_date: string } | null;
   weekStart: string;
   canManage: boolean;
   associates: { id: string; first_name: string; last_name: string }[];
+  // Station id -> fixed headcount, used to render "open seat" placeholders
+  // for cells that fell short that day (e.g. a manpower shortfall — see
+  // GenerateButton's own headcount-vs-active warning) — makes the gap
+  // visible and draggable-into, instead of the TL having to notice a cell
+  // just has fewer cards than usual.
+  workstationHeadcounts?: Record<string, number>;
 }) {
   // Work week is Monday–Friday, not the full calendar week — schedule
   // coverage and "on leave" overlap only care about workdays. Each of
@@ -174,6 +181,7 @@ async function WeekPanel({
                           workstationName={station.name}
                           date={date}
                           entries={entries}
+                          headcount={workstationHeadcounts?.[station.id]}
                           canManage={canManage}
                           associates={associates ?? []}
                           stationByAssociate={stationByAssociatePerDate.get(date)}
@@ -247,6 +255,7 @@ export default async function SchedulePage() {
   // not the DB's alphabetical order — feeds the Generate modal's station
   // table and immune-placement dropdown.
   const sortedWorkstations = [...(activeWorkstations ?? [])].sort((a, b) => compareStationNames(a.name, b.name));
+  const workstationHeadcounts: Record<string, number> = Object.fromEntries((activeWorkstations ?? []).map((w) => [w.id, w.headcount]));
 
   const totalMembers = allActive?.length ?? 0;
   const totalTenured = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "tenured").length;
@@ -308,6 +317,7 @@ export default async function SchedulePage() {
             weekStart={thisWeekStart}
             canManage={canManage}
             associates={associates ?? []}
+            workstationHeadcounts={workstationHeadcounts}
           />
         }
         next={
@@ -317,6 +327,7 @@ export default async function SchedulePage() {
             weekStart={nextWeekStart}
             canManage={canManage}
             associates={associates ?? []}
+            workstationHeadcounts={workstationHeadcounts}
           />
         }
       />
