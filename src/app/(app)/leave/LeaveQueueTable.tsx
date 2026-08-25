@@ -55,6 +55,8 @@ export default function LeaveQueueTable({
   const [rejectingRequest, setRejectingRequest] = useState<QueueRequest | null>(null);
   const [rejectNote, setRejectNote] = useState("");
   const [rejectError, setRejectError] = useState<string | null>(null);
+  const [deletingRequest, setDeletingRequest] = useState<QueueRequest | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
@@ -97,6 +99,27 @@ export default function LeaveQueueTable({
     startTransition(async () => {
       await fetch(`/api/leave/${id}`, { method: "DELETE" });
       setPendingId(null);
+      router.refresh();
+    });
+  }
+
+  // Team-Leader-only: delete any request regardless of status (e.g. an
+  // approved leave entered in error) — separate from cancelRequest above,
+  // which is the requester cancelling their own still-pending request.
+  function confirmDelete() {
+    if (!deletingRequest) return;
+    const id = deletingRequest.id;
+    setPendingId(id);
+    startTransition(async () => {
+      const res = await fetch(`/api/leave/${id}`, { method: "DELETE" });
+      setPendingId(null);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setDeleteError(body.error ?? "Couldn't delete that request.");
+        return;
+      }
+      setDeletingRequest(null);
+      setDeleteError(null);
       router.refresh();
     });
   }
@@ -233,6 +256,20 @@ export default function LeaveQueueTable({
                       {needsDocument && <span className="text-[10.5px] text-[var(--muted)]">Awaiting document</span>}
                     </div>
                   )}
+                  {canManage && (
+                    <div className={!isOwn && (r.status === "pending" || isReopenedForReview) ? "mt-1.5" : undefined}>
+                      <Button
+                        style={{ padding: "5px 10px" }}
+                        disabled={pendingId === r.id}
+                        onClick={() => {
+                          setDeletingRequest(r);
+                          setDeleteError(null);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  )}
                 </td>
               </tr>
               {isEditing && (
@@ -309,6 +346,41 @@ export default function LeaveQueueTable({
                   {busy ? "Rejecting…" : "⛔ Reject — Final"}
                 </Button>
               )}
+            </div>
+          </div>
+        </div>
+      );
+    })()}
+
+    {deletingRequest && (() => {
+      const busy = pendingId === deletingRequest.id;
+      const typeConfig = leaveTypeConfigs.find((c) => c.key === deletingRequest.leave_type);
+      return (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setDeletingRequest(null)}>
+          <div
+            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in"
+            style={{ boxShadow: "var(--shadow-lg)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-serif text-xl text-[var(--ink)] m-0">Delete this leave request?</h2>
+            <p className="text-sm text-[var(--muted)] m-0">
+              {formatFullName(deletingRequest.profiles?.first_name, deletingRequest.profiles?.last_name)}&apos;s{" "}
+              {typeConfig?.label ?? deletingRequest.leave_type} request ({deletingRequest.status}) will be removed for
+              good — this can&apos;t be undone.
+            </p>
+            {deleteError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{deleteError}</p>}
+            <div className="flex justify-end gap-2 mt-1">
+              <Button style={{ padding: "7px 14px" }} disabled={busy} onClick={() => setDeletingRequest(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                style={{ padding: "7px 14px", background: "var(--bad)", borderColor: "var(--bad)" }}
+                disabled={busy}
+                onClick={confirmDelete}
+              >
+                {busy ? "Deleting…" : "Delete"}
+              </Button>
             </div>
           </div>
         </div>

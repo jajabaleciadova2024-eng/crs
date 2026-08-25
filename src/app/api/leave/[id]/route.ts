@@ -75,8 +75,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   return NextResponse.json({ ok: true });
 }
 
-// Lets the requester cancel their OWN request while it's still pending
-// (respects "leave_requests_delete_own_pending" RLS — no admin client).
+// Two callers, two RLS policies:
+//  - The requester cancelling their OWN request while it's still pending
+//    ("leave_requests_delete_own_pending").
+//  - The Team Leader deleting ANY request regardless of status — e.g.
+//    removing an approved leave entered in error
+//    ("leave_requests_delete_team_leader", see 0021_leave_delete_team_leader.sql).
+// No admin client either way — RLS alone decides what actually gets deleted.
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -87,12 +92,16 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   }
 
-  const { error, count } = await supabase
-    .from("leave_requests")
-    .delete({ count: "exact" })
-    .eq("id", id)
-    .eq("associate_id", user.id)
-    .eq("status", "pending");
+  const { data: callerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const isTeamLeader = callerProfile?.role === "team_leader";
+
+  let query = supabase.from("leave_requests").delete({ count: "exact" }).eq("id", id);
+  // A Team Leader can delete any request, any status; anyone else can only
+  // delete their own while it's still pending — matching the RLS policies.
+  if (!isTeamLeader) {
+    query = query.eq("associate_id", user.id).eq("status", "pending");
+  }
+  const { error, count } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
