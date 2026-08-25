@@ -127,8 +127,8 @@ async function WeekPanel({
       action={canManage && week ? <ClearScheduleButton scheduleWeekId={week.id} weekStart={weekStart} /> : undefined}
       footnote={
         canManage
-          ? "Immune members must be manually placed at a station (and which day(s)) in the Generate modal before generating — everyone else fills in from the headcount/tenure quotas, freshly shuffled each day. Drag a card onto another station (same day) to move them, or onto another person to swap — or use the ↻ icon. “On leave” flags approved leave overlapping that specific day."
-          : "“On leave” flags approved leave overlapping that specific day."
+          ? "Immune members must be manually placed at a station (and which day(s)) in the Generate modal before generating — everyone else fills in from the headcount/tenure quotas, freshly shuffled each day. Drag a card onto another station (same day) to move them, or onto another person to swap — or use the ↻ icon. A teal dot next to a name means Immune; a red dot means On leave that day."
+          : "A red dot next to a name means they're on approved leave that day."
       }
     >
       <div className="overflow-x-auto scroll-shadow-x">

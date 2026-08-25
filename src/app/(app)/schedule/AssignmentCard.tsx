@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pill } from "@/components/ui";
 import type { Profile } from "@/lib/database.types";
 import ReassignForm from "./ReassignForm";
 
@@ -117,13 +116,20 @@ export default function AssignmentCard({
       } ${canManage ? "cursor-grab active:cursor-grabbing" : ""} ${pending ? "opacity-50" : ""}`}
     >
       <div className="min-w-0 flex-1">
-        <div className="text-[12px] sm:text-[12.5px] font-medium text-[var(--ink)] truncate">{name}</div>
-        {(isImmune || onLeave) && (
-          <div className="flex flex-wrap items-center gap-1 mt-1">
-            {canManage && isImmune && <Pill tone="accent">Immune</Pill>}
-            {onLeave && <Pill tone="bad">On leave</Pill>}
-          </div>
-        )}
+        {/* Status as a small colored dot inline with the name, not a
+            separate pill row below it — keeps every card the same height
+            regardless of who's immune/on leave (see the mixed-height rows
+            this used to cause), while staying always-visible (not
+            hover-only, which would hide it entirely on touch devices). */}
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-[12px] sm:text-[12.5px] font-medium text-[var(--ink)] truncate">{name}</span>
+          {canManage && isImmune && (
+            <span className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--accent)] shrink-0" title="Immune" aria-label="Immune" />
+          )}
+          {onLeave && (
+            <span className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--bad)] shrink-0" title="On leave" aria-label="On leave" />
+          )}
+        </div>
         {error && <div className="text-[10px] text-[var(--bad)] mt-1">{error}</div>}
       </div>
       {canManage && (
