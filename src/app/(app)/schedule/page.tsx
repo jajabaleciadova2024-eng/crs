@@ -248,9 +248,13 @@ export default async function SchedulePage() {
       blockNextWeekEntirely = true;
     }
 
-    // Also block tomorrow if not yet revealed (5 PM PH rule), even without task blocking
+    // Before 5 PM PH time: block tomorrow AND all following dates (not just tomorrow)
     if (!isTomorrowRevealed()) {
-      blockedDatesCurrentWeek.add(tomorrow);
+      const currentWorkDates = workDatesForWeek(thisWeekStart);
+      for (const d of currentWorkDates) {
+        if (d > today) blockedDatesCurrentWeek.add(d);
+      }
+      blockNextWeekEntirely = true;
     }
   }
 
