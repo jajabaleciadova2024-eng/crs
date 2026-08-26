@@ -3,8 +3,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Panel, Pill, Card, PageHeader } from "@/components/ui";
+import TaskBlockBanner from "./TaskBlockBanner";
+import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import ScheduleCell from "./ScheduleCell";
 import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
@@ -29,6 +32,7 @@ async function WeekPanel({
   canManage,
   associates,
   workstationHeadcounts,
+  hideDatesAfter,
 }: {
   supabase: SupabaseClient;
   week: { id: string; week_start_date: string } | null;
@@ -41,6 +45,8 @@ async function WeekPanel({
   // visible and draggable-into, instead of the TL having to notice a cell
   // just has fewer cards than usual.
   workstationHeadcounts?: Record<string, number>;
+  // When set, hide schedule data for dates strictly after this date (task blocking)
+  hideDatesAfter?: string;
 }) {
   // Work week is Monday–Friday, not the full calendar week — schedule
   // coverage and "on leave" overlap only care about workdays. Each of
@@ -48,7 +54,23 @@ async function WeekPanel({
   // person each day (see 0022_daily_assignments.sql), not one static
   // assignment for the whole week.
   const weekEnd = endOfWorkWeek(weekStart);
-  const workDates = workDatesForWeek(weekStart);
+  const allWorkDates = workDatesForWeek(weekStart);
+  // When blocked, only show dates up to (and including) hideDatesAfter
+  const workDates = hideDatesAfter
+    ? allWorkDates.filter((d) => d <= hideDatesAfter)
+    : allWorkDates;
+
+  // If all dates are hidden (entire week is future), show a message
+  if (workDates.length === 0) {
+    return (
+      <Panel title={`Week of ${formatWeekRange(weekStart)}`}>
+        <div className="py-4 text-[var(--muted)] text-center text-sm">
+          Schedule hidden — complete your pending tasks to view.
+        </div>
+      </Panel>
+    );
+  }
+
   const holidays = holidaysInRange(weekStart, weekEnd);
   const holidayByDate = new Map(holidays.map((h) => [h.date, h.name]));
 
@@ -210,7 +232,33 @@ export default async function SchedulePage() {
   const supabase = await createClient();
   const canManage = canManageOperations(profile.role);
 
-  const thisWeekStart = startOfWorkWeek(todayInManila());
+  const today = todayInManila();
+  const thisWeekStart = startOfWorkWeek(today);
+
+  // --- Task-based schedule blocking (associates/OIC only) ---
+  let blockingTaskCount = 0;
+  if (!canManage) {
+    const admin = createAdminClient();
+    // Fetch tasks assigned to this user or all, that are not yet completed
+    const [{ data: myTasks }, { data: myCompletions }] = await Promise.all([
+      admin
+        .from("member_tasks")
+        .select("id, deadline, blocker_days_before, assign_to")
+        .or(`assign_to.eq.all,assign_to.eq.${profile.id}`),
+      admin
+        .from("member_task_completions")
+        .select("task_id")
+        .eq("profile_id", profile.id),
+    ]);
+    const completedIds = new Set((myCompletions ?? []).map((c: { task_id: string }) => c.task_id));
+    const incompleteTasks = (myTasks ?? []).filter(
+      (t: { id: string }) => !completedIds.has(t.id),
+    );
+    // Count tasks that are currently blocking
+    blockingTaskCount = incompleteTasks.filter(
+      (t: { deadline: string | null; blocker_days_before: number }) => isTaskBlockingToday(t),
+    ).length;
+  }
 
   // latestWeek, associates, and org settings are independent — run
   // together. orgSettings (schedule_cadence) used to be gated behind
@@ -318,17 +366,22 @@ export default async function SchedulePage() {
             canManage={canManage}
             associates={associates ?? []}
             workstationHeadcounts={workstationHeadcounts}
+            hideDatesAfter={blockingTaskCount > 0 ? today : undefined}
           />
         }
         next={
-          <WeekPanel
-            supabase={supabase}
-            week={nextWeek}
-            weekStart={nextWeekStart}
-            canManage={canManage}
-            associates={associates ?? []}
-            workstationHeadcounts={workstationHeadcounts}
-          />
+          blockingTaskCount > 0 ? (
+            <TaskBlockBanner taskCount={blockingTaskCount} />
+          ) : (
+            <WeekPanel
+              supabase={supabase}
+              week={nextWeek}
+              weekStart={nextWeekStart}
+              canManage={canManage}
+              associates={associates ?? []}
+              workstationHeadcounts={workstationHeadcounts}
+            />
+          )
         }
       />
 

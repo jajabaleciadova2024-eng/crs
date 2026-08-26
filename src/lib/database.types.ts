@@ -169,6 +169,25 @@ export interface TicketMessage {
   updated_at: string;
 }
 
+export interface MemberTask {
+  id: string;
+  title: string;
+  description: string | null;
+  deadline: string | null;
+  assign_to: string;
+  blocker_days_before: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MemberTaskCompletion {
+  id: string;
+  task_id: string;
+  profile_id: string;
+  completed_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -323,6 +342,37 @@ export interface Database {
           status?: AccessRequestStatus;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      member_tasks: {
+        Row: MemberTask;
+        Insert: {
+          title: string;
+          description?: string | null;
+          deadline?: string | null;
+          assign_to?: string;
+          blocker_days_before?: number;
+          created_by: string;
+        };
+        Update: {
+          title?: string;
+          description?: string | null;
+          deadline?: string | null;
+          assign_to?: string;
+          blocker_days_before?: number;
+        };
+        Relationships: [];
+      };
+      member_task_completions: {
+        Row: MemberTaskCompletion;
+        Insert: {
+          task_id: string;
+          profile_id: string;
+        };
+        Update: {
+          task_id?: string;
+          profile_id?: string;
         };
         Relationships: [];
       };
