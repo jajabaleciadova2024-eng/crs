@@ -6,13 +6,15 @@
 
 const MANILA_TZ = "Asia/Manila";
 
-// Tomorrow's schedule is only revealed after 5 PM Philippine time —
+// Tomorrow's schedule is only revealed after 12 PM Philippine time —
 // ensures TL has time to assign tasks before associates see it.
+// Only tomorrow is revealed — dates beyond tomorrow stay hidden until
+// their own "day before at 12 PM" arrives.
 export function isTomorrowRevealed(): boolean {
   const hour = Number(
     new Intl.DateTimeFormat("en-US", { timeZone: MANILA_TZ, hour: "numeric", hour12: false }).format(new Date()),
   );
-  return hour >= 17;
+  return hour >= 12;
 }
 
 // Returns today's date as YYYY-MM-DD in Asia/Manila, regardless of the

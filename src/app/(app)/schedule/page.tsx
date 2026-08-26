@@ -246,14 +246,21 @@ export default async function SchedulePage() {
         if (d > today) blockedDatesCurrentWeek.add(d);
       }
       blockNextWeekEntirely = true;
-    }
-
-    // Before 5 PM PH time: block tomorrow AND all following dates (not just tomorrow)
-    if (!isTomorrowRevealed()) {
+    } else {
+      // No task blocking — apply the daily reveal rule:
+      // Only today and (after 12 PM PH) tomorrow are visible.
+      // All dates beyond tomorrow are always blocked.
       const currentWorkDates = workDatesForWeek(thisWeekStart);
       for (const d of currentWorkDates) {
-        if (d > today) blockedDatesCurrentWeek.add(d);
+        if (d > tomorrow) {
+          // Days after tomorrow are always blocked
+          blockedDatesCurrentWeek.add(d);
+        } else if (d === tomorrow && !isTomorrowRevealed()) {
+          // Tomorrow is blocked until 12 PM PH
+          blockedDatesCurrentWeek.add(d);
+        }
       }
+      // Next week is always blocked (revealed day-by-day as each day approaches)
       blockNextWeekEntirely = true;
     }
   }

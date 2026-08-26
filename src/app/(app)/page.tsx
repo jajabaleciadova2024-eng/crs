@@ -183,9 +183,7 @@ export default async function DashboardPage() {
             <div className="text-[13px] font-semibold text-[var(--ink)]">
               {blockingTaskCount > 0
                 ? "🔒 Complete tasks to view"
-                : !tomorrowRevealed && nextWeekStart
-                  ? "Next week: Revealed at 5 PM"
-                  : `Next Week (Mon): ${nextWeekStart ? (myNextStationName ?? "Not assigned") : "Not yet generated"}`}
+                : "🔒 Next week: Revealed daily at 12 PM"}
             </div>
           </a>
         )}
