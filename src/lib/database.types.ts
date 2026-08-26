@@ -181,10 +181,15 @@ export interface MemberTask {
   updated_at: string;
 }
 
+export type TaskCompletionStatus = "pending" | "approved" | "rejected";
+
 export interface MemberTaskCompletion {
   id: string;
   task_id: string;
   profile_id: string;
+  status: TaskCompletionStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
   completed_at: string;
 }
 
@@ -369,9 +374,13 @@ export interface Database {
         Insert: {
           task_id: string;
           profile_id: string;
+          status?: TaskCompletionStatus;
         };
         Update: {
           task_id?: string;
+          status?: TaskCompletionStatus;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
           profile_id?: string;
         };
         Relationships: [];

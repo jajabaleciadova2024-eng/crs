@@ -10,7 +10,7 @@ type NavItem = {
   href: string;
   label: string;
   roles?: Profile["role"][];
-  badgeKey?: "accessRequests" | "pendingLeave";
+  badgeKey?: "accessRequests" | "pendingLeave" | "pendingTasks";
   icon: ReactNode;
 };
 
@@ -103,6 +103,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: "/tasks",
     label: "Members Tasks",
+    badgeKey: "pendingTasks",
     icon: (
       <Icon>
         <path d="M9 11l3 3L22 4" />
@@ -173,11 +174,13 @@ export default function Sidebar({
   profile,
   pendingAccessRequests = 0,
   pendingLeaveRequests = 0,
+  pendingTaskCount = 0,
   realRole,
 }: {
   profile: Profile;
   pendingAccessRequests?: number;
   pendingLeaveRequests?: number;
+  pendingTaskCount?: number;
   realRole?: AppRole;
 }) {
   const initials = `${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase();
@@ -199,7 +202,7 @@ export default function Sidebar({
       <nav className="flex flex-col gap-0.5">
         {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile.role)).map((item) => {
           const badgeCount =
-            item.badgeKey === "accessRequests" ? pendingAccessRequests : item.badgeKey === "pendingLeave" ? pendingLeaveRequests : 0;
+            item.badgeKey === "accessRequests" ? pendingAccessRequests : item.badgeKey === "pendingLeave" ? pendingLeaveRequests : item.badgeKey === "pendingTasks" ? pendingTaskCount : 0;
           return <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} badgeCount={badgeCount} />;
         })}
       </nav>

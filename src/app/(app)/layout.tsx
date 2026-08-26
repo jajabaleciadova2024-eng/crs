@@ -7,6 +7,8 @@ import PreviewBanner from "@/components/PreviewBanner";
 import NotificationBell from "@/components/NotificationBell";
 import UnseenAnnouncementModal from "@/components/announcements/UnseenAnnouncementModal";
 import AutoLogout from "@/components/AutoLogout";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isTaskBlockingToday } from "@/lib/taskBlocking";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, realRole, previewing } = await requireProfileWithPreview();
@@ -44,6 +46,39 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .eq("seen_by_associate", false);
   pendingLeaveRequests += unseenDecisions ?? 0;
 
+  // --- Pending task count for sidebar badge ---
+  let pendingTaskCount = 0;
+  const admin = createAdminClient();
+  if (canManageOperations(profile.role)) {
+    // TL: count completions awaiting approval
+    const { count } = await admin
+      .from("member_task_completions")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+    pendingTaskCount = count ?? 0;
+  } else {
+    // Associate/OIC: count incomplete blocking tasks (without approved completion)
+    const [{ data: myTasks }, { data: myCompletions }] = await Promise.all([
+      admin
+        .from("member_tasks")
+        .select("id, deadline, blocker_days_before, assign_to")
+        .or(`assign_to.eq.all,assign_to.eq.${profile.id}`),
+      admin
+        .from("member_task_completions")
+        .select("task_id, status")
+        .eq("profile_id", profile.id),
+    ]);
+    const approvedIds = new Set(
+      (myCompletions ?? [])
+        .filter((c: { status: string }) => c.status === "approved")
+        .map((c: { task_id: string }) => c.task_id),
+    );
+    pendingTaskCount = (myTasks ?? []).filter(
+      (t: { id: string; deadline: string | null; blocker_days_before: number }) =>
+        !approvedIds.has(t.id) && isTaskBlockingToday(t),
+    ).length;
+  }
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       <SidebarShell>
@@ -51,6 +86,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           profile={profile}
           pendingAccessRequests={pendingAccessRequests}
           pendingLeaveRequests={pendingLeaveRequests}
+          pendingTaskCount={pendingTaskCount}
           realRole={realRole}
         />
       </SidebarShell>

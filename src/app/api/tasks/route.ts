@@ -22,13 +22,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Fetch completions for the current user
+  // Fetch completions for the current user (with status)
   const { data: myCompletions } = await admin
     .from("member_task_completions")
-    .select("task_id")
+    .select("task_id, status")
     .eq("profile_id", user.id);
 
-  const completedIds = new Set((myCompletions ?? []).map((c: { task_id: string }) => c.task_id));
+  // Only approved completions count as "done"
+  const approvedIds = new Set(
+    (myCompletions ?? []).filter((c: { status: string }) => c.status === "approved").map((c: { task_id: string }) => c.task_id),
+  );
+  // Build a status map for per-task completionStatus
+  const myStatusMap = new Map(
+    (myCompletions ?? []).map((c: { task_id: string; status: string }) => [c.task_id, c.status]),
+  );
 
   // Fetch all completions (for TL to see progress)
   const { data: profile } = await admin
@@ -37,11 +44,11 @@ export async function GET(request: Request) {
     .eq("id", user.id)
     .single();
 
-  let allCompletions: { task_id: string; profile_id: string; completed_at: string; profiles: { first_name: string; last_name: string } | null }[] = [];
+  let allCompletions: { id: string; task_id: string; profile_id: string; status: string; completed_at: string; profiles: { first_name: string; last_name: string } | null }[] = [];
   if (profile?.role === "team_leader") {
     const { data } = await admin
       .from("member_task_completions")
-      .select("task_id, profile_id, completed_at, profiles(first_name, last_name)")
+      .select("id, task_id, profile_id, status, completed_at, profiles(first_name, last_name)")
       .order("completed_at", { ascending: false });
     allCompletions = (data ?? []) as unknown as typeof allCompletions;
   }
@@ -54,7 +61,8 @@ export async function GET(request: Request) {
 
   const enriched = filtered.map((t: { id: string; assign_to: string }) => ({
     ...t,
-    completed: completedIds.has(t.id),
+    completed: approvedIds.has(t.id),
+    completionStatus: (myStatusMap.get(t.id) as string | undefined) ?? "none",
     completions: profile?.role === "team_leader"
       ? allCompletions.filter((c) => c.task_id === t.id)
       : undefined,

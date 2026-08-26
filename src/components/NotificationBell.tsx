@@ -10,7 +10,7 @@ type Notification = {
   id: string;
   recipient_id: string;
   actor_id: string;
-  type: "post_reaction" | "post_comment" | "comment_mention" | "announcement" | "ticket_new" | "ticket_reply";
+  type: "post_reaction" | "post_comment" | "comment_mention" | "announcement" | "ticket_new" | "ticket_reply" | "task_submitted" | "task_reviewed";
   post_id: string | null;
   comment_id: string | null;
   reaction: string | null;
@@ -52,6 +52,8 @@ function describe(n: Notification): string {
   if (n.type === "announcement") return `${name} posted a new announcement`;
   if (n.type === "ticket_new") return "New anonymous concern submitted";
   if (n.type === "ticket_reply") return "New reply on your concern";
+  if (n.type === "task_submitted") return `${name} submitted a task for approval`;
+  if (n.type === "task_reviewed") return `${name} reviewed your task completion`;
   return "";
 }
 
@@ -204,13 +206,17 @@ export default function NotificationBell({ userId }: { userId: string }) {
               items.map((n) => (
                 <Link
                   key={n.id}
-                  href={n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
+                  href={n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.type === "task_submitted" || n.type === "task_reviewed" ? "/tasks" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
                   onClick={() => setOpen(false)}
                   className={`flex items-start gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0 hover:bg-[var(--accent-soft)]/30 transition-colors ${
                     !n.read ? "bg-[var(--accent-soft)]/15" : ""
                   }`}
                 >
-                  {n.type === "ticket_new" || n.type === "ticket_reply" ? (
+                  {n.type === "task_submitted" || n.type === "task_reviewed" ? (
+                    <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-sm shrink-0">
+                      ✅
+                    </span>
+                  ) : n.type === "ticket_new" || n.type === "ticket_reply" ? (
                     <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-sm shrink-0">
                       🛡️
                     </span>

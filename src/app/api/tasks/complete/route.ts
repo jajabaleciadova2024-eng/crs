@@ -19,32 +19,33 @@ export async function POST(request: Request) {
   // Verify the task exists and is assigned to this user (or all)
   const { data: task } = await admin
     .from("member_tasks")
-    .select("id, assign_to")
+    .select("id, assign_to, title")
     .eq("id", task_id)
     .single();
 
   if (!task) return NextResponse.json({ error: "Task not found." }, { status: 404 });
 
-  const { data: profile } = await admin.from("profiles").select("role").eq("id", user.id).single();
+  const { data: profile } = await admin.from("profiles").select("role, first_name, last_name").eq("id", user.id).single();
 
   if (task.assign_to !== "all" && task.assign_to !== user.id && profile?.role !== "team_leader") {
     return NextResponse.json({ error: "This task is not assigned to you." }, { status: 403 });
   }
 
   if (undo) {
-    // Remove completion
-    const { error } = await admin
+    // Can only undo pending completions (not approved ones)
+    const { data: deleted } = await admin
       .from("member_task_completions")
       .delete()
       .eq("task_id", task_id)
-      .eq("profile_id", user.id);
+      .eq("profile_id", user.id)
+      .eq("status", "pending")
+      .select("id");
 
-    if (error) {
-      console.error("[tasks/complete] undo error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!deleted || deleted.length === 0) {
+      return NextResponse.json({ error: "Cannot undo — completion is already approved or does not exist." }, { status: 400 });
     }
   } else {
-    // Insert completion (ignore duplicate)
+    // Insert completion with status 'pending' (awaiting TL approval)
     const { error } = await supabase
       .from("member_task_completions")
       .insert({ task_id, profile_id: user.id });
@@ -52,6 +53,26 @@ export async function POST(request: Request) {
     if (error && !error.message.includes("duplicate")) {
       console.error("[tasks/complete] POST error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Notify all Team Leaders about the submission
+    const { data: leaders } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("role", "team_leader")
+      .eq("is_active", true);
+
+    if (leaders && leaders.length > 0) {
+      const notifications = leaders.map((tl) => ({
+        recipient_id: tl.id,
+        actor_id: user.id,
+        type: "task_submitted" as const,
+        post_id: null,
+        comment_id: null,
+        reaction: null,
+        read: false,
+      }));
+      await admin.from("notifications").insert(notifications);
     }
   }
 

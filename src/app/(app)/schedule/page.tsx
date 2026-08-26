@@ -13,7 +13,7 @@ import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
 import RotationSettingsPanel from "./RotationSettingsPanel";
 import WeekTabs from "./WeekTabs";
-import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays, workDatesForWeek, weekdayShortLabel } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays, workDatesForWeek, weekdayShortLabel, isTomorrowRevealed } from "@/lib/scheduleDates";
 import { holidaysInRange } from "@/lib/phHolidays";
 import { formatFullName } from "@/lib/format";
 import { compareStationNames } from "@/lib/stationOrder";
@@ -32,44 +32,21 @@ async function WeekPanel({
   canManage,
   associates,
   workstationHeadcounts,
-  hideDatesAfter,
+  blockedDates,
 }: {
   supabase: SupabaseClient;
   week: { id: string; week_start_date: string } | null;
   weekStart: string;
   canManage: boolean;
   associates: { id: string; first_name: string; last_name: string }[];
-  // Station id -> fixed headcount, used to render "open seat" placeholders
-  // for cells that fell short that day (e.g. a manpower shortfall — see
-  // GenerateButton's own headcount-vs-active warning) — makes the gap
-  // visible and draggable-into, instead of the TL having to notice a cell
-  // just has fewer cards than usual.
   workstationHeadcounts?: Record<string, number>;
-  // When set, hide schedule data for dates strictly after this date (task blocking)
-  hideDatesAfter?: string;
+  // Dates that should show a placeholder lock instead of real data
+  blockedDates?: Set<string>;
 }) {
-  // Work week is Monday–Friday, not the full calendar week — schedule
-  // coverage and "on leave" overlap only care about workdays. Each of
-  // these 5 dates is now its own column: a station can have a different
-  // person each day (see 0022_daily_assignments.sql), not one static
-  // assignment for the whole week.
   const weekEnd = endOfWorkWeek(weekStart);
   const allWorkDates = workDatesForWeek(weekStart);
-  // When blocked, only show dates up to (and including) hideDatesAfter
-  const workDates = hideDatesAfter
-    ? allWorkDates.filter((d) => d <= hideDatesAfter)
-    : allWorkDates;
-
-  // If all dates are hidden (entire week is future), show a message
-  if (workDates.length === 0) {
-    return (
-      <Panel title={`Week of ${formatWeekRange(weekStart)}`}>
-        <div className="py-4 text-[var(--muted)] text-center text-sm">
-          Schedule hidden — complete your pending tasks to view.
-        </div>
-      </Panel>
-    );
-  }
+  // Always render all 5 day columns — blocked dates get placeholder cells
+  const workDates = allWorkDates;
 
   const holidays = holidaysInRange(weekStart, weekEnd);
   const holidayByDate = new Map(holidays.map((h) => [h.date, h.name]));
@@ -81,14 +58,10 @@ async function WeekPanel({
         .eq("schedule_week_id", week.id)
     : { data: [] };
 
-  // workstation_id is a UUID (arbitrary order) — sort by the Team
-  // Leader's standing station order instead, same as the dashboard.
   const assignments = rawAssignments
     ? [...rawAssignments].sort((a: any, b: any) => compareStationNames(a.workstations?.name ?? "", b.workstations?.name ?? ""))
     : rawAssignments;
 
-  // Distinct stations in that standing order, deduped from the flat
-  // assignment list (a station might not have an assignment on every day).
   const stationOrder: { id: string; name: string }[] = [];
   const seenStations = new Set<string>();
   for (const a of assignments ?? []) {
@@ -97,9 +70,6 @@ async function WeekPanel({
     stationOrder.push({ id: a.workstation_id, name: a.workstations?.name ?? "" });
   }
 
-  // (workstation_id, assignment_date) -> that cell's assignment row(s) —
-  // usually one, but a station's headcount can allow more than one person
-  // the same day.
   const cellAssignments = new Map<string, any[]>();
   for (const a of assignments ?? []) {
     const key = `${a.workstation_id}::${a.assignment_date}`;
@@ -108,9 +78,6 @@ async function WeekPanel({
     cellAssignments.set(key, list);
   }
 
-  // "On leave" flag: approved leave overlapping the SPECIFIC day being
-  // shown, for whoever's assigned that day — visibility only, TL decides
-  // whether/how to reassign (see ReassignForm above).
   const assignedIds = [...new Set((assignments ?? []).map((a: any) => a.associate_id))];
   const { data: leaveOnRecord } =
     assignedIds.length > 0
@@ -130,10 +97,6 @@ async function WeekPanel({
     return (leaveRangesByAssociate.get(associateId) ?? []).some((r) => rangesOverlap(r.start_date, r.end_date, date, date));
   }
 
-  // Who's already seated where on EACH day, by associate id — passed into
-  // that day's ReassignForm so its dropdown can warn "picking them swaps
-  // with Station X" instead of a surprise, scoped to that one day since a
-  // person is normally at a different station on different days now.
   const stationByAssociatePerDate = new Map<string, Record<string, string>>();
   for (const date of workDates) {
     const map: Record<string, string> = {};
@@ -188,6 +151,16 @@ async function WeekPanel({
                     {station.name}
                   </td>
                   {workDates.map((date) => {
+                    const isBlocked = blockedDates?.has(date);
+                    if (isBlocked) {
+                      return (
+                        <td key={date} className="px-2 sm:px-3 py-2 border-b border-l border-[var(--line)] align-top">
+                          <div className="flex items-center justify-center py-3 text-[var(--muted)] text-[11px] text-center">
+                            <span>🔒</span>
+                          </div>
+                        </td>
+                      );
+                    }
                     const cell = cellAssignments.get(`${station.id}::${date}`) ?? [];
                     const entries = cell.map((a: any) => ({
                       assignmentId: a.id as string,
@@ -234,12 +207,15 @@ export default async function SchedulePage() {
 
   const today = todayInManila();
   const thisWeekStart = startOfWorkWeek(today);
+  const tomorrow = addDays(today, 1);
 
   // --- Task-based schedule blocking (associates/OIC only) ---
+  // Only APPROVED completions unlock schedule — pending/rejected don't count
   let blockingTaskCount = 0;
+  let blockedDatesCurrentWeek = new Set<string>();
+  let blockNextWeekEntirely = false;
   if (!canManage) {
     const admin = createAdminClient();
-    // Fetch tasks assigned to this user or all, that are not yet completed
     const [{ data: myTasks }, { data: myCompletions }] = await Promise.all([
       admin
         .from("member_tasks")
@@ -247,23 +223,37 @@ export default async function SchedulePage() {
         .or(`assign_to.eq.all,assign_to.eq.${profile.id}`),
       admin
         .from("member_task_completions")
-        .select("task_id")
+        .select("task_id, status")
         .eq("profile_id", profile.id),
     ]);
-    const completedIds = new Set((myCompletions ?? []).map((c: { task_id: string }) => c.task_id));
-    const incompleteTasks = (myTasks ?? []).filter(
-      (t: { id: string }) => !completedIds.has(t.id),
+    // Only approved completions count
+    const approvedIds = new Set(
+      (myCompletions ?? [])
+        .filter((c: { status: string }) => c.status === "approved")
+        .map((c: { task_id: string }) => c.task_id),
     );
-    // Count tasks that are currently blocking
+    const incompleteTasks = (myTasks ?? []).filter(
+      (t: { id: string }) => !approvedIds.has(t.id),
+    );
     blockingTaskCount = incompleteTasks.filter(
       (t: { deadline: string | null; blocker_days_before: number }) => isTaskBlockingToday(t),
     ).length;
+
+    if (blockingTaskCount > 0) {
+      // Block future dates: tomorrow and beyond in current week
+      const currentWorkDates = workDatesForWeek(thisWeekStart);
+      for (const d of currentWorkDates) {
+        if (d > today) blockedDatesCurrentWeek.add(d);
+      }
+      blockNextWeekEntirely = true;
+    }
+
+    // Also block tomorrow if not yet revealed (5 PM PH rule), even without task blocking
+    if (!isTomorrowRevealed()) {
+      blockedDatesCurrentWeek.add(tomorrow);
+    }
   }
 
-  // latestWeek, associates, and org settings are independent — run
-  // together. orgSettings (schedule_cadence) used to be gated behind
-  // canManage, but every role now needs it to know what "next week" means
-  // for the second panel below, not just the Team Leader.
   const [{ data: latestWeek }, { data: associates }, { data: activeWorkstations }, { data: allActive }, { data: orgSettings }] =
     await Promise.all([
       supabase.from("schedule_weeks").select("*").order("week_start_date", { ascending: false }).limit(1).maybeSingle(),
@@ -273,12 +263,6 @@ export default async function SchedulePage() {
       canManage
         ? supabase.from("workstations").select("id, name, headcount").eq("is_active", true).order("name")
         : Promise.resolve({ data: [] }),
-      // Headcount/tenure totals for the stats strip + "Generate" quota modal
-      // — includes everyone active (Team Leader, OIC, associates) for the
-      // headcount total; Tenured/New Hire totals include OIC too now (Team
-      // Leader's explicit instruction: tenure applies to OIC the same as
-      // associates, not just an associate-only concept — see schedule.ts).
-      // psid is only for the Rotation Settings panel's sort order.
       canManage
         ? supabase.from("profiles").select("id, first_name, last_name, psid, role, is_immune, tenure_group").eq("is_active", true)
         : Promise.resolve({ data: [] }),
@@ -288,43 +272,33 @@ export default async function SchedulePage() {
   const cadenceDays = orgSettings?.schedule_cadence === "biweekly" ? 14 : 7;
   const nextWeekStart = addDays(thisWeekStart, cadenceDays);
 
-  // Default week to prefill the Generate modal's (editable) week picker
-  // with — the week after whatever's already scheduled furthest out, or
-  // after this week if nothing's scheduled yet. Just a starting
-  // suggestion: the Team Leader can change it to any week, and the API
-  // route validates/normalizes whatever they actually submit.
   const defaultGenerateWeekStart = addDays(
     latestWeek && latestWeek.week_start_date >= thisWeekStart ? latestWeek.week_start_date : thisWeekStart,
     cadenceDays
   );
 
-  // Team Leader's standing station order (Screener, Collecting Officer,
-  // Premium Annotation, Releasing Officer, PACD, Electronic Endorsement),
-  // not the DB's alphabetical order — feeds the Generate modal's station
-  // table and immune-placement dropdown.
   const sortedWorkstations = [...(activeWorkstations ?? [])].sort((a, b) => compareStationNames(a.name, b.name));
   const workstationHeadcounts: Record<string, number> = Object.fromEntries((activeWorkstations ?? []).map((w) => [w.id, w.headcount]));
 
   const totalMembers = allActive?.length ?? 0;
   const totalTenured = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "tenured").length;
   const totalNewHire = (allActive ?? []).filter((p) => p.role !== "team_leader" && p.tenure_group === "new_hire").length;
-  // Everyone immune (Team Leader/OIC/associates, not Team Leader — they
-  // don't rotate) must be explicitly placed at a station in the modal
-  // before generating is allowed — see GenerateButton + the API route.
   const immuneMembers = (allActive ?? [])
     .filter((p) => p.is_immune && p.role !== "team_leader")
     .map((p) => ({ id: p.id, name: `${p.first_name} ${p.last_name}` }));
 
-  // Current and next week are looked up as their own exact-date queries —
-  // NOT derived from `latestWeek` (the single most-recently-generated row
-  // overall). Once a week further out than "this week" gets generated,
-  // `latestWeek` becomes THAT row, and comparing it against thisWeekStart
-  // would always miss an already-generated current week's schedule (this
-  // was hiding an existing current-week schedule entirely).
   const [{ data: currentWeek }, { data: nextWeek }] = await Promise.all([
     supabase.from("schedule_weeks").select("id, week_start_date").eq("week_start_date", thisWeekStart).maybeSingle(),
     supabase.from("schedule_weeks").select("id, week_start_date").eq("week_start_date", nextWeekStart).maybeSingle(),
   ]);
+
+  // Build blocked dates set for next week
+  const nextWeekBlockedDates = new Set<string>();
+  if (blockNextWeekEntirely) {
+    for (const d of workDatesForWeek(nextWeekStart)) {
+      nextWeekBlockedDates.add(d);
+    }
+  }
 
   return (
     <>
@@ -353,10 +327,12 @@ export default async function SchedulePage() {
         </div>
       )}
 
-      {/* One frame, tab-switched — Current is the default/left tab, Next
-          is the right tab, only the selected week's table shows at a
-          time (both are still fetched up front; WeekTabs just toggles
-          which one is visible). */}
+      {!canManage && blockingTaskCount > 0 && (
+        <div className="mb-4">
+          <TaskBlockBanner taskCount={blockingTaskCount} />
+        </div>
+      )}
+
       <WeekTabs
         current={
           <WeekPanel
@@ -366,12 +342,20 @@ export default async function SchedulePage() {
             canManage={canManage}
             associates={associates ?? []}
             workstationHeadcounts={workstationHeadcounts}
-            hideDatesAfter={blockingTaskCount > 0 ? today : undefined}
+            blockedDates={blockedDatesCurrentWeek.size > 0 ? blockedDatesCurrentWeek : undefined}
           />
         }
         next={
-          blockingTaskCount > 0 ? (
-            <TaskBlockBanner taskCount={blockingTaskCount} />
+          blockNextWeekEntirely ? (
+            <WeekPanel
+              supabase={supabase}
+              week={nextWeek}
+              weekStart={nextWeekStart}
+              canManage={canManage}
+              associates={associates ?? []}
+              workstationHeadcounts={workstationHeadcounts}
+              blockedDates={nextWeekBlockedDates}
+            />
           ) : (
             <WeekPanel
               supabase={supabase}
@@ -394,8 +378,6 @@ export default async function SchedulePage() {
           <RotationSettingsPanel
             members={(allActive ?? [])
               .filter((p) => p.role !== "team_leader")
-              // Same PSID-numeric-first sort as Team & Roles, so the two
-              // rosters line up in the same order.
               .sort((a, b) => {
                 const numA = Number(a.psid);
                 const numB = Number(b.psid);

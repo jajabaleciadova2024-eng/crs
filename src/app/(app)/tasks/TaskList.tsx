@@ -4,20 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import TaskCard from "./TaskCard";
+import type { TaskData } from "./TaskCard";
 import TaskModal from "./TaskModal";
-
-interface TaskData {
-  id: string;
-  title: string;
-  description: string | null;
-  deadline: string | null;
-  assign_to: string;
-  blocker_days_before: number;
-  completed: boolean;
-  created_at: string;
-  profiles?: { first_name: string; last_name: string } | null;
-  completions?: { profile_id: string; completed_at: string; profiles: { first_name: string; last_name: string } | null }[];
-}
 
 export default function TaskList({
   tasks,
@@ -34,11 +22,18 @@ export default function TaskList({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Build a name map for individual assignments
   const nameMap = new Map(members.map((m) => [m.id, `${m.first_name} ${m.last_name}`]));
 
-  const pending = tasks.filter((t) => !t.completed);
-  const completed = tasks.filter((t) => t.completed);
+  // For TL: tasks with pending completions at the top
+  const hasPendingCompletions = canManage
+    ? tasks.filter((t) => t.completions?.some((c) => c.status === "pending"))
+    : [];
+  const incomplete = tasks.filter(
+    (t) => t.completionStatus !== "approved" && !hasPendingCompletions.includes(t),
+  );
+  const approved = tasks.filter(
+    (t) => t.completionStatus === "approved" && !hasPendingCompletions.includes(t),
+  );
 
   async function handleDelete() {
     if (!deleteId) return;
@@ -53,6 +48,19 @@ export default function TaskList({
     router.refresh();
   }
 
+  function renderCards(list: TaskData[]) {
+    return list.map((t) => (
+      <TaskCard
+        key={t.id}
+        task={t}
+        canManage={canManage}
+        assigneeName={t.assign_to !== "all" ? nameMap.get(t.assign_to) : undefined}
+        onEdit={() => { setEditTask(t); setShowModal(true); }}
+        onDelete={() => setDeleteId(t.id)}
+      />
+    ));
+  }
+
   return (
     <>
       {canManage && (
@@ -63,46 +71,33 @@ export default function TaskList({
         </div>
       )}
 
-      {pending.length === 0 && completed.length === 0 && (
+      {tasks.length === 0 && (
         <p className="text-[var(--muted)] text-sm py-6 text-center">No tasks yet.</p>
       )}
 
-      {pending.length > 0 && (
-        <div className="flex flex-col gap-2 mb-4">
-          {pending.map((t) => (
-            <TaskCard
-              key={t.id}
-              task={t}
-              canManage={canManage}
-              assigneeName={t.assign_to !== "all" ? nameMap.get(t.assign_to) : undefined}
-              onEdit={() => { setEditTask(t); setShowModal(true); }}
-              onDelete={() => setDeleteId(t.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {completed.length > 0 && (
+      {/* TL: Pending Approvals section */}
+      {hasPendingCompletions.length > 0 && (
         <>
-          <h3 className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-2 mt-4">
-            Completed ({completed.length})
+          <h3 className="text-[11px] uppercase tracking-wider text-[var(--warn)] font-semibold mb-2">
+            Pending Approvals ({hasPendingCompletions.length})
           </h3>
-          <div className="flex flex-col gap-2">
-            {completed.map((t) => (
-              <TaskCard
-                key={t.id}
-                task={t}
-                canManage={canManage}
-                assigneeName={t.assign_to !== "all" ? nameMap.get(t.assign_to) : undefined}
-                onEdit={() => { setEditTask(t); setShowModal(true); }}
-                onDelete={() => setDeleteId(t.id)}
-              />
-            ))}
-          </div>
+          <div className="flex flex-col gap-2 mb-4">{renderCards(hasPendingCompletions)}</div>
         </>
       )}
 
-      {/* Add/Edit Modal */}
+      {incomplete.length > 0 && (
+        <div className="flex flex-col gap-2 mb-4">{renderCards(incomplete)}</div>
+      )}
+
+      {approved.length > 0 && (
+        <>
+          <h3 className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-2 mt-4">
+            Completed ({approved.length})
+          </h3>
+          <div className="flex flex-col gap-2">{renderCards(approved)}</div>
+        </>
+      )}
+
       {showModal && (
         <TaskModal
           members={members}
@@ -111,7 +106,6 @@ export default function TaskList({
         />
       )}
 
-      {/* Delete Confirmation */}
       {deleteId && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 px-4" onClick={() => setDeleteId(null)}>
           <div

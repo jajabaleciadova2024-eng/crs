@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
-import { todayInManila, startOfWorkWeek, isWorkday } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed } from "@/lib/scheduleDates";
+import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { toTitleCase, formatFullName } from "@/lib/format";
 import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
 import SocialFeed from "@/components/feed/SocialFeed";
@@ -116,6 +117,33 @@ export default async function DashboardPage() {
   const myCurrentStationName = (myCurrentAssignment as any)?.workstations?.name as string | undefined;
   const myNextStationName = (myNextAssignment as any)?.workstations?.name as string | undefined;
 
+  // --- Task blocking for associates/OIC ---
+  let blockingTaskCount = 0;
+  if (isRotatingRole) {
+    const adminClient = createAdminClient();
+    const [{ data: dashTasks }, { data: dashCompletions }] = await Promise.all([
+      adminClient
+        .from("member_tasks")
+        .select("id, deadline, blocker_days_before, assign_to")
+        .or(`assign_to.eq.all,assign_to.eq.${profile.id}`),
+      adminClient
+        .from("member_task_completions")
+        .select("task_id, status")
+        .eq("profile_id", profile.id),
+    ]);
+    const dashApprovedIds = new Set(
+      (dashCompletions ?? [])
+        .filter((c: { status: string }) => c.status === "approved")
+        .map((c: { task_id: string }) => c.task_id),
+    );
+    blockingTaskCount = (dashTasks ?? []).filter(
+      (t: { id: string; deadline: string | null; blocker_days_before: number }) =>
+        !dashApprovedIds.has(t.id) && isTaskBlockingToday(t),
+    ).length;
+  }
+
+  const tomorrowRevealed = isTomorrowRevealed();
+
   return (
     <>
       <PageHeader>
@@ -143,11 +171,31 @@ export default async function DashboardPage() {
       >
         <Card label="Seats filled" value={`${stationsManned} / ${totalStations}`} sub={week ? "Today's coverage" : "No schedule published yet"} />
         {isRotatingRole && (
-          <Card
-            label="Next Week's Station (Mon)"
+          <a
             href="/schedule"
-            value={nextWeekStart ? (myNextStationName ?? "Not assigned") : "Not yet generated"}
-            sub={`Today: ${week ? (myCurrentStationName ?? "not assigned") : "no schedule yet"}`}
+            className="border border-[var(--line)] rounded-xl bg-[var(--paper-raised)] p-3.5 hover:border-[var(--accent)] transition-colors block"
+          >
+            <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">Station</div>
+            <div className="text-[13px] font-semibold text-[var(--ink)]">
+              Today: {week ? (myCurrentStationName ?? "Not assigned") : "No schedule yet"}
+            </div>
+            <div className="border-t border-[var(--line)] my-1.5" />
+            <div className="text-[13px] font-semibold text-[var(--ink)]">
+              {blockingTaskCount > 0
+                ? "🔒 Complete tasks to view"
+                : !tomorrowRevealed && nextWeekStart
+                  ? "Next week: Revealed at 5 PM"
+                  : `Next Week (Mon): ${nextWeekStart ? (myNextStationName ?? "Not assigned") : "Not yet generated"}`}
+            </div>
+          </a>
+        )}
+        {isRotatingRole && blockingTaskCount > 0 && (
+          <Card
+            label="Pending Tasks"
+            href="/tasks"
+            value={String(blockingTaskCount)}
+            sub="Complete to unlock schedule"
+            tone="warn"
           />
         )}
         <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} />

@@ -11,7 +11,7 @@ export default async function TasksPage() {
   const canManage = canManageOperations(profile.role);
   const admin = createAdminClient();
 
-  // Fetch tasks and members in parallel
+  // Fetch tasks, completions, and members in parallel
   const [{ data: tasks }, { data: myCompletions }, { data: allCompletions }, { data: members }] =
     await Promise.all([
       admin
@@ -20,12 +20,12 @@ export default async function TasksPage() {
         .order("created_at", { ascending: false }),
       admin
         .from("member_task_completions")
-        .select("task_id")
+        .select("task_id, status")
         .eq("profile_id", profile.id),
       canManage
         ? admin
             .from("member_task_completions")
-            .select("task_id, profile_id, completed_at, profiles(first_name, last_name)")
+            .select("id, task_id, profile_id, status, completed_at, profiles(first_name, last_name)")
             .order("completed_at", { ascending: false })
         : Promise.resolve({ data: [] }),
       canManage
@@ -33,7 +33,16 @@ export default async function TasksPage() {
         : admin.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name"),
     ]);
 
-  const completedIds = new Set((myCompletions ?? []).map((c: { task_id: string }) => c.task_id));
+  // Only approved completions count as truly done
+  const approvedIds = new Set(
+    (myCompletions ?? [])
+      .filter((c: { status: string }) => c.status === "approved")
+      .map((c: { task_id: string }) => c.task_id),
+  );
+  // Per-task status map
+  const myStatusMap = new Map(
+    (myCompletions ?? []).map((c: { task_id: string; status: string }) => [c.task_id, c.status]),
+  );
 
   // Filter tasks: associates/OIC only see tasks assigned to 'all' or to them
   const filtered = (tasks ?? []).filter(
@@ -42,7 +51,7 @@ export default async function TasksPage() {
 
   const enriched = filtered.map((t: any) => ({
     ...t,
-    completed: completedIds.has(t.id),
+    completionStatus: (myStatusMap.get(t.id) as string | undefined) ?? "none",
     completions: canManage
       ? (allCompletions ?? []).filter((c: any) => c.task_id === t.id)
       : undefined,
@@ -60,8 +69,8 @@ export default async function TasksPage() {
         hint={canManage ? "Team Leader" : undefined}
         footnote={
           canManage
-            ? "Add tasks for all members or specific individuals. Tasks with a deadline will block schedule viewing X days before the deadline. Tasks without a deadline block immediately until completed."
-            : "Complete all pending tasks to unlock access to your upcoming schedule."
+            ? "Add tasks for all members or specific individuals. Tasks with a deadline will block schedule viewing X days before the deadline. Tasks without a deadline block immediately until completed. You must approve completed tasks before they unlock schedules."
+            : "Complete all pending tasks to unlock access to your upcoming schedule. Your Team Leader must approve completions."
         }
       >
         <TaskList
