@@ -96,9 +96,28 @@ export function DocumentLinks({ requestId, canDownload }: { requestId: string; c
 
   return (
     <div className="flex flex-col gap-1 items-start">
-      <Button type="button" variant="primary" style={{ padding: "5px 10px" }} disabled={loading} onClick={openModal}>
-        {loading ? "Opening…" : "View"}
-      </Button>
+      {/* Same 28px square icon button as the Approve/Reject/Delete actions
+          in LeaveQueueTable, so the Document and Actions columns read as one
+          row of controls instead of a filled pill next to three outlines. */}
+      <button
+        type="button"
+        onClick={openModal}
+        disabled={loading}
+        title={loading ? "Opening…" : "View document"}
+        aria-label={loading ? "Opening document" : "View document"}
+        className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--accent-strong)] transition-colors cursor-pointer hover:bg-[var(--accent-soft)] hover:border-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        {loading ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="animate-spin">
+            <path d="M21 12a9 9 0 1 1-6.22-8.56" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        )}
+      </button>
       {error && <span className="text-[11px] text-[var(--bad)]">{error}</span>}
 
       {links && (
