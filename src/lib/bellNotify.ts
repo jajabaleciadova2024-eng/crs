@@ -12,12 +12,15 @@ export type BellType =
   | "task_assigned"
   | "leave_submitted"
   | "leave_reviewed"
-  | "schedule_published";
+  | "schedule_published"
+  | "post_new";
 
 export async function bellNotify(
   recipientIds: string[],
   actorId: string,
   type: BellType,
+  // Set for post-scoped types so the bell can deep-link to the post.
+  postId: string | null = null,
 ): Promise<void> {
   // Don't notify someone about their own action.
   const targets = [...new Set(recipientIds)].filter((id) => id && id !== actorId);
@@ -30,7 +33,7 @@ export async function bellNotify(
         recipient_id,
         actor_id: actorId,
         type,
-        post_id: null,
+        post_id: postId,
         comment_id: null,
         reaction: null,
         read: false,

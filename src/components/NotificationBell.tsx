@@ -14,7 +14,8 @@ type Notification = {
     | "post_reaction" | "post_comment" | "comment_mention" | "announcement"
     | "ticket_new" | "ticket_reply"
     | "task_submitted" | "task_reviewed" | "task_assigned"
-    | "leave_submitted" | "leave_reviewed" | "schedule_published";
+    | "leave_submitted" | "leave_reviewed" | "schedule_published"
+    | "post_new";
   post_id: string | null;
   comment_id: string | null;
   reaction: string | null;
@@ -62,6 +63,7 @@ function describe(n: Notification): string {
   if (n.type === "leave_submitted") return `${name} filed a leave request`;
   if (n.type === "leave_reviewed") return `${name} reviewed your leave request`;
   if (n.type === "schedule_published") return `${name} published a new schedule`;
+  if (n.type === "post_new") return `${name} shared a new post`;
   return "";
 }
 

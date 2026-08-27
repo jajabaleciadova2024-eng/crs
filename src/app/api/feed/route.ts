@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { bellNotify, allActiveMemberIds } from "@/lib/bellNotify";
 
 const FEED_SELECT = `*, profiles!posts_author_id_fkey(first_name, last_name, avatar_url, role),
    post_reactions(id, profile_id, reaction),
@@ -89,6 +90,9 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
   const { data: post } = await admin.from("posts").select(FEED_SELECT).eq("id", inserted.id).single();
+
+  // Tell everyone else there's a new post (bellNotify skips the author).
+  await bellNotify(await allActiveMemberIds(), user.id, "post_new", inserted.id);
 
   return NextResponse.json({ post });
 }
