@@ -34,6 +34,7 @@ async function WeekPanel({
   workstationHeadcounts,
   blockedDates,
   viewerId,
+  allStations,
 }: {
   supabase: SupabaseClient;
   week: { id: string; week_start_date: string } | null;
@@ -47,6 +48,11 @@ async function WeekPanel({
   // else's profile row, so those seats would otherwise render as blank
   // nameless cards. Filtering to this id keeps the grid clean.
   viewerId?: string;
+  // Every active station, in standing order. Non-managers render ALL of
+  // them as rows: if rows came only from the member's own assignments, a
+  // row's mere presence would reveal the station they're at on a day that
+  // is still locked (a lone otherwise-empty row = that's Friday's station).
+  allStations?: { id: string; name: string }[];
 }) {
   const weekEnd = endOfWorkWeek(weekStart);
   const allWorkDates = workDatesForWeek(weekStart);
@@ -74,12 +80,18 @@ async function WeekPanel({
     compareStationNames(a.workstations?.name ?? "", b.workstations?.name ?? ""),
   );
 
-  const stationOrder: { id: string; name: string }[] = [];
-  const seenStations = new Set<string>();
-  for (const a of assignments ?? []) {
-    if (seenStations.has(a.workstation_id)) continue;
-    seenStations.add(a.workstation_id);
-    stationOrder.push({ id: a.workstation_id, name: a.workstations?.name ?? "" });
+  // Managers: rows come from what's actually assigned. Everyone else: the
+  // full station list, so an empty row leaks nothing about locked days.
+  let stationOrder: { id: string; name: string }[] = [];
+  if (!canManage && allStations && allStations.length > 0) {
+    stationOrder = [...allStations].sort((a, b) => compareStationNames(a.name, b.name));
+  } else {
+    const seenStations = new Set<string>();
+    for (const a of assignments ?? []) {
+      if (seenStations.has(a.workstation_id)) continue;
+      seenStations.add(a.workstation_id);
+      stationOrder.push({ id: a.workstation_id, name: a.workstations?.name ?? "" });
+    }
   }
 
   const cellAssignments = new Map<string, any[]>();
@@ -292,9 +304,10 @@ export default async function SchedulePage() {
       canManage
         ? supabase.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
         : Promise.resolve({ data: [] }),
-      canManage
-        ? supabase.from("workstations").select("id, name, headcount").eq("is_active", true).order("name")
-        : Promise.resolve({ data: [] }),
+      // Every role needs these now: associates render the full station list
+      // as rows so a row's mere presence can't leak which station they're
+      // at on a still-locked day. RLS "workstations_select_all" allows it.
+      supabase.from("workstations").select("id, name, headcount").eq("is_active", true).order("name"),
       canManage
         ? supabase.from("profiles").select("id, first_name, last_name, psid, role, is_immune, tenure_group").eq("is_active", true)
         : Promise.resolve({ data: [] }),
@@ -370,11 +383,12 @@ export default async function SchedulePage() {
           <WeekPanel
             supabase={supabase}
             viewerId={profile.id}
+            allStations={sortedWorkstations}
             week={currentWeek}
             weekStart={thisWeekStart}
             canManage={canManage}
             associates={associates ?? []}
-            workstationHeadcounts={workstationHeadcounts}
+            workstationHeadcounts={canManage ? workstationHeadcounts : undefined}
             blockedDates={blockedDatesCurrentWeek.size > 0 ? blockedDatesCurrentWeek : undefined}
           />
         }
@@ -383,22 +397,24 @@ export default async function SchedulePage() {
             <WeekPanel
               supabase={supabase}
               viewerId={profile.id}
+              allStations={sortedWorkstations}
               week={nextWeek}
               weekStart={nextWeekStart}
               canManage={canManage}
               associates={associates ?? []}
-              workstationHeadcounts={workstationHeadcounts}
+              workstationHeadcounts={canManage ? workstationHeadcounts : undefined}
               blockedDates={nextWeekBlockedDates}
             />
           ) : (
             <WeekPanel
               supabase={supabase}
               viewerId={profile.id}
+              allStations={sortedWorkstations}
               week={nextWeek}
               weekStart={nextWeekStart}
               canManage={canManage}
               associates={associates ?? []}
-              workstationHeadcounts={workstationHeadcounts}
+              workstationHeadcounts={canManage ? workstationHeadcounts : undefined}
             />
           )
         }
