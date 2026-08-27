@@ -121,6 +121,17 @@ export default function GenerateButton({
     });
   }
 
+  // Check all five workdays for one member, or clear them if they're already
+  // all checked — pinning someone Mon–Fri is the common case, and clicking
+  // five boxes per person adds up fast with a long immune list.
+  function toggleAllImmuneDates(memberId: string) {
+    setImmunePlacements((prev) => {
+      const current = prev[memberId] ?? { workstationId: "", dates: [] };
+      const allChecked = workDates.every((d) => current.dates.includes(d));
+      return { ...prev, [memberId]: { ...current, dates: allChecked ? [] : [...workDates] } };
+    });
+  }
+
   // Whatever day the Team Leader actually clicks in the date picker,
   // snap it to the Monday of that work week — the API route normalizes
   // the same way, so this just keeps what's displayed here honest about
@@ -281,6 +292,25 @@ export default function GenerateButton({
                           ))}
                         </select>
                         <div className="flex flex-wrap gap-1.5">
+                          <label
+                            className="flex items-center gap-1 text-[11px] font-bold border border-[var(--line)] rounded px-1.5 py-0.5 cursor-pointer select-none bg-[var(--paper-raised)] text-[var(--accent-strong)]"
+                            title="Pin this member Mon–Fri"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={workDates.length > 0 && workDates.every((d) => placement?.dates.includes(d))}
+                              // Partially selected reads as neither on nor off.
+                              ref={(el) => {
+                                if (el) {
+                                  const count = workDates.filter((d) => placement?.dates.includes(d)).length;
+                                  el.indeterminate = count > 0 && count < workDates.length;
+                                }
+                              }}
+                              onChange={() => toggleAllImmuneDates(m.id)}
+                              className="w-3 h-3 accent-[var(--accent)] cursor-pointer"
+                            />
+                            All
+                          </label>
                           {workDates.map((date) => (
                             <label
                               key={date}
