@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
-import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed, addDays } from "@/lib/scheduleDates";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { toTitleCase, formatFullName } from "@/lib/format";
 import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
@@ -74,13 +74,11 @@ export default async function DashboardPage() {
   // Only rotating roles (associate/OIC) ever get seated at a station — the
   // Team Leader never does, so their own-station card never applies.
   const isRotatingRole = profile.role !== "team_leader";
-  const nextWeekStart =
-    latestWeekRow && latestWeekRow.week_start_date > weekStart ? latestWeekRow.week_start_date : null;
+  const tomorrow = addDays(todayInManila(), 1);
+  // Find the schedule_week that contains tomorrow (could be current or next week)
+  const tomorrowWeekStart = startOfWorkWeek(tomorrow);
 
-  const [{ data: assignments }, { data: recentLeave }, { data: myNextAssignment }] = await Promise.all([
-    // Scoped to displayDate (today, or Monday on a weekend) — a station
-    // can have a different person each day now, so "this week's
-    // assignments" is no longer a single static list.
+  const [{ data: assignments }, { data: recentLeave }, { data: tomorrowWeekRow }] = await Promise.all([
     week
       ? supabase
           .from("assignments")
@@ -89,22 +87,22 @@ export default async function DashboardPage() {
           .eq("assignment_date", displayDate)
       : Promise.resolve({ data: null }),
     approver ? leaveQuery : leaveQuery.eq("associate_id", profile.id),
-    // Own station for the ALREADY-generated next week, if there is one —
-    // Dashboard otherwise only ever shows the current week (see the
-    // "View next week" link below), so this is the only place a rotating
-    // member would see where they land next week without navigating away.
-    // Monday is used as the representative day for this single-value
-    // preview card — the full day-by-day breakdown is on /schedule.
-    isRotatingRole && nextWeekStart
-      ? supabase
-          .from("assignments")
-          .select("workstations(name)")
-          .eq("schedule_week_id", latestWeekRow!.id)
-          .eq("associate_id", profile.id)
-          .eq("assignment_date", nextWeekStart)
-          .maybeSingle()
+    // Fetch the week that contains tomorrow so we can look up tomorrow's assignment
+    isRotatingRole
+      ? supabase.from("schedule_weeks").select("id, week_start_date").eq("week_start_date", tomorrowWeekStart).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+
+  // Fetch tomorrow's assignment for this user (if the week exists)
+  const { data: myTomorrowAssignment } = isRotatingRole && tomorrowWeekRow
+    ? await supabase
+        .from("assignments")
+        .select("workstations(name)")
+        .eq("schedule_week_id", tomorrowWeekRow.id)
+        .eq("associate_id", profile.id)
+        .eq("assignment_date", tomorrow)
+        .maybeSingle()
+    : { data: null };
 
   // Seats filled vs. total seats — a station can have several seats (e.g.
   // Collecting Officer has 4 headcount), so this counts by headcount, not
@@ -115,7 +113,7 @@ export default async function DashboardPage() {
   const totalStations = (activeWorkstations ?? []).reduce((sum, w) => sum + (w.headcount ?? 0), 0);
   const myCurrentAssignment = assignments?.find((a) => a.associate_id === profile.id);
   const myCurrentStationName = (myCurrentAssignment as any)?.workstations?.name as string | undefined;
-  const myNextStationName = (myNextAssignment as any)?.workstations?.name as string | undefined;
+  const myTomorrowStationName = (myTomorrowAssignment as any)?.workstations?.name as string | undefined;
 
   // --- Task blocking for associates/OIC ---
   let blockingTaskCount = 0;
@@ -183,7 +181,9 @@ export default async function DashboardPage() {
             <div className="text-[13px] font-semibold text-[var(--ink)]">
               {blockingTaskCount > 0
                 ? "🔒 Complete tasks to view"
-                : "🔒 Next week: Revealed daily at 12 PM"}
+                : !tomorrowRevealed
+                  ? "🔒 Tomorrow: Revealed at 12 PM"
+                  : `Tomorrow: ${myTomorrowStationName ?? "Not assigned"}`}
             </div>
           </a>
         )}
