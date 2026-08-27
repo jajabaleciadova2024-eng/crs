@@ -46,12 +46,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // directly.
   let approvedWithoutDocument = false;
   if (status === "approved") {
-    const { data: leaveRequest } = await supabase.from("leave_requests").select("leave_type, document_path").eq("id", id).single();
+    const { data: leaveRequest } = await supabase.from("leave_requests").select("leave_type, document_path, is_half_day").eq("id", id).single();
     if (leaveRequest) {
       const { data: orgSettings } = await supabase.from("org_settings").select("leave_type_configs").limit(1).maybeSingle();
       const configs: LeaveTypeConfig[] = orgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
       const typeConfig = findLeaveTypeConfig(configs, leaveRequest.leave_type);
-      if (typeConfig?.behavior === "auto_approve_document" && !leaveRequest.document_path) {
+      // Half-day requests are exempt: a few hours off doesn't warrant a
+      // medical certificate, so they approve like any ordinary request even
+      // for the document-requiring types.
+      if (typeConfig?.behavior === "auto_approve_document" && !leaveRequest.document_path && !leaveRequest.is_half_day) {
         if (!String(note ?? "").trim()) {
           return NextResponse.json(
             { error: "This request has no supporting document. Add a note explaining why you're approving it anyway." },

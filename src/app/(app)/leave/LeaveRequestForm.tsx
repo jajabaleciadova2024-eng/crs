@@ -213,9 +213,19 @@ export default function LeaveRequestForm({
       {selectedConfig?.behavior === "auto_approve_document" && (
         <div className="col-span-2 flex flex-col gap-2">
           <p className="text-sm text-[var(--muted)] bg-[var(--accent-soft)] rounded px-3 py-2 m-0">
-            {selectedConfig.label} requests are Pre-approved, so you can file now even without the document in hand.
-            But the Team Leader can&apos;t actually approve it until a supporting document (e.g. medical certificate)
-            is uploaded — attach it now, or later from the queue below.
+            {halfDay ? (
+              <>
+                {selectedConfig.label} requests normally need a supporting document, but half-day requests are
+                exempt — the Team Leader can approve this without one. You can still attach something if you want it
+                on record.
+              </>
+            ) : (
+              <>
+                {selectedConfig.label} requests are Pre-approved, so you can file now even without the document in
+                hand. But the Team Leader can&apos;t actually approve it until a supporting document (e.g. medical
+                certificate) is uploaded — attach it now, or later from the queue below.
+              </>
+            )}
           </p>
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">

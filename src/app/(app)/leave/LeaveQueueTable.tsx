@@ -224,7 +224,12 @@ export default function LeaveQueueTable({
           // Pre-approved types (Sick/Bereavement) can be filed before the
           // document is in hand, but can't actually be approved until it's
           // uploaded and the Team Leader has had a chance to check it.
-          const needsDocument = typeConfig?.behavior === "auto_approve_document" && !r.document_path;
+          // Half-day requests of a document-requiring type are exempt — a few
+          // hours off doesn't warrant a medical certificate, so they approve
+          // straight through with no note prompt. Mirrored server-side in
+          // /api/leave/[id].
+          const needsDocument =
+            typeConfig?.behavior === "auto_approve_document" && !r.document_path && !r.is_half_day;
           // If a pre-approved request got rejected for lack of a document
           // and the associate has since uploaded one, reopen it for
           // re-review instead of leaving it stuck rejected — the associate
@@ -247,7 +252,7 @@ export default function LeaveQueueTable({
                     <span className="capitalize">{typeConfig?.label ?? r.leave_type}</span>
                     {r.is_half_day && <Pill>Half Day</Pill>}
                     {typeConfig?.behavior === "auto_approve_document" && <Pill tone="accent">Pre-approved</Pill>}
-                    {typeConfig?.behavior === "auto_approve_document" && r.status === "approved" && !r.document_path && (
+                    {typeConfig?.behavior === "auto_approve_document" && r.status === "approved" && !r.document_path && !r.is_half_day && (
                       <Pill tone="warn">Approved w/o document</Pill>
                     )}
                     {r.flagged_conflict && <Pill tone="warn">Possible conflict</Pill>}
@@ -276,7 +281,7 @@ export default function LeaveQueueTable({
                     ) : canManage && r.document_path ? (
                       <DocumentLinks requestId={r.id} canDownload={canManage} />
                     ) : canManage ? (
-                      <span className="text-[var(--muted)]">Not uploaded</span>
+                      <span className="text-[var(--muted)]">{r.is_half_day ? "Not required" : "Not uploaded"}</span>
                     ) : (
                       <span className="text-[var(--muted)]">—</span>
                     )

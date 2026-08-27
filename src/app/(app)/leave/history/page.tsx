@@ -116,7 +116,7 @@ export default async function LeaveHistoryPage() {
                           <div className="flex items-center gap-1.5">
                             <span>{typeConfig?.label ?? r.leave_type}</span>
                             {r.is_half_day && <Pill>Half Day</Pill>}
-                            {typeConfig?.behavior === "auto_approve_document" && r.status === "approved" && !r.document_path && (
+                            {typeConfig?.behavior === "auto_approve_document" && r.status === "approved" && !r.document_path && !r.is_half_day && (
                               <Pill tone="warn">Approved w/o document</Pill>
                             )}
                           </div>
