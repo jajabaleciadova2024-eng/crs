@@ -47,7 +47,13 @@ export default async function LeavePage() {
     // silently emptying the queue for every account).
     .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)")
     .or(`status.eq.pending,reviewed_at.gte.${weekStart},and(status.eq.rejected,document_path.not.is.null,final_rejection.eq.false)`)
+    // status first (leave_status is an enum declared pending/approved/
+    // rejected, so pending — the rows that still need action — sorts to the
+    // top), then by the leave date itself: soonest on top, furthest down,
+    // so whatever is about to happen is what the Team Leader sees first.
+    // created_at only breaks ties between two requests for the same day.
     .order("status", { ascending: true })
+    .order("start_date", { ascending: true })
     .order("created_at", { ascending: false });
 
   const [{ data: orgSettings }, { data: requests }] = await Promise.all([
