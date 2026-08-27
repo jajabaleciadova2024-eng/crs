@@ -5,6 +5,7 @@ import { formatFullName } from "@/lib/format";
 import SignOutButton from "@/components/SignOutButton";
 import PreviewRoleSwitcher from "@/components/PreviewRoleSwitcher";
 import NavLink from "@/components/NavLink";
+import NavGroup from "@/components/NavGroup";
 
 type NavItem = {
   href: string;
@@ -34,11 +35,8 @@ function Icon({ children }: { children: ReactNode }) {
   );
 }
 
-// Single ordered nav list — Settings and User Guide used to live in a
-// visually separate bottom section; they're full nav items now, same as
-// everything else. Order is: day-to-day operational pages first, Team
-// Leader admin pages next, account/help last.
-const NAV_ITEMS: NavItem[] = [
+// --- Top-level items (always visible, no group) ---
+const TOP_ITEMS: NavItem[] = [
   {
     href: "/",
     label: "Dashboard",
@@ -60,6 +58,10 @@ const NAV_ITEMS: NavItem[] = [
       </Icon>
     ),
   },
+];
+
+// --- Community group ---
+const COMMUNITY_ITEMS: NavItem[] = [
   {
     href: "/feed",
     label: "Team Feed",
@@ -79,15 +81,10 @@ const NAV_ITEMS: NavItem[] = [
       </Icon>
     ),
   },
-  {
-    href: "/concerns",
-    label: "Concerns",
-    icon: (
-      <Icon>
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      </Icon>
-    ),
-  },
+];
+
+// --- Requests & Tasks group ---
+const REQUESTS_ITEMS: NavItem[] = [
   {
     href: "/leave",
     label: "Leave Requests",
@@ -112,15 +109,11 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    href: "/team",
-    label: "Team & Roles",
-    roles: ["team_leader"],
+    href: "/concerns",
+    label: "Concerns",
     icon: (
       <Icon>
-        <circle cx="9" cy="8" r="3" />
-        <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
-        <circle cx="17" cy="8.5" r="2.3" />
-        <path d="M15.6 12.2c2.6.3 4.6 2.3 4.9 5" />
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       </Icon>
     ),
   },
@@ -137,6 +130,23 @@ const NAV_ITEMS: NavItem[] = [
       </Icon>
     ),
   },
+];
+
+// --- Management group (TL only) ---
+const MANAGEMENT_ITEMS: NavItem[] = [
+  {
+    href: "/team",
+    label: "Team & Roles",
+    roles: ["team_leader"],
+    icon: (
+      <Icon>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+        <circle cx="17" cy="8.5" r="2.3" />
+        <path d="M15.6 12.2c2.6.3 4.6 2.3 4.9 5" />
+      </Icon>
+    ),
+  },
   {
     href: "/workstations",
     label: "Workstations",
@@ -148,6 +158,10 @@ const NAV_ITEMS: NavItem[] = [
       </Icon>
     ),
   },
+];
+
+// --- Bottom items ---
+const BOTTOM_ITEMS: NavItem[] = [
   {
     href: "/settings",
     label: "Settings",
@@ -170,6 +184,20 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
+function getBadgeCount(
+  item: NavItem,
+  counts: { pendingAccessRequests: number; pendingLeaveRequests: number; pendingTaskCount: number },
+): number {
+  if (item.badgeKey === "accessRequests") return counts.pendingAccessRequests;
+  if (item.badgeKey === "pendingLeave") return counts.pendingLeaveRequests;
+  if (item.badgeKey === "pendingTasks") return counts.pendingTaskCount;
+  return 0;
+}
+
+function filterByRole(items: NavItem[], role: Profile["role"]): NavItem[] {
+  return items.filter((item) => !item.roles || item.roles.includes(role));
+}
+
 export default function Sidebar({
   profile,
   pendingAccessRequests = 0,
@@ -184,6 +212,24 @@ export default function Sidebar({
   realRole?: AppRole;
 }) {
   const initials = `${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase();
+  const counts = { pendingAccessRequests, pendingLeaveRequests, pendingTaskCount };
+
+  const requestsVisible = filterByRole(REQUESTS_ITEMS, profile.role);
+  const requestsBadgeTotal = requestsVisible.reduce((sum, item) => sum + getBadgeCount(item, counts), 0);
+
+  const managementVisible = filterByRole(MANAGEMENT_ITEMS, profile.role);
+
+  function renderNavItem(item: NavItem) {
+    return (
+      <NavLink
+        key={item.href}
+        href={item.href}
+        label={item.label}
+        icon={item.icon}
+        badgeCount={getBadgeCount(item, counts)}
+      />
+    );
+  }
 
   return (
     <aside className="px-3 pt-5 pb-4 flex flex-col gap-5 h-full w-full overflow-y-auto overflow-x-hidden shrink-0 bg-[var(--paper)]">
@@ -200,11 +246,58 @@ export default function Sidebar({
       </div>
 
       <nav className="flex flex-col gap-0.5">
-        {NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(profile.role)).map((item) => {
-          const badgeCount =
-            item.badgeKey === "accessRequests" ? pendingAccessRequests : item.badgeKey === "pendingLeave" ? pendingLeaveRequests : item.badgeKey === "pendingTasks" ? pendingTaskCount : 0;
-          return <NavLink key={item.href} href={item.href} label={item.label} icon={item.icon} badgeCount={badgeCount} />;
-        })}
+        {/* Top-level: Dashboard, Weekly Schedule */}
+        {TOP_ITEMS.map(renderNavItem)}
+
+        {/* Community group */}
+        <NavGroup
+          label="Community"
+          icon={
+            <Icon>
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </Icon>
+          }
+          childHrefs={COMMUNITY_ITEMS.map((i) => i.href)}
+        >
+          {COMMUNITY_ITEMS.map(renderNavItem)}
+        </NavGroup>
+
+        {/* Requests & Tasks group */}
+        <NavGroup
+          label="Requests & Tasks"
+          icon={
+            <Icon>
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M9 9h6M9 13h6M9 17h4" />
+            </Icon>
+          }
+          childHrefs={requestsVisible.map((i) => i.href)}
+          badgeCount={requestsBadgeTotal}
+        >
+          {requestsVisible.map(renderNavItem)}
+        </NavGroup>
+
+        {/* Management group (TL only) */}
+        {managementVisible.length > 0 && (
+          <NavGroup
+            label="Management"
+            icon={
+              <Icon>
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 13.5a7.7 7.7 0 0 0 0-3l1.9-1.4-2-3.4-2.2.8a7.7 7.7 0 0 0-2.6-1.5L16 2.5h-8l-.5 2.5a7.7 7.7 0 0 0-2.6 1.5l-2.2-.8-2 3.4L2.6 10.5a7.7 7.7 0 0 0 0 3l-1.9 1.4 2 3.4 2.2-.8a7.7 7.7 0 0 0 2.6 1.5l.5 2.5h4l.5-2.5a7.7 7.7 0 0 0 2.6-1.5l2.2.8 2-3.4Z" />
+              </Icon>
+            }
+            childHrefs={managementVisible.map((i) => i.href)}
+          >
+            {managementVisible.map(renderNavItem)}
+          </NavGroup>
+        )}
+
+        {/* Bottom: Settings, User Guide */}
+        {BOTTOM_ITEMS.map(renderNavItem)}
       </nav>
 
       <div className="mt-auto flex flex-col gap-3">
