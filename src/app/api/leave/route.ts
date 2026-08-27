@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyApproversNewLeave } from "@/lib/notify";
+import { bellNotify, approverIds } from "@/lib/bellNotify";
 import { hasVacationConflict, recomputeVacationConflicts } from "@/lib/leaveConflict";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
 
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
   }
 
   await notifyApproversNewLeave(inserted.id);
+  await bellNotify(await approverIds(), user.id, "leave_submitted");
 
   return NextResponse.json({ ok: true, id: inserted.id, flagged_conflict: flaggedConflict });
 }

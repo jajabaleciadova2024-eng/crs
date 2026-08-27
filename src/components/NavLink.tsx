@@ -15,14 +15,20 @@ export default function NavLink({
   label,
   icon,
   badgeCount,
+  exact = false,
 }: {
   href: string;
   label: string;
   icon: ReactNode;
   badgeCount: number;
+  // Exact-match only — for a parent route that has its own sibling nav
+  // entries underneath it (e.g. /leave vs /leave/calendar), so both don't
+  // light up at once.
+  exact?: boolean;
 }) {
   const pathname = usePathname();
-  const isActive = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  const isActive =
+    href === "/" || exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <Link

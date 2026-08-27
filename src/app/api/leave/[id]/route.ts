@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyLeaveStatusChange } from "@/lib/notify";
+import { bellNotify } from "@/lib/bellNotify";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
 import { recomputeVacationConflicts } from "@/lib/leaveConflict";
 
@@ -88,6 +90,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   await notifyLeaveStatusChange(id);
+  // Tell the associate their request was decided.
+  const { data: reviewedRow } = await createAdminClient()
+    .from("leave_requests")
+    .select("associate_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (reviewedRow?.associate_id) {
+    await bellNotify([reviewedRow.associate_id], user.id, "leave_reviewed");
+  }
 
   return NextResponse.json({ ok: true });
 }

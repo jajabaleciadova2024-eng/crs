@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { bellNotify, allActiveMemberIds } from "@/lib/bellNotify";
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -122,6 +123,10 @@ export async function POST(request: Request) {
     console.error("[tasks] POST error:", error);
     return NextResponse.json({ error: error?.message ?? "Couldn't create task." }, { status: 400 });
   }
+
+  // Notify whoever the task landed on — everyone, or the one assignee.
+  const recipients = assign_to === "all" ? await allActiveMemberIds() : [assign_to];
+  await bellNotify(recipients, user.id, "task_assigned");
 
   return NextResponse.json({ ok: true, id: inserted.id });
 }

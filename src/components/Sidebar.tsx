@@ -13,6 +13,8 @@ type NavItem = {
   roles?: Profile["role"][];
   badgeKey?: "accessRequests" | "pendingLeave" | "pendingTasks";
   icon: ReactNode;
+  // Highlight only on an exact path match — see NavLink's `exact` prop.
+  exact?: boolean;
 };
 
 // Small stroke-icon helper — self-contained (no icon library), consistent
@@ -89,6 +91,7 @@ const REQUESTS_ITEMS: NavItem[] = [
     href: "/leave",
     label: "Leave Requests",
     badgeKey: "pendingLeave",
+    exact: true,
     icon: (
       <Icon>
         <rect x="5" y="4" width="14" height="17" rx="2" />
@@ -105,6 +108,18 @@ const REQUESTS_ITEMS: NavItem[] = [
       <Icon>
         <path d="M9 11l3 3L22 4" />
         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+      </Icon>
+    ),
+  },
+  {
+    href: "/leave/calendar",
+    label: "Leave Calendar",
+    icon: (
+      <Icon>
+        <rect x="3.5" y="5" width="17" height="16" rx="2" />
+        <path d="M3.5 9.5h17" />
+        <path d="M8 3v4M16 3v4" />
+        <path d="M8.5 14h2M13.5 14h2M8.5 17.5h2" />
       </Icon>
     ),
   },
@@ -227,6 +242,7 @@ export default function Sidebar({
         label={item.label}
         icon={item.icon}
         badgeCount={getBadgeCount(item, counts)}
+        exact={item.exact}
       />
     );
   }

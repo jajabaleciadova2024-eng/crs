@@ -1,6 +1,7 @@
 // The Supabase client is deliberately untyped (see src/lib/supabase/client.ts),
 // so joined-column access below is cast through `any` on purpose.
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Link from "next/link";
 import { requireProfile, isApprover, ROLE_LABEL } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,6 +11,10 @@ import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed, addDays 
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { toTitleCase, formatFullName } from "@/lib/format";
 import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
+import LeaveCalendar from "./leave/calendar/LeaveCalendar";
+import { getLeaveCalendarRequests } from "@/lib/leaveCalendarData";
+import { buildLeaveDayMap } from "@/lib/leaveCalendar";
+import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
 import SocialFeed from "@/components/feed/SocialFeed";
 import QuickPostButton from "@/components/feed/QuickPostButton";
 
@@ -142,6 +147,14 @@ export default async function DashboardPage() {
 
   const tomorrowRevealed = isTomorrowRevealed();
 
+  // Org-wide leave calendar — visible to every role (see leave/calendar/page.tsx).
+  const [leaveCalendarRequests, { data: calendarOrgSettings }] = await Promise.all([
+    getLeaveCalendarRequests(),
+    supabase.from("org_settings").select("leave_type_configs").limit(1).maybeSingle(),
+  ]);
+  const leaveTypeConfigs = calendarOrgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
+  const leaveDayMap = buildLeaveDayMap(leaveCalendarRequests);
+
   return (
     <>
       <PageHeader>
@@ -157,7 +170,7 @@ export default async function DashboardPage() {
             <h1 className="font-serif text-lg sm:text-2xl md:text-[28px] m-0 tracking-tight truncate shrink-0">
               Good day, {toTitleCase(profile.first_name)}
             </h1>
-            <QuickPostButton />
+            <QuickPostButton mentionable={mentionableProfiles ?? []} />
           </div>
         </div>
       </PageHeader>
@@ -208,6 +221,18 @@ export default async function DashboardPage() {
         )}
         <Card label="Your role" value={ROLE_LABEL[profile.role]} sub={profile.psid} />
       </div>
+
+      <Panel
+        title="Leave Calendar"
+        hint="Org-wide"
+        action={
+          <Link href="/leave/calendar" className="text-xs font-bold text-[var(--accent-strong)]">
+            Open full calendar →
+          </Link>
+        }
+      >
+        <LeaveCalendar dayMap={leaveDayMap} leaveTypeConfigs={leaveTypeConfigs} today={todayInManila()} />
+      </Panel>
 
       <Panel title="Team Feed" hint="What's happening">
         <SocialFeed userId={profile.id} currentUserRole={profile.role} mentionable={mentionableProfiles ?? []} initialLimit={10} viewAllHref="/feed" />

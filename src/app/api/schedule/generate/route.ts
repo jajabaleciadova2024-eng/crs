@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
 import { generateDailyAssignments, type StationQuota, type DailyImmunePlacement } from "@/lib/schedule";
 import { notifySchedulePublished } from "@/lib/notify";
+import { bellNotify, allActiveMemberIds } from "@/lib/bellNotify";
 import { todayInManila, startOfWorkWeek, addDays, formatWeekRange, workDatesForWeek } from "@/lib/scheduleDates";
 
 // Generates a schedule for the Team-Leader-chosen week (the modal's date
@@ -238,6 +239,7 @@ export async function POST(request: Request) {
     }
 
     await notifySchedulePublished(targetWeekStart);
+    await bellNotify(await allActiveMemberIds(), user.id, "schedule_published");
 
     // Same reasoning as /api/schedule/clear: router.refresh() from the
     // calling client only invalidates the Weekly Schedule route it was
