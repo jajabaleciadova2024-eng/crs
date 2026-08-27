@@ -46,7 +46,12 @@ export default async function LeavePage() {
     // relationship was found" and the whole query returns null (this was
     // silently emptying the queue for every account).
     .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)")
-    .or(`status.eq.pending,reviewed_at.gte.${weekStart},and(status.eq.rejected,document_path.not.is.null,final_rejection.eq.false)`)
+    // Approved requests leave the Queue the moment they're approved — the
+    // decision is made, so it belongs in History, not in the review list.
+    // Rejections still linger through the current week so the associate
+    // sees the outcome (and, for pre-approved types, can upload a document
+    // and get it re-reviewed).
+    .or(`status.eq.pending,and(status.eq.rejected,reviewed_at.gte.${weekStart}),and(status.eq.rejected,document_path.not.is.null,final_rejection.eq.false)`)
     // status first (leave_status is an enum declared pending/approved/
     // rejected, so pending — the rows that still need action — sorts to the
     // top), then by the leave date itself: soonest on top, furthest down,

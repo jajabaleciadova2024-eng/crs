@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Pill, Button } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
@@ -34,6 +34,45 @@ const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   approved: "good",
   rejected: "bad",
 };
+
+// Compact icon-only action button for the Actions column. Labelled buttons
+// (Approve / Reject / Delete) wrapped onto separate lines in this narrow
+// column; icons keep all three on one row. The label is exposed as both
+// `title` and `aria-label` so hover and screen readers still get it.
+const ICON_TONE = {
+  good: "text-[var(--good)] hover:bg-[var(--good-soft,var(--accent-soft))] hover:border-[var(--good)]",
+  bad: "text-[var(--bad)] hover:bg-[var(--bad-soft,var(--accent-soft))] hover:border-[var(--bad)]",
+  muted: "text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:border-[var(--line)] hover:text-[var(--ink)]",
+} as const;
+
+function IconAction({
+  tone,
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  tone: keyof typeof ICON_TONE;
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      className={`inline-flex items-center justify-center w-7 h-7 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${ICON_TONE[tone]}`}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        {children}
+      </svg>
+    </button>
+  );
+}
 
 export default function LeaveQueueTable({
   requests,
@@ -256,56 +295,62 @@ export default function LeaveQueueTable({
                       </Button>
                     </div>
                   )}
-                  {!isOwn && canManage && (r.status === "pending" || isReopenedForReview) && (
+                  {canManage && (
                     <div className="flex flex-col gap-1 items-start">
                       {isReopenedForReview && (
                         <span className="text-[10.5px] font-bold text-[var(--accent-strong)]">Document uploaded — re-review</span>
                       )}
-                      <div className="flex gap-1.5">
-                        <Button
-                          variant="primary"
-                          style={{ padding: "5px 10px" }}
+                      {/* Icon-only actions on one row — the labelled buttons
+                          wrapped onto three stacked lines in this narrow
+                          column. Each keeps its title/aria-label for clarity. */}
+                      <div className="flex items-center gap-1">
+                        {!isOwn && (r.status === "pending" || isReopenedForReview) && (
+                          <>
+                            <IconAction
+                              tone="good"
+                              label={needsDocument ? "Approve — no document attached yet, you'll be asked for a note" : "Approve"}
+                              disabled={pendingId === r.id}
+                              onClick={() => {
+                                if (needsDocument) {
+                                  setApprovingRequest(r);
+                                  setApproveNote("");
+                                  setApproveError(null);
+                                  return;
+                                }
+                                decide(r.id, "approved");
+                              }}
+                            >
+                              <path d="M20 6 9 17l-5-5" />
+                            </IconAction>
+                            <IconAction
+                              tone="bad"
+                              label="Reject"
+                              disabled={pendingId === r.id}
+                              onClick={() => {
+                                setRejectingRequest(r);
+                                setRejectNote("");
+                                setRejectError(null);
+                              }}
+                            >
+                              <path d="M18 6 6 18M6 6l12 12" />
+                            </IconAction>
+                          </>
+                        )}
+                        <IconAction
+                          tone="muted"
+                          label="Delete"
                           disabled={pendingId === r.id}
-                          title={needsDocument ? "No document attached yet — you'll be asked for a note before this approves." : undefined}
                           onClick={() => {
-                            if (needsDocument) {
-                              setApprovingRequest(r);
-                              setApproveNote("");
-                              setApproveError(null);
-                              return;
-                            }
-                            decide(r.id, "approved");
+                            setDeletingRequest(r);
+                            setDeleteError(null);
                           }}
                         >
-                          Approve
-                        </Button>
-                        <Button
-                          style={{ padding: "5px 10px" }}
-                          disabled={pendingId === r.id}
-                          onClick={() => {
-                            setRejectingRequest(r);
-                            setRejectNote("");
-                            setRejectError(null);
-                          }}
-                        >
-                          Reject
-                        </Button>
+                          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </IconAction>
                       </div>
-                      {needsDocument && <span className="text-[10.5px] text-[var(--muted)]">No document attached yet</span>}
-                    </div>
-                  )}
-                  {canManage && (
-                    <div className={!isOwn && (r.status === "pending" || isReopenedForReview) ? "mt-1.5" : undefined}>
-                      <Button
-                        style={{ padding: "5px 10px" }}
-                        disabled={pendingId === r.id}
-                        onClick={() => {
-                          setDeletingRequest(r);
-                          setDeleteError(null);
-                        }}
-                      >
-                        Delete
-                      </Button>
+                      {!isOwn && needsDocument && (r.status === "pending" || isReopenedForReview) && (
+                        <span className="text-[10.5px] text-[var(--muted)]">No document attached yet</span>
+                      )}
                     </div>
                   )}
                 </td>

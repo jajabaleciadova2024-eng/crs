@@ -40,14 +40,18 @@ export default async function LeaveHistoryPage() {
     .select(
       "id, associate_id, leave_type, start_date, end_date, status, document_path, reviewed_at, review_note, final_rejection, is_half_day, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)"
     )
-    .lt("reviewed_at", weekStart)
-    // Approved requests roll in normally; rejected ones roll in unless
-    // they're still an open reject -> re-upload -> re-review cycle -- i.e.
-    // rejected WITH a document AND not finally rejected stays in the
-    // Queue instead (document_path only gets set for that behavior type),
-    // so the two pages stay non-overlapping. See leave/page.tsx for the
-    // matching inclusion on the Queue side.
-    .or("status.eq.approved,and(status.eq.rejected,document_path.is.null),and(status.eq.rejected,final_rejection.eq.true)")
+    // Approved requests appear here IMMEDIATELY on approval (no reviewed_at
+    // cutoff) — the Queue drops them the moment they're decided. Rejected
+    // ones still roll in on the weekly schedule, and only once they're out
+    // of an open reject -> re-upload -> re-review cycle: rejected WITH a
+    // document AND not finally rejected stays in the Queue instead
+    // (document_path is only ever set for that behavior type). The
+    // reviewed_at cutoff is folded into the rejected branches rather than
+    // applied to the whole query, so the two pages stay non-overlapping.
+    // See leave/page.tsx for the matching exclusion on the Queue side.
+    .or(
+      `status.eq.approved,and(status.eq.rejected,reviewed_at.lt.${weekStart},document_path.is.null),and(status.eq.rejected,reviewed_at.lt.${weekStart},final_rejection.eq.true)`
+    )
     .order("start_date", { ascending: false });
 
   const [{ data: orgSettings }, { data: decided }] = await Promise.all([
@@ -71,7 +75,7 @@ export default async function LeaveHistoryPage() {
     <>
       <PageHeader
         title="Leave History"
-        subtitle="Decided leave, grouped by semi-monthly period (1st–15th, 16th–end of month) — rolls over from the Queue every Monday"
+        subtitle="Decided leave, grouped by semi-monthly period (1st–15th, 16th–end of month) — approvals land here immediately, rejections roll over from the Queue each Monday"
         action={
           <Link href="/leave" className="text-xs font-bold text-[var(--accent-strong)]">
             ← Back to Leave Requests
