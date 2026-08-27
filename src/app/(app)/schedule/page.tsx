@@ -33,6 +33,7 @@ async function WeekPanel({
   associates,
   workstationHeadcounts,
   blockedDates,
+  viewerId,
 }: {
   supabase: SupabaseClient;
   week: { id: string; week_start_date: string } | null;
@@ -42,6 +43,10 @@ async function WeekPanel({
   workstationHeadcounts?: Record<string, number>;
   // Dates that should show a placeholder lock instead of real data
   blockedDates?: Set<string>;
+  // Non-managers only ever see their OWN assignments — RLS hides everyone
+  // else's profile row, so those seats would otherwise render as blank
+  // nameless cards. Filtering to this id keeps the grid clean.
+  viewerId?: string;
 }) {
   const weekEnd = endOfWorkWeek(weekStart);
   const allWorkDates = workDatesForWeek(weekStart);
@@ -58,9 +63,16 @@ async function WeekPanel({
         .eq("schedule_week_id", week.id)
     : { data: [] };
 
-  const assignments = rawAssignments
-    ? [...rawAssignments].sort((a: any, b: any) => compareStationNames(a.workstations?.name ?? "", b.workstations?.name ?? ""))
-    : rawAssignments;
+  // Associates/OIC see only their own seat — everyone else's row comes back
+  // with a null joined profile under RLS, which rendered as an empty
+  // placeholder card in every seat they aren't in.
+  const visibleAssignments = !canManage && viewerId
+    ? (rawAssignments ?? []).filter((a: any) => a.associate_id === viewerId)
+    : (rawAssignments ?? []);
+
+  const assignments = [...visibleAssignments].sort((a: any, b: any) =>
+    compareStationNames(a.workstations?.name ?? "", b.workstations?.name ?? ""),
+  );
 
   const stationOrder: { id: string; name: string }[] = [];
   const seenStations = new Set<string>();
@@ -162,6 +174,15 @@ async function WeekPanel({
                       );
                     }
                     const cell = cellAssignments.get(`${station.id}::${date}`) ?? [];
+                    // Associate view: a day they're not at this station is
+                    // simply blank — no seat placeholders, no empty cards.
+                    if (!canManage && cell.length === 0) {
+                      return (
+                        <td key={date} className="px-2 sm:px-3 py-2 border-b border-l border-[var(--line)] align-middle text-center text-[var(--muted)]">
+                          —
+                        </td>
+                      );
+                    }
                     const entries = cell.map((a: any) => ({
                       assignmentId: a.id as string,
                       associateId: a.associate_id as string,
@@ -348,6 +369,7 @@ export default async function SchedulePage() {
         current={
           <WeekPanel
             supabase={supabase}
+            viewerId={profile.id}
             week={currentWeek}
             weekStart={thisWeekStart}
             canManage={canManage}
@@ -360,6 +382,7 @@ export default async function SchedulePage() {
           blockNextWeekEntirely ? (
             <WeekPanel
               supabase={supabase}
+              viewerId={profile.id}
               week={nextWeek}
               weekStart={nextWeekStart}
               canManage={canManage}
@@ -370,6 +393,7 @@ export default async function SchedulePage() {
           ) : (
             <WeekPanel
               supabase={supabase}
+              viewerId={profile.id}
               week={nextWeek}
               weekStart={nextWeekStart}
               canManage={canManage}
