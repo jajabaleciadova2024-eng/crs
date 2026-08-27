@@ -193,6 +193,31 @@ export interface MemberTaskCompletion {
   completed_at: string;
 }
 
+export type AssignmentAction = "assigned" | "moved" | "reassigned" | "removed";
+
+// Append-only audit trail for station assignments (see
+// 0026_assignment_history.sql). Written by a DB trigger, never by app code.
+// Names are denormalized so the log stays readable after a workstation is
+// renamed or a member is deactivated.
+export interface AssignmentHistory {
+  id: string;
+  assignment_id: string | null;
+  action: AssignmentAction;
+  assignment_date: string;
+  schedule_week_id: string | null;
+  workstation_id: string | null;
+  workstation_name: string | null;
+  associate_id: string | null;
+  associate_name: string | null;
+  previous_workstation_id: string | null;
+  previous_workstation_name: string | null;
+  previous_associate_id: string | null;
+  previous_associate_name: string | null;
+  changed_by: string | null;
+  changed_by_name: string | null;
+  changed_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -367,6 +392,14 @@ export interface Database {
           assign_to?: string;
           blocker_days_before?: number;
         };
+        Relationships: [];
+      };
+      assignment_history: {
+        Row: AssignmentHistory;
+        // Insert/Update are intentionally `never`: the table is written only
+        // by the assignments audit trigger. Application code reads it.
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       member_task_completions: {

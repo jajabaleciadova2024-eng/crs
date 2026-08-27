@@ -5,7 +5,7 @@ import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Panel, Pill, Card, PageHeader } from "@/components/ui";
+import { Panel, Pill, Card, PageHeader, Button } from "@/components/ui";
 import TaskBlockBanner from "./TaskBlockBanner";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import ScheduleCell from "./ScheduleCell";
@@ -352,14 +352,17 @@ export default async function SchedulePage() {
         subtitle="Monday–Friday (Philippine time), regenerated every week — station headcount is fixed on Workstations"
         action={
           canManage && (
-            <GenerateButton
-              workstations={sortedWorkstations}
-              totalMembers={totalMembers}
-              totalTenured={totalTenured}
-              totalNewHire={totalNewHire}
-              immuneMembers={immuneMembers}
-              defaultWeekStart={defaultGenerateWeekStart}
-            />
+            <div className="flex items-center gap-2">
+              <Button href="/schedule/history">History →</Button>
+              <GenerateButton
+                workstations={sortedWorkstations}
+                totalMembers={totalMembers}
+                totalTenured={totalTenured}
+                totalNewHire={totalNewHire}
+                immuneMembers={immuneMembers}
+                defaultWeekStart={defaultGenerateWeekStart}
+              />
+            </div>
           )
         }
       />
