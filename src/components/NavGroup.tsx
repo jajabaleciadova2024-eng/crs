@@ -39,7 +39,10 @@ export default function NavGroup({
           {icon}
         </span>
         <span className="flex-1 truncate text-left md:group-data-[collapsed=true]/sidebar:hidden">{label}</span>
-        {badgeCount > 0 && (
+        {/* Only while collapsed: expanded, the same count is already showing
+            on the child row it belongs to, so a group badge just repeats it
+            (and squeezes the label into an ellipsis). */}
+        {badgeCount > 0 && !open && (
           <span
             className="inline-flex items-center justify-center min-w-[19px] h-[19px] px-1.5 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold tabular-nums md:group-data-[collapsed=true]/sidebar:absolute md:group-data-[collapsed=true]/sidebar:-top-1 md:group-data-[collapsed=true]/sidebar:-right-1"
             style={{ boxShadow: "var(--shadow-xs)" }}
