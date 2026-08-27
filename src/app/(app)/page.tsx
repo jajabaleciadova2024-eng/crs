@@ -145,20 +145,20 @@ export default async function DashboardPage() {
   return (
     <>
       <PageHeader>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
-            <ProfilePhotoFrame
-              firstName={profile.first_name}
-              lastName={profile.last_name}
-              avatarUrl={profile.avatar_url}
-            />
-            <div className="min-w-0">
-              <h1 className="font-serif text-lg sm:text-2xl md:text-[28px] m-0 tracking-tight truncate">
-                Good day, {toTitleCase(profile.first_name)}
-              </h1>
-            </div>
+        {/* pr-12 keeps the row clear of the fixed notification bell in the
+            top-right corner (see (app)/layout.tsx) on smaller viewports. */}
+        <div className="flex items-center gap-3 sm:gap-5 min-w-0 pr-12 md:pr-16">
+          <ProfilePhotoFrame
+            firstName={profile.first_name}
+            lastName={profile.last_name}
+            avatarUrl={profile.avatar_url}
+          />
+          <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <h1 className="font-serif text-lg sm:text-2xl md:text-[28px] m-0 tracking-tight truncate shrink-0">
+              Good day, {toTitleCase(profile.first_name)}
+            </h1>
+            <QuickPostButton />
           </div>
-          <QuickPostButton />
         </div>
       </PageHeader>
 
@@ -180,9 +180,9 @@ export default async function DashboardPage() {
             <div className="border-t border-[var(--line)] my-1.5" />
             <div className="text-[13px] font-semibold text-[var(--ink)]">
               {blockingTaskCount > 0
-                ? "🔒 Complete tasks to view"
+                ? "Complete tasks to view"
                 : !tomorrowRevealed
-                  ? "🔒 Tomorrow: Revealed at 12 PM"
+                  ? "Tomorrow: Revealed at 12 PM"
                   : `Tomorrow: ${myTomorrowStationName ?? "Not assigned"}`}
             </div>
           </a>

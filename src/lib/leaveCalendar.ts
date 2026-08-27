@@ -44,7 +44,7 @@ export function buildLeaveDayMap(requests: LeaveCalendarRequest[]): Record<strin
 export function monthGridDates(year: number, month: number): string[] {
   const firstOfMonth = `${year}-${String(month).padStart(2, "0")}-01`;
   const firstWeekday = new Date(`${firstOfMonth}T00:00:00Z`).getUTCDay(); // 0=Sun..6=Sat
-  const leadingDays = firstWeekday === 0 ? 6 : firstWeekday - 1; // days before this Monday
+  const leadingDays = firstWeekday; // days before this Sunday (0=Sun..6=Sat)
   const gridStart = addDays(firstOfMonth, -leadingDays);
 
   const dates: string[] = [];

@@ -5,7 +5,7 @@ import { Button, Pill } from "@/components/ui";
 import { addMonths, monthGridDates, MONTH_LABEL, type LeaveCalendarEntry } from "@/lib/leaveCalendar";
 import type { LeaveTypeConfig } from "@/lib/leaveTypes";
 
-const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const WEEKDAY_LABELS_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
 
 export default function LeaveCalendar({
