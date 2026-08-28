@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Post, ReactionType } from "./SocialFeed";
 import { Avatar } from "@/components/ui";
 import CommentSection from "./CommentSection";
@@ -66,6 +67,8 @@ export default function PostCard({
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
+  // Which reaction tab the "who reacted" sheet is filtered to ("all" = everyone).
+  const [reactorFilter, setReactorFilter] = useState<string | null>(null);
 
   // Deep-link: notification on a comment/reaction sends the user to
   // /feed#post-<id>. If this card is the target, auto-open its comment
@@ -98,6 +101,40 @@ export default function PostCard({
   }
   const myReaction = post.post_reactions.find((r) => r.profile_id === userId)?.reaction;
   const totalReactions = post.post_reactions.length;
+
+  // Who reacted. The joined profile is present on posts loaded from the API,
+  // but absent on rows that arrive via realtime or an optimistic click — so
+  // fall back to the mentionable roster (every active member) before giving
+  // up. Without the fallback, your own just-clicked reaction would show as
+  // "Someone" until the next refetch.
+  const reactors = post.post_reactions.map((r) => {
+    const fromRoster = mentionable.find((m) => m.id === r.profile_id);
+    const first = r.profiles?.first_name ?? fromRoster?.first_name ?? "";
+    const last = r.profiles?.last_name ?? fromRoster?.last_name ?? "";
+    const name = `${first} ${last}`.trim();
+    return {
+      id: r.id,
+      profileId: r.profile_id,
+      reaction: r.reaction as string,
+      first,
+      last,
+      avatarUrl: r.profiles?.avatar_url ?? null,
+      name: r.profile_id === userId ? "You" : name || "Someone",
+      isMe: r.profile_id === userId,
+    };
+  });
+  // You first, then alphabetical — the same order the summary line reads in.
+  const sortedReactors = [...reactors].sort((a, b) =>
+    a.isMe === b.isMe ? a.name.localeCompare(b.name) : a.isMe ? -1 : 1,
+  );
+  const visibleReactors =
+    reactorFilter && reactorFilter !== "all"
+      ? sortedReactors.filter((r) => r.reaction === reactorFilter)
+      : sortedReactors;
+  // Hover text on the summary — the first few names without opening anything.
+  const summaryNames = sortedReactors.slice(0, 3).map((r) => r.name).join(", ");
+  const summaryTitle =
+    totalReactions > 3 ? `${summaryNames} and ${totalReactions - 3} more` : summaryNames;
 
   function handleSaveEdit() {
     const trimmed = editContent.trim();
@@ -275,7 +312,14 @@ export default function PostCard({
         <div className="flex items-center justify-between px-4 pb-2 text-[12px] text-[var(--muted)]">
           <div className="flex items-center gap-1">
             {totalReactions > 0 && (
-              <>
+              // Clicking opens the full list — everyone can see who reacted
+              // to any post, not just the count.
+              <button
+                type="button"
+                onClick={() => setReactorFilter("all")}
+                title={summaryTitle}
+                className="flex items-center gap-1 rounded-md px-1 -mx-1 py-0.5 hover:bg-[var(--paper)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+              >
                 <span className="flex -space-x-0.5">
                   {Object.entries(reactionCounts)
                     .sort((a, b) => b[1] - a[1])
@@ -286,7 +330,7 @@ export default function PostCard({
                     ))}
                 </span>
                 <span className="ml-1">{totalReactions}</span>
-              </>
+              </button>
             )}
           </div>
           {post.post_comments.length > 0 && (
@@ -377,6 +421,87 @@ export default function PostCard({
           onDelete={(commentId) => onDeleteComment(post.id, commentId)}
         />
       )}
+
+      {/* Who reacted. Portaled to <body> so the card's own overflow-hidden
+          and stacking context can't clip or trap it. */}
+      {reactorFilter !== null &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
+            onClick={() => setReactorFilter(null)}
+          >
+            <div
+              className="w-full sm:max-w-sm max-h-[75vh] flex flex-col bg-[var(--paper-raised)] border border-[var(--line)] rounded-t-2xl sm:rounded-2xl overflow-hidden"
+              style={{ boxShadow: "var(--shadow-lg, 0 12px 40px rgba(0,0,0,.35))" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 pt-3.5 pb-2 border-b border-[var(--line)]">
+                <span className="text-[13.5px] font-bold text-[var(--ink)]">
+                  Reactions ({totalReactions})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setReactorFilter(null)}
+                  className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors text-[18px] leading-none cursor-pointer"
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Filter tabs — All, then one per reaction actually used */}
+              <div className="flex items-center gap-1 px-3 py-2 border-b border-[var(--line)] overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setReactorFilter("all")}
+                  className={`shrink-0 px-2.5 py-1 rounded-full text-[11.5px] font-semibold transition-colors cursor-pointer ${
+                    reactorFilter === "all"
+                      ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+                      : "text-[var(--muted)] hover:bg-[var(--paper)]"
+                  }`}
+                >
+                  All {totalReactions}
+                </button>
+                {REACTION_ORDER.filter((t) => reactionCounts[t] > 0).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setReactorFilter(type)}
+                    title={REACTION_LABEL[type]}
+                    className={`shrink-0 px-2.5 py-1 rounded-full text-[11.5px] font-semibold transition-colors cursor-pointer ${
+                      reactorFilter === type
+                        ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+                        : "text-[var(--muted)] hover:bg-[var(--paper)]"
+                    }`}
+                  >
+                    <span className="text-[13px]">{REACTION_EMOJI[type]}</span> {reactionCounts[type]}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex-1 overflow-y-auto py-1.5">
+                {visibleReactors.map((r) => (
+                  <div key={r.id} className="flex items-center gap-2.5 px-4 py-2">
+                    <div className="relative shrink-0">
+                      <Avatar firstName={r.first} lastName={r.last} avatarUrl={r.avatarUrl} size="sm" />
+                      <span className="absolute -bottom-1 -right-1 text-[12px] leading-none">
+                        {REACTION_EMOJI[r.reaction]}
+                      </span>
+                    </div>
+                    <span className="text-[13px] text-[var(--ink)] truncate">
+                      {r.isMe ? "You" : `${toTitleCase(r.first)} ${toTitleCase(r.last)}`.trim() || "Someone"}
+                    </span>
+                    <span className="ml-auto text-[11px] text-[var(--muted)] shrink-0">
+                      {REACTION_LABEL[r.reaction]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

@@ -9,7 +9,12 @@ import PostCard from "./PostCard";
 import type { Mentionable } from "./mentions";
 
 export type ReactionType = "like" | "heart" | "angry" | "poop" | "roll_eyes";
-export type Reaction = { id: string; profile_id: string; reaction: ReactionType };
+// `profiles` is joined on read so the reaction list can name who reacted.
+// It is absent on rows that arrive via realtime or an optimistic update —
+// PostCard falls back to the mentionable roster for those, so a missing
+// join never renders a nameless row.
+export type Reactor = { first_name: string; last_name: string; avatar_url: string | null };
+export type Reaction = { id: string; profile_id: string; reaction: ReactionType; profiles?: Reactor | null };
 export type CommentAuthor = { first_name: string; last_name: string; avatar_url: string | null };
 export type Comment = {
   id: string;

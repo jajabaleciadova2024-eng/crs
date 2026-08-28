@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { bellNotify, allActiveMemberIds } from "@/lib/bellNotify";
 
 const FEED_SELECT = `*, profiles!posts_author_id_fkey(first_name, last_name, avatar_url, role),
-   post_reactions(id, profile_id, reaction),
+   post_reactions(id, profile_id, reaction, profiles!post_reactions_profile_id_fkey(first_name, last_name, avatar_url)),
    post_comments(id, author_id, content, created_at, updated_at,
      profiles!post_comments_author_id_fkey(first_name, last_name, avatar_url))`;
 
