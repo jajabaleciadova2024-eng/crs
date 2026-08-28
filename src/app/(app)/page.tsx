@@ -19,6 +19,36 @@ import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
 import SocialFeed from "@/components/feed/SocialFeed";
 import QuickPostButton from "@/components/feed/QuickPostButton";
 
+// One day's posting on the Dashboard station card: a small muted day label,
+// the station as the headline, then window and break together underneath.
+function StationLine({
+  day,
+  station,
+  empty,
+  windowLabel,
+  breakLabel,
+}: {
+  day: string;
+  station?: string;
+  empty: string;
+  windowLabel?: string;
+  breakLabel?: string;
+}) {
+  const meta = [windowLabel ? `W${windowLabel}` : null, breakLabel ? `Break ${breakLabel}` : null]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <div>
+      <div className="text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold leading-tight">{day}</div>
+      <div className={`text-[13.5px] leading-snug ${station ? "font-semibold text-[var(--ink)]" : "text-[var(--muted)]"}`}>
+        {station ?? empty}
+      </div>
+      {meta && <div className="text-[11.5px] text-[var(--muted)] leading-snug mt-0.5">{meta}</div>}
+    </div>
+  );
+}
+
 const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   pending: "warn",
   approved: "good",
@@ -85,7 +115,7 @@ export default async function DashboardPage() {
   const tomorrow = nextWorkday(todayInManila());
   const isLiterallyTomorrow = tomorrow === addDays(todayInManila(), 1);
   // "Tomorrow" only when it really is; otherwise name the day.
-  const nextDayLabel = isLiterallyTomorrow ? "Tomorrow" : `On ${weekdayLongLabel(tomorrow)}`;
+  const nextDayLabel = isLiterallyTomorrow ? "Tomorrow" : weekdayLongLabel(tomorrow);
   // Find the schedule_week that contains it (could be this week or next).
   const tomorrowWeekStart = startOfWorkWeek(tomorrow);
 
@@ -221,27 +251,33 @@ export default async function DashboardPage() {
             href="/schedule"
             className="border border-[var(--line)] rounded-xl bg-[var(--paper-raised)] p-3.5 hover:border-[var(--accent)] transition-colors block"
           >
-            <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">Station</div>
-            <div className="text-[13px] font-semibold text-[var(--ink)]">
-              Today: {week ? (myCurrentStationName ?? "Not assigned") : "No schedule yet"}
-              {myWindowLabel && <span className="text-[var(--muted)] font-normal"> · W{myWindowLabel}</span>}
-            </div>
-            {myBreakSlot && (
-              <div className="text-[12px] text-[var(--muted)] mt-0.5">Break {BREAK_SLOT_LABEL[myBreakSlot]}</div>
-            )}
-            <div className="border-t border-[var(--line)] my-1.5" />
-            <div className="text-[13px] font-semibold text-[var(--ink)]">
-              {blockingTaskCount > 0
-                ? "Complete tasks to view"
-                : !tomorrowRevealed
-                  ? `${nextDayLabel}: Revealed at 12 PM`
-                  : `${nextDayLabel}: ${myTomorrowStationName ?? "Not assigned"}`}
-              {blockingTaskCount === 0 && tomorrowRevealed && myNextWindowLabel && (
-                <span className="text-[var(--muted)] font-normal"> · W{myNextWindowLabel}</span>
-              )}
-            </div>
-            {blockingTaskCount === 0 && tomorrowRevealed && myNextBreakSlot && (
-              <div className="text-[12px] text-[var(--muted)] mt-0.5">Break {BREAK_SLOT_LABEL[myNextBreakSlot]}</div>
+            <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">Station</div>
+
+            {/* Day is quiet metadata; the station name is the content. Window
+                and break share one muted line so a posting is three tight
+                lines instead of four competing ones. */}
+            <StationLine
+              day="Today"
+              station={week ? myCurrentStationName : undefined}
+              empty={week ? "Not assigned" : "No schedule yet"}
+              windowLabel={myWindowLabel}
+              breakLabel={myBreakSlot ? BREAK_SLOT_LABEL[myBreakSlot] : undefined}
+            />
+
+            <div className="border-t border-[var(--line)] my-2" />
+
+            {blockingTaskCount > 0 ? (
+              <StationLine day={nextDayLabel} empty="Complete tasks to view" />
+            ) : !tomorrowRevealed ? (
+              <StationLine day={nextDayLabel} empty="Revealed at 12 PM" />
+            ) : (
+              <StationLine
+                day={nextDayLabel}
+                station={myTomorrowStationName}
+                empty="Not assigned"
+                windowLabel={myNextWindowLabel}
+                breakLabel={myNextBreakSlot ? BREAK_SLOT_LABEL[myNextBreakSlot] : undefined}
+              />
             )}
           </a>
         )}
