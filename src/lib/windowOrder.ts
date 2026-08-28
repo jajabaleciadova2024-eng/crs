@@ -1,7 +1,7 @@
-// Window labels are text ("27", "10", "EE") because not every window is
-// numbered — Electronic Endorsement's is literally "EE". Plain string sorting
-// would put "10" before "8" and bury nothing usefully, so numeric labels sort
-// numerically and ahead of non-numeric ones, which sort alphabetically after.
+// Window labels are text ("8", "27", "30") rather than integers so an
+// unnumbered window could still be recorded if one ever comes up. Plain string
+// sorting would put "10" before "8", so numeric labels sort numerically and
+// ahead of any non-numeric ones, which sort alphabetically after.
 
 function numericValue(label: string): number | null {
   const trimmed = label.trim();
@@ -13,7 +13,7 @@ export function compareWindowLabels(a: string, b: string): number {
   const na = numericValue(a);
   const nb = numericValue(b);
   if (na !== null && nb !== null) return na - nb;
-  // Numbered windows first, then named ones (EE) alphabetically.
+  // Numbered windows first, then any named ones alphabetically.
   if (na !== null) return -1;
   if (nb !== null) return 1;
   return a.localeCompare(b);

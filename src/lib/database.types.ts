@@ -194,8 +194,8 @@ export interface MemberTaskCompletion {
 }
 
 // A physically numbered service window belonging to a station (see
-// 0027_workstation_windows.sql). `label` is text because not every window is
-// numbered — Electronic Endorsement's is "EE".
+// 0027_workstation_windows.sql). `label` is text rather than an integer so an
+// unnumbered window could still be recorded if one ever comes up.
 export interface WorkstationWindow {
   id: string;
   workstation_id: string;

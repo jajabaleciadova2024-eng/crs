@@ -7,9 +7,9 @@
 -- numbers are non-contiguous (Releasing Officer is 18, 20, 21, 23 — there is
 -- no 19 or 22), so they can't be derived from a count and have to be stored.
 --
--- Labels are text, not integers: Electronic Endorsement's window is written
--- "EE" rather than a number. Ordering is handled in the app (numeric-aware,
--- see src/lib/windowOrder.ts) so 8 sorts before 10 instead of after it.
+-- Labels are text, not integers, so a window that isn't numbered can still be
+-- recorded. Ordering is handled in the app (numeric-aware, see
+-- src/lib/windowOrder.ts) so 8 sorts before 10 instead of after it.
 --
 -- headcount stays on workstations for now — nothing reads windows yet, and
 -- switching assignment over to windows is a separate change.
@@ -18,7 +18,7 @@
 create table if not exists public.workstation_windows (
   id uuid primary key default gen_random_uuid(),
   workstation_id uuid not null references public.workstations(id) on delete cascade,
-  -- "27", "10", "EE" — a physical window's real-world label.
+  -- "8", "27", "30" — a physical window's real-world label.
   label text not null,
   is_active boolean not null default true,
   created_at timestamptz not null default now()
@@ -85,7 +85,7 @@ from (values
   ('releasing officer', '20'),
   ('releasing officer', '21'),
   ('releasing officer', '23'),
-  ('electronic endorsement', 'EE')
+  ('electronic endorsement', '30')
 ) as v(station, label)
 join public.workstations w on lower(trim(w.name)) = v.station
 where not exists (
