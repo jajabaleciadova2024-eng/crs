@@ -14,6 +14,7 @@ type Member = {
   psid: string;
   role: AppRole;
   is_immune: boolean;
+  is_break_immune: boolean;
   tenure_group: TenureGroup;
 };
 
@@ -22,6 +23,8 @@ const ROLE_LABEL: Record<AppRole, string> = { team_leader: "Team Leader", oic: "
 function RotationRow({ member }: { member: Member }) {
   const [editing, setEditing] = useState(false);
   const [isImmune, setIsImmune] = useState(member.is_immune);
+  // Separate from rotation immunity: this pins the break slot, not the station.
+  const [isBreakImmune, setIsBreakImmune] = useState(member.is_break_immune);
   const [tenureGroup, setTenureGroup] = useState<TenureGroup>(member.tenure_group);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -29,7 +32,10 @@ function RotationRow({ member }: { member: Member }) {
   function save() {
     startTransition(async () => {
       const supabase = createClient();
-      await supabase.from("profiles").update({ is_immune: isImmune, tenure_group: tenureGroup }).eq("id", member.id);
+      await supabase
+        .from("profiles")
+        .update({ is_immune: isImmune, is_break_immune: isBreakImmune, tenure_group: tenureGroup })
+        .eq("id", member.id);
       setEditing(false);
       router.refresh();
     });
@@ -49,6 +55,20 @@ function RotationRow({ member }: { member: Member }) {
           <input type="checkbox" checked={isImmune} onChange={(e) => setIsImmune(e.target.checked)} className="w-4 h-4 cursor-pointer" />
         ) : member.is_immune ? (
           <Pill tone="accent">Immune</Pill>
+        ) : (
+          <span className="text-[var(--muted)]">—</span>
+        )}
+      </td>
+      <td className="py-2.5 border-b border-[var(--line)]">
+        {editing ? (
+          <input
+            type="checkbox"
+            checked={isBreakImmune}
+            onChange={(e) => setIsBreakImmune(e.target.checked)}
+            className="w-4 h-4 cursor-pointer"
+          />
+        ) : member.is_break_immune ? (
+          <Pill tone="warn">Fixed break</Pill>
         ) : (
           <span className="text-[var(--muted)]">—</span>
         )}
@@ -106,6 +126,7 @@ export default function RotationSettingsPanel({ members }: { members: Member[] }
             <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Name</th>
             <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Role</th>
             <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>
+            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Break</th>
             <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Tenure</th>
             <th className="py-2.5 border-b border-[var(--line)]" />
           </tr>

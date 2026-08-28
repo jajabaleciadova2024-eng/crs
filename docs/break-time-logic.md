@@ -1,7 +1,8 @@
-# Break-time logic — pending build
+# Break-time logic
 
 Captured from the Team Leader's handwritten floor notes plus follow-up
-decisions. **Nothing here is implemented yet** beyond the windows themselves.
+decisions. **Built** — see migrations 0027 and 0028, `src/lib/breakTime.ts`,
+and `/breaks`.
 
 ## Already built
 
@@ -20,7 +21,7 @@ decisions. **Nothing here is implemented yet** beyond the windows themselves.
 `workstations.headcount` still drives schedule generation. Windows are
 recorded but nothing reads them yet.
 
-## To build
+## How it works
 
 ### 1. Break slots per window
 
@@ -82,3 +83,19 @@ keeps its reliever when cover is scarce.
    whoever is free?
 6. **Does assignment move onto windows entirely**, or do windows stay a layer
    on top of station-level rotation?
+
+
+## Resolved
+
+- **Screener** — not excluded. Screeners break like everyone else, and are
+  additionally the pullable pool: they can be borrowed to cover other
+  stations, down to a minimum of 1 screener on the floor.
+- **Fixed to the window** — a window's break slot belongs to the window;
+  whoever is seated there that day takes it.
+- **Assignment moved onto windows** — `assignments.window_id` names the
+  specific window, allocated during generation.
+
+## Still open
+
+- **Break length** (15 / 30 / 60 min) — not modelled; slots are start times.
+- **Coffee vs lunch** — doesn't affect the logic, but would change labels.

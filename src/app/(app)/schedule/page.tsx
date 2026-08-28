@@ -65,7 +65,7 @@ async function WeekPanel({
   const { data: rawAssignments } = week
     ? await supabase
         .from("assignments")
-        .select(`*, workstations(name), profiles(first_name, last_name, avatar_url${canManage ? ", is_immune" : ""})`)
+        .select(`*, workstations(name), workstation_windows(label), profiles(first_name, last_name, avatar_url${canManage ? ", is_immune" : ""})`)
         .eq("schedule_week_id", week.id)
     : { data: [] };
 
@@ -199,6 +199,7 @@ async function WeekPanel({
                       assignmentId: a.id as string,
                       associateId: a.associate_id as string,
                       name: formatFullName(a.profiles?.first_name, a.profiles?.last_name),
+                      windowLabel: a.workstation_windows?.label ?? null,
                       isImmune: Boolean(a.profiles?.is_immune),
                       onLeave: isOnLeave(a.associate_id, date),
                     }));
@@ -309,7 +310,7 @@ export default async function SchedulePage() {
       // at on a still-locked day. RLS "workstations_select_all" allows it.
       supabase.from("workstations").select("id, name, headcount").eq("is_active", true).order("name"),
       canManage
-        ? supabase.from("profiles").select("id, first_name, last_name, psid, role, is_immune, tenure_group").eq("is_active", true)
+        ? supabase.from("profiles").select("id, first_name, last_name, psid, role, is_immune, is_break_immune, tenure_group").eq("is_active", true)
         : Promise.resolve({ data: [] }),
       supabase.from("org_settings").select("schedule_cadence").limit(1).maybeSingle(),
     ]);
@@ -427,7 +428,7 @@ export default async function SchedulePage() {
         <Panel
           title="Rotation Settings"
           hint="Team Leader only"
-          footnote="Immune members are excluded from the weekly shuffle and must be placed manually when generating. Tenure (OIC and associates) feeds the Tenured/New Hire quotas in the Generate modal."
+          footnote="Immune members are excluded from the weekly shuffle and must be placed manually when generating. Break-immune members keep the same break slot instead of being reshuffled — the two are separate, so someone can be one without the other. Tenure (OIC and associates) feeds the Tenured/New Hire quotas in the Generate modal."
         >
           <RotationSettingsPanel
             members={(allActive ?? [])

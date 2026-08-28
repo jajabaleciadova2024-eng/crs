@@ -31,6 +31,9 @@ export interface Profile {
   is_immune: boolean;
   is_active: boolean;
   tenure_group: TenureGroup;
+  // Distinct from is_immune: rotation immunity pins your station, break
+  // immunity pins your break slot.
+  is_break_immune: boolean;
   created_at: string;
 }
 
@@ -40,6 +43,15 @@ export interface Workstation {
   description: string | null;
   headcount: number;
   is_active: boolean;
+  // Lower = manned first when short-staffed, protected hardest when handing
+  // out breaks (1 Collecting Officer, 2 PACD, 3 Releasing Officer).
+  man_priority: number | null;
+  // Screeners can be borrowed to cover other stations.
+  can_be_pulled: boolean;
+  // Electronic Endorsement floats and relieves whoever is on break.
+  is_reliever: boolean;
+  // Fewest windows that must stay manned at any moment.
+  min_manned: number;
   created_at: string;
 }
 
@@ -56,6 +68,9 @@ export interface Assignment {
   workstation_id: string;
   associate_id: string;
   assignment_date: string;
+  // The specific physical window this person sits at. Null for rows
+  // generated before windows existed.
+  window_id: string | null;
   created_at: string;
 }
 
@@ -204,6 +219,20 @@ export interface WorkstationWindow {
   created_at: string;
 }
 
+export type BreakSlotValue = "10:00" | "11:00" | "12:00";
+
+// One row per (day, window) that goes on break. See 0028_break_time.sql.
+export interface BreakAssignmentRow {
+  id: string;
+  schedule_week_id: string;
+  assignment_date: string;
+  window_id: string;
+  associate_id: string;
+  break_slot: BreakSlotValue;
+  reliever_associate_id: string | null;
+  created_at: string;
+}
+
 export type AssignmentAction = "assigned" | "moved" | "reassigned" | "removed";
 
 // Append-only audit trail for station assignments (see
@@ -247,6 +276,7 @@ export interface Database {
           is_immune?: boolean;
           is_active?: boolean;
           tenure_group?: TenureGroup;
+          is_break_immune?: boolean;
         };
         Update: {
           id?: string;
@@ -261,13 +291,20 @@ export interface Database {
           is_immune?: boolean;
           is_active?: boolean;
           tenure_group?: TenureGroup;
+          is_break_immune?: boolean;
         };
         Relationships: [];
       };
       workstations: {
         Row: Workstation;
-        Insert: { name: string; description?: string | null; headcount?: number; is_active?: boolean };
-        Update: { name?: string; description?: string | null; headcount?: number; is_active?: boolean };
+        Insert: {
+          name: string; description?: string | null; headcount?: number; is_active?: boolean;
+          man_priority?: number | null; can_be_pulled?: boolean; is_reliever?: boolean; min_manned?: number;
+        };
+        Update: {
+          name?: string; description?: string | null; headcount?: number; is_active?: boolean;
+          man_priority?: number | null; can_be_pulled?: boolean; is_reliever?: boolean; min_manned?: number;
+        };
         Relationships: [];
       };
       schedule_weeks: {
@@ -278,8 +315,8 @@ export interface Database {
       };
       assignments: {
         Row: Assignment;
-        Insert: { schedule_week_id: string; workstation_id: string; associate_id: string; assignment_date: string };
-        Update: { schedule_week_id?: string; workstation_id?: string; associate_id?: string; assignment_date?: string };
+        Insert: { schedule_week_id: string; workstation_id: string; associate_id: string; assignment_date: string; window_id?: string | null };
+        Update: { schedule_week_id?: string; workstation_id?: string; associate_id?: string; assignment_date?: string; window_id?: string | null };
         Relationships: [];
       };
       leave_requests: {
@@ -403,6 +440,19 @@ export interface Database {
           assign_to?: string;
           blocker_days_before?: number;
         };
+        Relationships: [];
+      };
+      break_assignments: {
+        Row: BreakAssignmentRow;
+        Insert: {
+          schedule_week_id: string;
+          assignment_date: string;
+          window_id: string;
+          associate_id: string;
+          break_slot: BreakSlotValue;
+          reliever_associate_id?: string | null;
+        };
+        Update: { break_slot?: BreakSlotValue; reliever_associate_id?: string | null };
         Relationships: [];
       };
       workstation_windows: {

@@ -6,7 +6,7 @@ import type { Profile } from "@/lib/database.types";
 import AssignmentCard from "./AssignmentCard";
 
 type DragPayload = { assignmentId: string; associateId: string; workstationId: string; date: string };
-type CellEntry = { assignmentId: string; associateId: string; name: string; isImmune: boolean; onLeave: boolean };
+type CellEntry = { assignmentId: string; associateId: string; name: string; windowLabel?: string | null; isImmune: boolean; onLeave: boolean };
 
 // One (station, day) cell in the schedule grid. Renders its people as
 // draggable AssignmentCards, and is itself a drop target for "move this
@@ -105,6 +105,7 @@ export default function ScheduleCell({
           assignmentId={entry.assignmentId}
           associateId={entry.associateId}
           name={entry.name}
+          windowLabel={entry.windowLabel}
           isImmune={entry.isImmune}
           onLeave={entry.onLeave}
           canManage={canManage}

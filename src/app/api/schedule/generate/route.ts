@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
-import { generateDailyAssignments, type StationQuota, type DailyImmunePlacement } from "@/lib/schedule";
+import { generateDailyAssignments, allocateWindows, type StationQuota, type DailyImmunePlacement } from "@/lib/schedule";
+import { assignDayBreaks, type BreakSlot, type SeatedWindow, type BreakStation } from "@/lib/breakTime";
+import { compareWindowLabels } from "@/lib/windowOrder";
 import { notifySchedulePublished } from "@/lib/notify";
 import { bellNotify, allActiveMemberIds } from "@/lib/bellNotify";
 import { todayInManila, startOfWorkWeek, addDays, formatWeekRange, workDatesForWeek } from "@/lib/scheduleDates";
@@ -222,12 +224,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: weekError?.message ?? "Couldn't create the new schedule week." }, { status: 400 });
     }
 
+    // Hand each seated person a specific physical window within their
+    // station, so the schedule can show "W12" and breaks have something to
+    // attach to.
+    const { data: allWindows } = await supabase
+      .from("workstation_windows")
+      .select("id, workstation_id, label")
+      .eq("is_active", true);
+    const withWindows = allocateWindows(newAssignments, allWindows ?? [], compareWindowLabels);
+
     const { error: assignError } = await supabase.from("assignments").insert(
-      newAssignments.map((a) => ({
+      withWindows.map((a) => ({
         schedule_week_id: newWeek.id,
         workstation_id: a.workstation_id,
         associate_id: a.associate_id,
         assignment_date: a.assignment_date,
+        window_id: a.window_id,
       }))
     );
     if (assignError) {
@@ -236,6 +248,60 @@ export async function POST(request: Request) {
       // assignments insert fails partway through.
       await supabase.from("schedule_weeks").delete().eq("id", newWeek.id);
       return NextResponse.json({ error: `Couldn't save the assignments: ${assignError.message}` }, { status: 400 });
+    }
+
+    // --- Break times, generated in the SAME action as the schedule ---
+    // The two must never drift apart: a week always has both, or neither.
+    // Clearing the week cascades the breaks away with it.
+    const [{ data: breakStations }, { data: breakProfiles }] = await Promise.all([
+      supabase.from("workstations").select("id, name, man_priority, can_be_pulled, is_reliever, min_manned"),
+      supabase.from("profiles").select("id, is_break_immune"),
+    ]);
+    const breakImmuneIds = new Set(
+      (breakProfiles ?? []).filter((p: { is_break_immune: boolean }) => p.is_break_immune).map((p: { id: string }) => p.id),
+    );
+    const windowById = new Map((allWindows ?? []).map((w: { id: string; label: string }) => [w.id, w.label]));
+
+    const breakRows: {
+      schedule_week_id: string;
+      assignment_date: string;
+      window_id: string;
+      associate_id: string;
+      break_slot: BreakSlot;
+      reliever_associate_id: string | null;
+    }[] = [];
+
+    for (const date of workDatesForWeek(targetWeekStart)) {
+      const seated: SeatedWindow[] = withWindows
+        .filter((a) => a.assignment_date === date && a.window_id)
+        .map((a) => ({
+          window_id: a.window_id as string,
+          window_label: windowById.get(a.window_id as string) ?? "",
+          workstation_id: a.workstation_id,
+          associate_id: a.associate_id,
+          is_break_immune: breakImmuneIds.has(a.associate_id),
+          locked_slot: null,
+        }));
+      if (seated.length === 0) continue;
+
+      const dayBreaks = assignDayBreaks(seated, (breakStations ?? []) as BreakStation[]);
+      for (const b of dayBreaks) {
+        breakRows.push({
+          schedule_week_id: newWeek.id,
+          assignment_date: date,
+          window_id: b.window_id,
+          associate_id: b.associate_id,
+          break_slot: b.break_slot,
+          reliever_associate_id: b.reliever_associate_id,
+        });
+      }
+    }
+
+    if (breakRows.length > 0) {
+      const { error: breakError } = await supabase.from("break_assignments").insert(breakRows);
+      // A break failure doesn't roll back the schedule — the week is still
+      // valid and usable, and breaks can be regenerated. Logged loudly.
+      if (breakError) console.error("[schedule/generate] break insert failed:", breakError);
     }
 
     await notifySchedulePublished(targetWeekStart);

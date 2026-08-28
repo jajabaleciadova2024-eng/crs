@@ -9,6 +9,7 @@ import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed, addDays } from "@/lib/scheduleDates";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
+import { BREAK_SLOT_LABEL, type BreakSlot } from "@/lib/breakTime";
 import { toTitleCase, formatFullName } from "@/lib/format";
 import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
 import LeaveCalendar from "./leave/calendar/LeaveCalendar";
@@ -87,7 +88,7 @@ export default async function DashboardPage() {
     week
       ? supabase
           .from("assignments")
-          .select("*, workstations(name), profiles(first_name, last_name, avatar_url)")
+          .select("*, workstations(name), workstation_windows(label), profiles(first_name, last_name, avatar_url)")
           .eq("schedule_week_id", week.id)
           .eq("assignment_date", displayDate)
       : Promise.resolve({ data: null }),
@@ -147,6 +148,19 @@ export default async function DashboardPage() {
 
   const tomorrowRevealed = isTomorrowRevealed();
 
+  // Today's own break slot + window, for the station card below.
+  const { data: myBreakToday } = isRotatingRole && week
+    ? await supabase
+        .from("break_assignments")
+        .select("break_slot, workstation_windows(label)")
+        .eq("schedule_week_id", week.id)
+        .eq("assignment_date", displayDate)
+        .eq("associate_id", profile.id)
+        .maybeSingle()
+    : { data: null };
+  const myBreakSlot = (myBreakToday as any)?.break_slot as BreakSlot | undefined;
+  const myWindowLabel = (myCurrentAssignment as any)?.workstation_windows?.label as string | undefined;
+
   // Org-wide leave calendar — visible to every role (see leave/calendar/page.tsx).
   const [leaveCalendarRequests, { data: calendarOrgSettings }] = await Promise.all([
     getLeaveCalendarRequests(),
@@ -189,7 +203,13 @@ export default async function DashboardPage() {
             <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">Station</div>
             <div className="text-[13px] font-semibold text-[var(--ink)]">
               Today: {week ? (myCurrentStationName ?? "Not assigned") : "No schedule yet"}
+              {myWindowLabel && <span className="text-[var(--muted)] font-normal"> · W{myWindowLabel}</span>}
             </div>
+            {myBreakSlot && (
+              <div className="text-[12px] text-[var(--muted)] mt-0.5">
+                Break at {BREAK_SLOT_LABEL[myBreakSlot]}
+              </div>
+            )}
             <div className="border-t border-[var(--line)] my-1.5" />
             <div className="text-[13px] font-semibold text-[var(--ink)]">
               {blockingTaskCount > 0

@@ -236,3 +236,43 @@ export function generateDailyAssignments(
   }
   return result;
 }
+
+
+// ---------------------------------------------------------------------------
+// Window allocation
+//
+// generateDailyAssignments decides WHO sits at WHICH STATION each day. This
+// then hands each of those people a specific physical window within that
+// station, so the schedule can show "W12" rather than just "Collecting
+// Officer". Windows are handed out in label order for stability — the same
+// person keeps the same window across a day's regeneration where possible.
+// ---------------------------------------------------------------------------
+
+export type StationWindow = { id: string; workstation_id: string; label: string };
+
+export function allocateWindows(
+  assignments: DailyAssignment[],
+  windows: StationWindow[],
+  compareLabels: (a: string, b: string) => number,
+): (DailyAssignment & { window_id: string | null })[] {
+  const byStation = new Map<string, StationWindow[]>();
+  for (const w of windows) {
+    byStation.set(w.workstation_id, [...(byStation.get(w.workstation_id) ?? []), w]);
+  }
+  for (const [k, list] of byStation) {
+    byStation.set(k, [...list].sort((a, b) => compareLabels(a.label, b.label)));
+  }
+
+  // Track windows already handed out per (date, station) — a window seats one
+  // person at a time.
+  const used = new Map<string, number>();
+  return assignments.map((a) => {
+    const key = `${a.assignment_date}::${a.workstation_id}`;
+    const pool = byStation.get(a.workstation_id) ?? [];
+    const idx = used.get(key) ?? 0;
+    used.set(key, idx + 1);
+    // More people than windows (headcount above the real window count) —
+    // the extras get no window rather than double-booking one.
+    return { ...a, window_id: pool[idx]?.id ?? null };
+  });
+}

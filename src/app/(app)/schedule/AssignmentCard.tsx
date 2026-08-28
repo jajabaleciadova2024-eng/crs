@@ -14,6 +14,7 @@ export default function AssignmentCard({
   assignmentId,
   associateId,
   name,
+  windowLabel,
   isImmune,
   onLeave,
   canManage,
@@ -26,6 +27,8 @@ export default function AssignmentCard({
   assignmentId: string;
   associateId: string;
   name: string;
+  /** The physical window this person is seated at, e.g. "12". */
+  windowLabel?: string | null;
   isImmune: boolean;
   onLeave: boolean;
   canManage: boolean;
@@ -130,6 +133,14 @@ export default function AssignmentCard({
             it never affects the card's own layout/height. */}
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-[12px] sm:text-[12.5px] font-medium text-[var(--ink)] truncate">{name}</span>
+          {windowLabel && (
+            <span
+              className="shrink-0 rounded border border-[var(--line)] bg-[var(--paper)] px-1 text-[10px] font-bold tabular-nums text-[var(--muted)]"
+              title={`Window ${windowLabel}`}
+            >
+              W{windowLabel}
+            </span>
+          )}
           {canManage && isImmune && (
             <span className="relative inline-flex shrink-0">
               <span className="inline-block w-[7px] h-[7px] rounded-full bg-[var(--accent)]" aria-label="Immune" />
