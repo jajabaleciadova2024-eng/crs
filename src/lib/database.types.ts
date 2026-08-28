@@ -258,6 +258,13 @@ export interface AssignmentHistory {
   changed_at: string;
 }
 
+export interface Holiday {
+  date: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {

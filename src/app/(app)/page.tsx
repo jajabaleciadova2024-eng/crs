@@ -10,6 +10,7 @@ import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed, addDays, nextWorkday, weekdayLongLabel } from "@/lib/scheduleDates";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { BREAK_SLOT_LABEL, type BreakSlot } from "@/lib/breakTime";
+import { holidayDateSet, holidaysInRange } from "@/lib/holidays";
 import { toTitleCase, formatFullName } from "@/lib/format";
 import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
 import LeaveCalendar from "./leave/calendar/LeaveCalendar";
@@ -120,7 +121,12 @@ export default async function DashboardPage() {
   const isRotatingRole = profile.role !== "team_leader";
   // The next WORKING day, not literally tomorrow — on a Friday the floor
   // cares about Monday, and Saturday has no schedule to show.
-  const tomorrow = nextWorkday(todayInManila());
+  // Fetch TL-managed holidays for the next 2 weeks so nextWorkday skips them.
+  const holidayDates = await holidayDateSet(supabase, todayInManila(), addDays(todayInManila(), 14));
+  const holidayList = await holidaysInRange(supabase, todayInManila(), addDays(todayInManila(), 14));
+  const holidayNameMap = new Map(holidayList.map((h) => [h.date, h.name]));
+  const todayHoliday = holidayNameMap.get(todayInManila());
+  const tomorrow = nextWorkday(todayInManila(), holidayDates);
   const isLiterallyTomorrow = tomorrow === addDays(todayInManila(), 1);
   // "Tomorrow" only when it really is; otherwise name the day.
   const nextDayLabel = isLiterallyTomorrow ? "Tomorrow" : weekdayLongLabel(tomorrow);
@@ -298,14 +304,18 @@ export default async function DashboardPage() {
             {/* Day is quiet metadata; the station name is the content. Window
                 and break share one muted line so a posting is three tight
                 lines instead of four competing ones. */}
-            <StationLine
-              day="Today"
-              station={week ? myCurrentStationName : undefined}
-              empty={week ? "Not assigned" : "No schedule yet"}
-              windowLabel={myWindowLabel}
-              breakLabel={myBreakSlot ? BREAK_SLOT_LABEL[myBreakSlot] : undefined}
-              coverText={myCoverTodayText}
-            />
+            {todayHoliday ? (
+              <StationLine day="Today" empty={`🎉 ${todayHoliday}`} />
+            ) : (
+              <StationLine
+                day="Today"
+                station={week ? myCurrentStationName : undefined}
+                empty={week ? "Not assigned" : "No schedule yet"}
+                windowLabel={myWindowLabel}
+                breakLabel={myBreakSlot ? BREAK_SLOT_LABEL[myBreakSlot] : undefined}
+                coverText={myCoverTodayText}
+              />
+            )}
 
             <div className="border-t border-[var(--line)] my-2" />
 

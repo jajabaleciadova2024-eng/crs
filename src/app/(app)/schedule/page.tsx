@@ -14,7 +14,7 @@ import ClearScheduleButton from "./ClearScheduleButton";
 import RotationSettingsPanel from "./RotationSettingsPanel";
 import WeekTabs from "./WeekTabs";
 import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays, workDatesForWeek, weekdayShortLabel, isTomorrowRevealed, nextWorkday } from "@/lib/scheduleDates";
-import { holidaysInRange } from "@/lib/phHolidays";
+import { holidaysInRange } from "@/lib/holidays";
 import { formatFullName } from "@/lib/format";
 import { compareStationNames } from "@/lib/stationOrder";
 
@@ -59,7 +59,7 @@ async function WeekPanel({
   // Always render all 5 day columns — blocked dates get placeholder cells
   const workDates = allWorkDates;
 
-  const holidays = holidaysInRange(weekStart, weekEnd);
+  const holidays = await holidaysInRange(supabase, weekStart, weekEnd);
   const holidayByDate = new Map(holidays.map((h) => [h.date, h.name]));
 
   const { data: rawAssignments } = week

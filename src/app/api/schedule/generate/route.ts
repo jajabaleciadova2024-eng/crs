@@ -7,7 +7,8 @@ import { assignDayBreaks, type BreakSlot, type SeatedWindow, type BreakStation }
 import { compareWindowLabels } from "@/lib/windowOrder";
 import { notifySchedulePublished } from "@/lib/notify";
 import { bellNotify, allActiveMemberIds } from "@/lib/bellNotify";
-import { todayInManila, startOfWorkWeek, addDays, formatWeekRange, workDatesForWeek } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, addDays, formatWeekRange, workDatesForWeek, endOfWorkWeek } from "@/lib/scheduleDates";
+import { holidayDateSet } from "@/lib/holidays";
 
 // Generates a schedule for the Team-Leader-chosen week (the modal's date
 // picker, defaulted to the next open week but editable) — or, if no week
@@ -129,7 +130,9 @@ export async function POST(request: Request) {
 
     // Every work day (Mon-Fri) in the target week — the algorithm now
     // generates once per day instead of once for the whole week.
-    const workDates = workDatesForWeek(targetWeekStart);
+    // Holiday dates are skipped — no assignments generated on TL-declared holidays.
+    const holidays = await holidayDateSet(supabase, targetWeekStart, endOfWorkWeek(targetWeekStart));
+    const workDates = workDatesForWeek(targetWeekStart).filter((d) => !holidays.has(d));
 
     // Required step (Team Leader's explicit rule): when using the quota
     // modal, EVERY currently-immune, active, non-Team-Leader profile must be

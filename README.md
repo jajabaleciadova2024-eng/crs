@@ -73,7 +73,7 @@ src/
     database.types.ts       hand-authored schema types (see gotcha below)
     schedule.ts              pure auto-shuffle assignment algorithm (unit-tested, schedule.test.ts)
     scheduleDates.ts          Asia/Manila-timezone week math (unit-tested)
-    phHolidays.ts             PH regular holidays, computed per year (unit-tested)
+    holidays.ts              TL-managed holidays from DB
     payPeriod.ts              semi-monthly (1-15 / 16-end) grouping for leave history (unit-tested)
     email.ts                 Resend REST API wrapper (no-ops if RESEND_API_KEY unset)
     notify.ts                notification triggers: leave status change, new leave to review, schedule published
@@ -308,13 +308,12 @@ npm test
   day off from what a PH-based Team Leader expects late at night. The work
   week is Monday–Friday now (was the full Mon–Sun calendar week), used
   consistently by `/schedule`, `/api/schedule/generate`, and the Dashboard.
-  `src/lib/phHolidays.ts` computes PH regular holidays per year (fixed
+  `src/lib/holidays.ts              TL-managed holidays from DB
   dates + Easter-based Maundy Thursday/Good Friday + "last Monday of
   August" for National Heroes Day, all unit-tested) and flags any that
   fall within the displayed week on `/schedule`. **Eid'l Fitr and Eid'l
   Adha are lunar-calendar and only fixed by Presidential Proclamation each
   year — they can't be computed.** Add announced dates to
-  `MANUALLY_ANNOUNCED_HOLIDAYS` in `phHolidays.ts` once known.
 - **Leave history (Team Leader)**: ✅ done — `/leave/history`, linked from
   Leave Requests. Approved leave grouped into semi-monthly periods (1st–15th,
   16th–end of month), most recent first (`src/lib/payPeriod.ts`, unit-tested).

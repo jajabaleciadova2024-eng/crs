@@ -5,15 +5,17 @@ import AccountForm from "./AccountForm";
 import ProfilePhotoUpload from "./ProfilePhotoUpload";
 import NotificationPrefsForm from "./NotificationPrefsForm";
 import OrgSettingsForm from "./OrgSettingsForm";
+import HolidayManager from "./HolidayManager";
 
 export default async function SettingsPage() {
   const profile = await requireProfile();
   const supabase = await createClient();
   const isTeamLeader = profile.role === "team_leader";
 
-  const [{ data: prefs }, { data: orgSettings }] = await Promise.all([
+  const [{ data: prefs }, { data: orgSettings }, { data: holidays }] = await Promise.all([
     supabase.from("notification_prefs").select("*").eq("profile_id", profile.id).maybeSingle(),
     isTeamLeader ? supabase.from("org_settings").select("*").limit(1).maybeSingle() : Promise.resolve({ data: null }),
+    isTeamLeader ? supabase.from("holidays").select("date, name").order("date") : Promise.resolve({ data: null }),
   ]);
 
   return (
@@ -41,6 +43,12 @@ export default async function SettingsPage() {
       {isTeamLeader && orgSettings && (
         <Panel title="Organization settings" hint="Team Leader only" footnote="Changes here apply to the whole team, not just your account.">
           <OrgSettingsForm settings={orgSettings} />
+        </Panel>
+      )}
+
+      {isTeamLeader && (
+        <Panel title="Holidays" hint="Team Leader only">
+          <HolidayManager holidays={(holidays ?? []).map((h: any) => ({ date: h.date, name: h.name }))} />
         </Panel>
       )}
     </>

@@ -42,7 +42,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "How does the weekly rotation work?",
-        a: "Each week (Monday–Friday, Philippine time) associates are assigned one station each. Anyone flagged \"Immune\" keeps their previous station and isn't shuffled — everyone else gets reshuffled across the remaining open stations. Philippine regular holidays falling in the week are flagged at the top of the page.",
+        a: "Each week (Monday–Friday, Philippine time) associates are assigned one station each. Anyone flagged \"Immune\" keeps their previous station and isn't shuffled — everyone else gets reshuffled across the remaining open stations. Holidays set by the Team Leader are flagged on the schedule — no assignments are generated on holiday dates.",
       },
       {
         q: "How do I generate a week's schedule?",

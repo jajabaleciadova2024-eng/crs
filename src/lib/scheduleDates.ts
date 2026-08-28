@@ -89,10 +89,10 @@ export function weekdayLongLabel(dateStr: string): string {
 // The next Monday-Friday date after `dateStr`. On a Friday this is Monday,
 // not Saturday — "tomorrow" is meaningless on the floor when tomorrow is a
 // weekend, and no schedule exists for it.
-export function nextWorkday(dateStr: string): string {
+export function nextWorkday(dateStr: string, holidayDates?: Set<string>): string {
   let d = addDays(dateStr, 1);
-  // At most 3 hops: Fri -> Sat -> Sun -> Mon.
-  while (!isWorkday(d)) d = addDays(d, 1);
+  // At most 9 hops (worst case: Fri + 2 weekend + 5 holiday week).
+  while (!isWorkday(d) || holidayDates?.has(d)) d = addDays(d, 1);
   return d;
 }
 
