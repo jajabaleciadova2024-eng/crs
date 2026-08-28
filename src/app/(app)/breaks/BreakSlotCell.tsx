@@ -14,8 +14,10 @@ type Entry = {
   associateId: string;
   name: string;
   relieverId: string | null;
+  relieverName: string | null;
   onLeave: boolean;
   isMine: boolean;
+  amCovering: boolean;
 };
 
 // One break slot's list of windows. The Team Leader can move a window to a
@@ -56,7 +58,9 @@ export default function BreakSlotCell({
           className={`rounded-md border px-2.5 py-2 transition-colors ${
             e.isMine
               ? "border-[var(--accent)] bg-[var(--accent-soft)]/40"
-              : "border-[var(--line)] bg-[var(--paper-raised)]"
+              : e.amCovering
+                ? "border-[var(--warn)]/60 bg-[var(--warn-soft,var(--accent-soft))]/25"
+                : "border-[var(--line)] bg-[var(--paper-raised)]"
           }`}
         >
           <div className="flex items-center gap-2 flex-wrap">
@@ -65,12 +69,18 @@ export default function BreakSlotCell({
             </span>
             <span className="text-[12.5px] font-medium text-[var(--ink)] truncate">{e.name}</span>
             {e.isMine && <Pill tone="accent">You</Pill>}
+            {e.amCovering && <Pill tone="warn">You cover this</Pill>}
             {e.onLeave && <Pill tone="bad">On leave</Pill>}
           </div>
           <div className="flex items-center justify-between gap-2 mt-1 flex-wrap">
-            <span className="text-[11px] text-[var(--muted)]">
+            <span className="text-[11px] text-[var(--muted)] min-w-0">
               {e.stationName}
-              {e.relieverId && " · relieved"}
+              {e.relieverName && (
+                <>
+                  {" · covered by "}
+                  <span className="text-[var(--ink)] font-medium">{e.relieverName}</span>
+                </>
+              )}
             </span>
             {canManage && (
               moving === e.id ? (

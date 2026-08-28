@@ -61,7 +61,7 @@ export default async function BreaksPage() {
     weekIds.length > 0
       ? admin
           .from("break_assignments")
-          .select("*, workstation_windows(label, workstation_id), profiles!break_assignments_associate_id_fkey(first_name, last_name)")
+          .select("*, workstation_windows(label, workstation_id), profiles!break_assignments_associate_id_fkey(first_name, last_name), reliever:profiles!break_assignments_reliever_associate_id_fkey(first_name, last_name)")
           .in("schedule_week_id", weekIds)
       : Promise.resolve({ data: [] }),
     weekIds.length > 0
@@ -118,8 +118,12 @@ export default async function BreaksPage() {
           associateId: b.associate_id,
           name: formatFullName(b.profiles?.first_name, b.profiles?.last_name),
           relieverId: b.reliever_associate_id,
+          relieverName: b.reliever ? formatFullName(b.reliever.first_name, b.reliever.last_name) : null,
           onLeave: isOnLeave(b.associate_id, date),
           isMine: b.associate_id === profile.id,
+          // The person covering needs to see it as plainly as the person
+          // leaving does.
+          amCovering: b.reliever_associate_id === profile.id,
         }))
         .sort((a: any, z: any) => compareWindowLabels(a.windowLabel, z.windowLabel));
 
@@ -143,7 +147,20 @@ export default async function BreaksPage() {
         })
         .filter((c) => c.total > 0);
 
-      return { slot: slot as BreakSlot, entries: inSlot, coverage };
+      // Relief duties for this slot. The reliever is working through it, so
+      // they are not in `entries` — without this they would have no way to
+      // learn they are covering someone.
+      const covering = inSlot
+        .filter((e: any) => e.relieverName)
+        .map((e: any) => ({
+          id: e.id,
+          relieverName: e.relieverName as string,
+          stationName: e.stationName as string,
+          windowLabel: e.windowLabel as string,
+          isMine: e.amCovering as boolean,
+        }));
+
+      return { slot: slot as BreakSlot, entries: inSlot, coverage, covering };
     });
 
     return { date, label: `${weekdayShortLabel(date)} ${date.slice(5)}`, slots, isToday: date === today };
@@ -171,11 +188,31 @@ export default async function BreaksPage() {
           isToday: d.isToday,
           content: (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3">
-              {d.slots.map(({ slot, entries, coverage }) => (
-                <Panel key={slot} title={BREAK_SLOT_LABEL[slot]} hint={`${entries.length} on break`}>
+              {d.slots.map(({ slot, entries, coverage, covering }) => (
+                <Panel key={slot} fill title={BREAK_SLOT_LABEL[slot]} hint={`${entries.length} on break`}>
                   <BreakSlotCell slot={slot} date={d.date} entries={entries} canManage={canManage} />
-                  {coverage.length > 0 && (
+
+                  {covering.length > 0 && (
                     <div className="mt-3 pt-2.5 border-t border-[var(--line)] flex flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">
+                        Covering
+                      </span>
+                      {covering.map((c) => (
+                        <div key={c.id} className="flex items-center gap-1.5 text-[11.5px] flex-wrap">
+                          <span className={c.isMine ? "font-semibold text-[var(--accent-strong)]" : "text-[var(--ink)]"}>
+                            {c.isMine ? "You" : c.relieverName}
+                          </span>
+                          <span className="text-[var(--muted)]">→ {c.stationName} W{c.windowLabel}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* mt-auto pins this to the bottom so the three panels line
+                      their coverage readouts up regardless of list length. */}
+                  {coverage.length > 0 && (
+                    <div className="mt-auto pt-3 flex flex-col gap-1">
+                      <div className="border-t border-[var(--line)] -mt-0.5 mb-2" />
                       <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">
                         Manned during this break
                       </span>

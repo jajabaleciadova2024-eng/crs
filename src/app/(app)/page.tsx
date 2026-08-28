@@ -27,12 +27,15 @@ function StationLine({
   empty,
   windowLabel,
   breakLabel,
+  coverText,
 }: {
   day: string;
   station?: string;
   empty: string;
   windowLabel?: string;
   breakLabel?: string;
+  /** Set when this member is relieving someone that day. */
+  coverText?: string;
 }) {
   const meta = [windowLabel ? `W${windowLabel}` : null, breakLabel ? `Break ${breakLabel}` : null]
     .filter(Boolean)
@@ -45,6 +48,9 @@ function StationLine({
         {station ?? empty}
       </div>
       {meta && <div className="text-[11.5px] text-[var(--muted)] leading-snug mt-0.5">{meta}</div>}
+      {coverText && (
+        <div className="text-[11.5px] text-[var(--warn)] font-medium leading-snug mt-0.5">{coverText}</div>
+      )}
     </div>
   );
 }
@@ -207,6 +213,39 @@ export default async function DashboardPage() {
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+  // Relief duty: a reliever is WORKING through the slot they cover, so it
+  // never shows up as their own break. Without this they'd have no reason to
+  // look at /breaks and would simply not know.
+  const [{ data: myCoverToday }, { data: myCoverNextDay }] = await Promise.all([
+    isRotatingRole && week
+      ? supabase
+          .from("break_assignments")
+          .select("break_slot, workstation_windows(label, workstations(name))")
+          .eq("schedule_week_id", week.id)
+          .eq("assignment_date", displayDate)
+          .eq("reliever_associate_id", profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    isRotatingRole && tomorrowWeekRow
+      ? supabase
+          .from("break_assignments")
+          .select("break_slot, workstation_windows(label, workstations(name))")
+          .eq("schedule_week_id", tomorrowWeekRow.id)
+          .eq("assignment_date", tomorrow)
+          .eq("reliever_associate_id", profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const coverText = (row: any): string | undefined => {
+    if (!row) return undefined;
+    const station = row.workstation_windows?.workstations?.name;
+    const label = row.workstation_windows?.label;
+    if (!station) return undefined;
+    return `Cover ${station}${label ? ` W${label}` : ""} ${BREAK_SLOT_LABEL[row.break_slot as BreakSlot]}`;
+  };
+  const myCoverTodayText = coverText(myCoverToday);
+  const myCoverNextDayText = coverText(myCoverNextDay);
+
   const myBreakSlot = (myBreakToday as any)?.break_slot as BreakSlot | undefined;
   const myNextBreakSlot = (myBreakNextDay as any)?.break_slot as BreakSlot | undefined;
   const myWindowLabel = (myCurrentAssignment as any)?.workstation_windows?.label as string | undefined;
@@ -262,6 +301,7 @@ export default async function DashboardPage() {
               empty={week ? "Not assigned" : "No schedule yet"}
               windowLabel={myWindowLabel}
               breakLabel={myBreakSlot ? BREAK_SLOT_LABEL[myBreakSlot] : undefined}
+              coverText={myCoverTodayText}
             />
 
             <div className="border-t border-[var(--line)] my-2" />
@@ -277,6 +317,7 @@ export default async function DashboardPage() {
                 empty="Not assigned"
                 windowLabel={myNextWindowLabel}
                 breakLabel={myNextBreakSlot ? BREAK_SLOT_LABEL[myNextBreakSlot] : undefined}
+                coverText={myCoverNextDayText}
               />
             )}
           </a>

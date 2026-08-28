@@ -92,23 +92,30 @@ export function Panel({
   action,
   children,
   footnote,
+  fill = false,
 }: {
   title: string;
   hint?: string;
   action?: ReactNode;
   children: ReactNode;
   footnote?: string;
+  // Stretch to the height of its grid row and let the body grow, so panels
+  // sitting side by side line their inner sections up instead of each ending
+  // wherever its own content happens to stop.
+  fill?: boolean;
 }) {
   return (
     <div
-      className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl mb-4 overflow-hidden animate-fade-in-up"
+      className={`bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-fade-in-up ${
+        fill ? "h-full flex flex-col mb-0" : "mb-4"
+      }`}
       style={{ boxShadow: "var(--shadow-sm)" }}
     >
       <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[var(--line)]">
         <h2 className="text-[13px] sm:text-sm font-bold m-0 tracking-tight truncate">{title}</h2>
         {action ?? (hint && <span className="text-[11px] sm:text-xs text-[var(--muted)] font-medium shrink-0">{hint}</span>)}
       </div>
-      <div className="px-4 sm:px-5 pb-4 pt-2">{children}</div>
+      <div className={`px-4 sm:px-5 pb-4 pt-2 ${fill ? "flex-1 flex flex-col" : ""}`}>{children}</div>
       {footnote && (
         <div className="flex items-center gap-2 px-4 sm:px-5 py-2.5 text-[11.5px] sm:text-xs text-[var(--muted)] bg-[var(--paper)]/60 border-t border-dashed border-[var(--line)] leading-relaxed">
           {footnote}
