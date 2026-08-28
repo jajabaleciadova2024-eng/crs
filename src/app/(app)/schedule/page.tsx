@@ -241,9 +241,12 @@ export default async function SchedulePage() {
 
   const today = todayInManila();
   const thisWeekStart = startOfWorkWeek(today);
+  // Holidays for the next 2 weeks so nextWorkday skips them.
+  const { holidayDateSet } = await import("@/lib/holidays");
+  const schedHolidayDates = await holidayDateSet(supabase, today, addDays(today, 14));
   // Next WORKING day — on a Friday the reveal at 12 PM unlocks Monday, not
-  // Saturday, which has no schedule at all.
-  const tomorrow = nextWorkday(today);
+  // Saturday, which has no schedule at all. Holidays are also skipped.
+  const tomorrow = nextWorkday(today, schedHolidayDates);
 
   // --- Task-based schedule blocking (associates/OIC only) ---
   // Only APPROVED completions unlock schedule — pending/rejected don't count
