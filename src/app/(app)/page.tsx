@@ -108,7 +108,7 @@ export default async function DashboardPage() {
   const { data: myTomorrowAssignment } = isRotatingRole && tomorrowWeekRow
     ? await supabase
         .from("assignments")
-        .select("workstations(name)")
+        .select("workstations(name), workstation_windows(label)")
         .eq("schedule_week_id", tomorrowWeekRow.id)
         .eq("associate_id", profile.id)
         .eq("assignment_date", tomorrow)
@@ -153,18 +153,34 @@ export default async function DashboardPage() {
 
   const tomorrowRevealed = isTomorrowRevealed();
 
-  // Today's own break slot + window, for the station card below.
-  const { data: myBreakToday } = isRotatingRole && week
-    ? await supabase
-        .from("break_assignments")
-        .select("break_slot, workstation_windows(label)")
-        .eq("schedule_week_id", week.id)
-        .eq("assignment_date", displayDate)
-        .eq("associate_id", profile.id)
-        .maybeSingle()
-    : { data: null };
+  // Break slots for both lines of the station card — today's, and the next
+  // working day's. The next day usually lives in a DIFFERENT schedule week
+  // (any Friday, and every day of a week generated ahead of time), which is
+  // why each is looked up against its own week row.
+  const [{ data: myBreakToday }, { data: myBreakNextDay }] = await Promise.all([
+    isRotatingRole && week
+      ? supabase
+          .from("break_assignments")
+          .select("break_slot")
+          .eq("schedule_week_id", week.id)
+          .eq("assignment_date", displayDate)
+          .eq("associate_id", profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    isRotatingRole && tomorrowWeekRow
+      ? supabase
+          .from("break_assignments")
+          .select("break_slot")
+          .eq("schedule_week_id", tomorrowWeekRow.id)
+          .eq("assignment_date", tomorrow)
+          .eq("associate_id", profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
   const myBreakSlot = (myBreakToday as any)?.break_slot as BreakSlot | undefined;
+  const myNextBreakSlot = (myBreakNextDay as any)?.break_slot as BreakSlot | undefined;
   const myWindowLabel = (myCurrentAssignment as any)?.workstation_windows?.label as string | undefined;
+  const myNextWindowLabel = (myTomorrowAssignment as any)?.workstation_windows?.label as string | undefined;
 
   // Org-wide leave calendar — visible to every role (see leave/calendar/page.tsx).
   const [leaveCalendarRequests, { data: calendarOrgSettings }] = await Promise.all([
@@ -211,9 +227,7 @@ export default async function DashboardPage() {
               {myWindowLabel && <span className="text-[var(--muted)] font-normal"> · W{myWindowLabel}</span>}
             </div>
             {myBreakSlot && (
-              <div className="text-[12px] text-[var(--muted)] mt-0.5">
-                Break at {BREAK_SLOT_LABEL[myBreakSlot]}
-              </div>
+              <div className="text-[12px] text-[var(--muted)] mt-0.5">Break {BREAK_SLOT_LABEL[myBreakSlot]}</div>
             )}
             <div className="border-t border-[var(--line)] my-1.5" />
             <div className="text-[13px] font-semibold text-[var(--ink)]">
@@ -222,7 +236,13 @@ export default async function DashboardPage() {
                 : !tomorrowRevealed
                   ? `${nextDayLabel}: Revealed at 12 PM`
                   : `${nextDayLabel}: ${myTomorrowStationName ?? "Not assigned"}`}
+              {blockingTaskCount === 0 && tomorrowRevealed && myNextWindowLabel && (
+                <span className="text-[var(--muted)] font-normal"> · W{myNextWindowLabel}</span>
+              )}
             </div>
+            {blockingTaskCount === 0 && tomorrowRevealed && myNextBreakSlot && (
+              <div className="text-[12px] text-[var(--muted)] mt-0.5">Break {BREAK_SLOT_LABEL[myNextBreakSlot]}</div>
+            )}
           </a>
         )}
         {isRotatingRole && blockingTaskCount > 0 && (
