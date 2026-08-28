@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Panel, PageHeader, Pill } from "@/components/ui";
 import { todayInManila, startOfWorkWeek, isWorkday, workDatesForWeek, weekdayShortLabel, isTomorrowRevealed, addDays } from "@/lib/scheduleDates";
 import { BREAK_SLOTS, BREAK_SLOT_LABEL, type BreakSlot } from "@/lib/breakTime";
@@ -20,6 +21,12 @@ export default async function BreaksPage() {
   const profile = await requireProfile();
   const canManage = canManageOperations(profile.role);
   const supabase = await createClient();
+  // Names come through the admin client on purpose. The break schedule is a
+  // floor-coordination tool — everyone needs to see who is away and who is
+  // covering — but "profiles_select_own_or_leadership" hides every other
+  // member's row from an associate, which would render the whole slot list
+  // nameless. Same reasoning as the Dashboard's mentionable list.
+  const admin = createAdminClient();
 
   const today = todayInManila();
   const weekStart = startOfWorkWeek(today);
@@ -39,13 +46,13 @@ export default async function BreaksPage() {
 
   const [{ data: breaks }, { data: assignments }] = await Promise.all([
     week
-      ? supabase
+      ? admin
           .from("break_assignments")
           .select("*, workstation_windows(label, workstation_id), profiles!break_assignments_associate_id_fkey(first_name, last_name)")
           .eq("schedule_week_id", week.id)
       : Promise.resolve({ data: [] }),
     week
-      ? supabase
+      ? admin
           .from("assignments")
           .select("associate_id, assignment_date, workstation_id, window_id, workstation_windows(label)")
           .eq("schedule_week_id", week.id)

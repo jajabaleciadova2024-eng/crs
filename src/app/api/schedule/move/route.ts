@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
+import { pickFreeWindow, syncBreakOccupant, clearBreakForWindow } from "@/lib/windowSync";
 
 // Drag-and-drop counterpart to /api/schedule/reassign: dropping a person's
 // card onto an EMPTY spot in a different station's column (same day) moves
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
 
     const { data: current, error: currentError } = await supabase
       .from("assignments")
-      .select("id, schedule_week_id, workstation_id, assignment_date")
+      .select("id, schedule_week_id, workstation_id, assignment_date, associate_id, window_id")
       .eq("id", assignment_id)
       .single();
     if (currentError || !current) {
@@ -76,10 +77,30 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error: updateError } = await supabase.from("assignments").update({ workstation_id }).eq("id", assignment_id);
+    // The window has to move with them: a CO window number is meaningless
+    // once someone is sitting at Releasing Officer. Take a free window at the
+    // destination, or null when that station has none to spare.
+    const newWindowId = await pickFreeWindow(
+      supabase,
+      workstation_id,
+      current.schedule_week_id,
+      current.assignment_date,
+      assignment_id,
+    );
+
+    const { error: updateError } = await supabase
+      .from("assignments")
+      .update({ workstation_id, window_id: newWindowId })
+      .eq("id", assignment_id);
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 400 });
     }
+
+    // Their old window is now empty — drop its break so it stops listing
+    // someone who has moved away. Their break at the new window (if that
+    // window has one) becomes theirs.
+    await clearBreakForWindow(supabase, current.assignment_date, current.window_id);
+    await syncBreakOccupant(supabase, current.assignment_date, newWindowId, current.associate_id);
 
     revalidatePath("/");
     revalidatePath("/schedule");
