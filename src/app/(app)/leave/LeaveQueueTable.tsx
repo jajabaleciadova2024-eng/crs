@@ -207,13 +207,13 @@ export default function LeaveQueueTable({
     <table className="w-full text-[13px] border-collapse">
       <thead>
         <tr>
-          {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Associate</th>}
-          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Type</th>
-          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Dates</th>
-          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Reason</th>
-          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
-          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Document</th>
-          <th className="py-2.5 border-b border-[var(--line)]" />
+          {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Associate</th>}
+          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Type</th>
+          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Dates</th>
+          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Reason</th>
+          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Status</th>
+          <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Document</th>
+          <th className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]" />
         </tr>
       </thead>
       <tbody>
@@ -245,9 +245,9 @@ export default function LeaveQueueTable({
             <Fragment key={r.id}>
               <tr>
                 {canViewAll && (
-                  <td className="py-2.5 border-b border-[var(--line)]">{formatFullName(r.profiles?.first_name, r.profiles?.last_name)}</td>
+                  <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">{formatFullName(r.profiles?.first_name, r.profiles?.last_name)}</td>
                 )}
-                <td className="py-2.5 border-b border-[var(--line)]">
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                   <div className="flex items-center gap-1.5">
                     <span className="capitalize">{typeConfig?.label ?? r.leave_type}</span>
                     {r.is_half_day && <Pill>Half Day</Pill>}
@@ -258,9 +258,11 @@ export default function LeaveQueueTable({
                     {r.flagged_conflict && <Pill tone="warn">Possible conflict</Pill>}
                   </div>
                 </td>
-                <td className="py-2.5 border-b border-[var(--line)]">{formatLeaveRanges({ start_date: r.start_date, end_date: r.end_date }, r.leave_request_ranges)}</td>
-                <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.reason ?? "—"}</td>
-                <td className="py-2.5 border-b border-[var(--line)]">
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">{formatLeaveRanges({ start_date: r.start_date, end_date: r.end_date }, r.leave_request_ranges)}</td>
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
+                  <span className="block max-w-[150px] sm:max-w-[260px] break-words">{r.reason ?? "—"}</span>
+                </td>
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                   <Pill tone={STATUS_TONE[r.status]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
                   {r.status === "rejected" && r.final_rejection && (
                     <div className="text-[10.5px] font-bold text-[var(--bad)] mt-1">Final — closed</div>
@@ -269,7 +271,7 @@ export default function LeaveQueueTable({
                     <div className="text-[10.5px] text-[var(--muted)] mt-1 max-w-[180px]">{r.review_note}</div>
                   )}
                 </td>
-                <td className="py-2.5 border-b border-[var(--line)]">
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                   {typeConfig?.behavior === "auto_approve_document" ? (
                     isOwn ? (
                       <DocumentUpload
@@ -289,7 +291,7 @@ export default function LeaveQueueTable({
                     <span className="text-[var(--muted)]">N/A</span>
                   )}
                 </td>
-                <td className="py-2.5 border-b border-[var(--line)]">
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                   {isOwn && r.status === "pending" && !isEditing && (
                     <div className="flex gap-1.5">
                       <Button style={{ padding: "5px 10px" }} onClick={() => setEditingId(r.id)}>
@@ -362,7 +364,7 @@ export default function LeaveQueueTable({
               </tr>
               {isEditing && (
                 <tr key={`${r.id}-edit`}>
-                  <td colSpan={colCount} className="py-2.5 border-b border-[var(--line)]">
+                  <td colSpan={colCount} className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                     <EditLeaveRequestForm
                       requestId={r.id}
                       leaveTypeConfigs={leaveTypeConfigs}

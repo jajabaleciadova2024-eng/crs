@@ -67,14 +67,14 @@ export default function BreakSlotCell({
             {e.isMine && <Pill tone="accent">You</Pill>}
             {e.onLeave && <Pill tone="bad">On leave</Pill>}
           </div>
-          <div className="flex items-center justify-between gap-2 mt-1">
+          <div className="flex items-center justify-between gap-2 mt-1 flex-wrap">
             <span className="text-[11px] text-[var(--muted)]">
               {e.stationName}
               {e.relieverId && " · relieved"}
             </span>
             {canManage && (
               moving === e.id ? (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 flex-wrap">
                   {BREAK_SLOTS.filter((s) => s !== slot).map((s) => (
                     <button
                       key={s}

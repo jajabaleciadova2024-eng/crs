@@ -43,14 +43,14 @@ function RotationRow({ member }: { member: Member }) {
 
   return (
     <tr>
-      <td className="py-2.5 border-b border-[var(--line)]">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         <code className="bg-[var(--accent-soft)] text-[var(--accent-strong)] px-1.5 py-0.5 rounded text-[11.5px] mr-2">{member.psid}</code>
         {formatFullName(member.first_name, member.last_name)}
       </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         <Pill tone={member.role === "associate" ? "accent" : "warn"}>{ROLE_LABEL[member.role]}</Pill>
       </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         {editing ? (
           <input type="checkbox" checked={isImmune} onChange={(e) => setIsImmune(e.target.checked)} className="w-4 h-4 cursor-pointer" />
         ) : member.is_immune ? (
@@ -59,7 +59,7 @@ function RotationRow({ member }: { member: Member }) {
           <span className="text-[var(--muted)]">—</span>
         )}
       </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         {editing ? (
           <input
             type="checkbox"
@@ -73,7 +73,7 @@ function RotationRow({ member }: { member: Member }) {
           <span className="text-[var(--muted)]">—</span>
         )}
       </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         {editing ? (
           <select
             value={tenureGroup}
@@ -89,7 +89,7 @@ function RotationRow({ member }: { member: Member }) {
           </Pill>
         )}
       </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         {editing ? (
           <div className="flex gap-1.5">
             <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pending} onClick={save}>
@@ -123,12 +123,12 @@ export default function RotationSettingsPanel({ members }: { members: Member[] }
       <table className="w-full text-[13px] border-collapse">
         <thead>
           <tr>
-            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Name</th>
-            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Role</th>
-            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Immune</th>
-            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Break</th>
-            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Tenure</th>
-            <th className="py-2.5 border-b border-[var(--line)]" />
+            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Name</th>
+            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Role</th>
+            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Immune</th>
+            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Break</th>
+            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Tenure</th>
+            <th className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]" />
           </tr>
         </thead>
         <tbody>

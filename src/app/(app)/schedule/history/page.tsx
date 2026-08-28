@@ -103,7 +103,7 @@ export default async function ScheduleHistoryPage({
                 {["Work date", "Change", "Station", "Member", "Was", "By", "Recorded"].map((h) => (
                   <th
                     key={h}
-                    className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)] whitespace-nowrap pr-4"
+                    className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap"
                   >
                     {h}
                   </th>
@@ -127,25 +127,25 @@ export default async function ScheduleHistoryPage({
                         : null;
                   return (
                     <tr key={r.id}>
-                      <td className="py-2.5 border-b border-[var(--line)] whitespace-nowrap pr-4 font-semibold">
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap font-semibold">
                         {formatLeaveDate(r.assignment_date)}
                       </td>
-                      <td className="py-2.5 border-b border-[var(--line)] pr-4">
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                         <Pill tone={ACTION_TONE[r.action] ?? "accent"}>{ACTION_LABEL[r.action] ?? r.action}</Pill>
                       </td>
-                      <td className="py-2.5 border-b border-[var(--line)] pr-4">
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                         {r.workstation_name ?? <span className="text-[var(--muted)]">—</span>}
                       </td>
-                      <td className="py-2.5 border-b border-[var(--line)] pr-4">
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                         {r.associate_name || <span className="text-[var(--muted)]">—</span>}
                       </td>
-                      <td className="py-2.5 border-b border-[var(--line)] pr-4 text-[var(--muted)]">
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
                         {movedFrom ?? "—"}
                       </td>
-                      <td className="py-2.5 border-b border-[var(--line)] pr-4 text-[var(--muted)]">
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
                         {r.changed_by_name || <span className="italic">system</span>}
                       </td>
-                      <td className="py-2.5 border-b border-[var(--line)] whitespace-nowrap text-[11.5px] text-[var(--muted)]">
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap text-[11.5px] text-[var(--muted)]">
                         {formatTimestamp(r.changed_at)}
                       </td>
                     </tr>

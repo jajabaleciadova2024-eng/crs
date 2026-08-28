@@ -39,7 +39,7 @@ export default function WorkstationRow({
 
   return (
     <tr className={workstation.is_active ? "" : "opacity-50"}>
-      <td className="py-2.5 border-b border-[var(--line)] font-medium">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] font-medium whitespace-nowrap">
         {editing ? (
           <input
             value={name}
@@ -50,7 +50,7 @@ export default function WorkstationRow({
           workstation.name
         )}
       </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         {editing ? (
           <input
             type="number"
@@ -63,13 +63,13 @@ export default function WorkstationRow({
           <Pill tone="accent">{workstation.headcount} seat{workstation.headcount === 1 ? "" : "s"}</Pill>
         )}
       </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         <WindowManager workstationId={workstation.id} windows={windows} />
       </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         <Pill tone={workstation.is_active ? "good" : "muted"}>{workstation.is_active ? "Active" : "Retired"}</Pill>
       </td>
-      <td className="py-2.5 border-b border-[var(--line)]">
+      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         {editing ? (
           <div className="flex gap-1.5">
             <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pending} onClick={save}>

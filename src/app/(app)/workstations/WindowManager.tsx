@@ -67,7 +67,7 @@ export default function WindowManager({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 max-w-[220px] sm:max-w-none">
         {sorted.length === 0 && !adding && (
           <span className="text-[var(--muted)] text-[12px]">No windows set</span>
         )}

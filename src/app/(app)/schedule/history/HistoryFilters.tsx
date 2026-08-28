@@ -22,12 +22,13 @@ export default function HistoryFilters({
     router.push(`/schedule/history?${next.toString()}`);
   }
 
+  // w-full inside a 2-up grid on mobile, natural width once they sit inline.
   const inputClass =
-    "px-2.5 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[13px] text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]";
+    "w-full sm:w-auto px-2.5 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[13px] text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]";
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <label className="flex flex-col gap-1">
+    <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-end gap-2.5 sm:gap-3">
+      <label className="flex flex-col gap-1 min-w-0">
         <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">From date</span>
         <input
           type="date"
@@ -37,7 +38,7 @@ export default function HistoryFilters({
         />
       </label>
 
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1 min-w-0">
         <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">To date</span>
         <input
           type="date"
@@ -47,7 +48,7 @@ export default function HistoryFilters({
         />
       </label>
 
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1 min-w-0">
         <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Member</span>
         <select className={inputClass} defaultValue={params.get("member") ?? ""} onChange={(e) => apply("member", e.target.value)}>
           <option value="">All members</option>
@@ -59,7 +60,7 @@ export default function HistoryFilters({
         </select>
       </label>
 
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1 min-w-0">
         <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Station</span>
         <select className={inputClass} defaultValue={params.get("station") ?? ""} onChange={(e) => apply("station", e.target.value)}>
           <option value="">All stations</option>
@@ -72,7 +73,9 @@ export default function HistoryFilters({
       </label>
 
       {[...params.keys()].length > 0 && (
-        <Button onClick={() => router.push("/schedule/history")}>Clear filters</Button>
+        <div className="col-span-2 sm:col-auto">
+          <Button onClick={() => router.push("/schedule/history")}>Clear filters</Button>
+        </div>
       )}
     </div>
   );

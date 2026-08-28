@@ -78,26 +78,26 @@ export default function OrgSettingsForm({ settings }: { settings: OrgSettings })
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>
-                <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Label</th>
-                <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2 border-b border-[var(--line)]">Behavior</th>
-                <th className="py-2 border-b border-[var(--line)]" />
+                <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2 border-b border-[var(--line)] whitespace-nowrap">Label</th>
+                <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2 border-b border-[var(--line)] whitespace-nowrap">Behavior</th>
+                <th className="px-2 sm:px-3 py-2 border-b border-[var(--line)]" />
               </tr>
             </thead>
             <tbody>
               {leaveTypes.map((t, i) => (
                 <tr key={t.key}>
-                  <td className="py-2 border-b border-[var(--line)]">
+                  <td className="px-2 sm:px-3 py-2 border-b border-[var(--line)]">
                     <input
                       value={t.label}
                       onChange={(e) => updateType(i, "label", e.target.value)}
-                      className="w-full min-w-[110px] text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)]"
+                      className="w-full sm:min-w-[110px] text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)]"
                     />
                   </td>
-                  <td className="py-2 border-b border-[var(--line)]">
+                  <td className="px-2 sm:px-3 py-2 border-b border-[var(--line)]">
                     <select
                       value={t.behavior}
                       onChange={(e) => updateType(i, "behavior", e.target.value)}
-                      className="text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)] min-w-[220px]"
+                      className="w-full sm:w-auto sm:min-w-[220px] text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)]"
                     >
                       {(Object.keys(BEHAVIOR_LABEL) as LeaveTypeBehavior[]).map((b) => (
                         <option key={b} value={b}>
@@ -106,7 +106,7 @@ export default function OrgSettingsForm({ settings }: { settings: OrgSettings })
                       ))}
                     </select>
                   </td>
-                  <td className="py-2 border-b border-[var(--line)]">
+                  <td className="px-2 sm:px-3 py-2 border-b border-[var(--line)]">
                     <Button style={{ padding: "5px 10px" }} onClick={() => removeType(i)}>
                       Remove
                     </Button>

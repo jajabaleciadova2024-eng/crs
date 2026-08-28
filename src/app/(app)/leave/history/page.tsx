@@ -94,12 +94,12 @@ export default async function LeaveHistoryPage() {
               <table className="w-full text-[13px] border-collapse">
                 <thead>
                   <tr>
-                    {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Associate</th>}
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Type</th>
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Dates</th>
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Document</th>
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Decided on</th>
+                    {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Associate</th>}
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Type</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Dates</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Status</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Document</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Decided on</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -110,9 +110,9 @@ export default async function LeaveHistoryPage() {
                     return (
                       <tr key={r.id}>
                         {canViewAll && (
-                          <td className="py-2.5 border-b border-[var(--line)]">{formatFullName(p?.first_name, p?.last_name)}</td>
+                          <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">{formatFullName(p?.first_name, p?.last_name)}</td>
                         )}
-                        <td className="py-2.5 border-b border-[var(--line)] capitalize">
+                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] capitalize">
                           <div className="flex items-center gap-1.5">
                             <span>{typeConfig?.label ?? r.leave_type}</span>
                             {r.is_half_day && <Pill>Half Day</Pill>}
@@ -121,10 +121,10 @@ export default async function LeaveHistoryPage() {
                             )}
                           </div>
                         </td>
-                        <td className="py-2.5 border-b border-[var(--line)]">
+                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                           {formatLeaveRanges({ start_date: r.start_date, end_date: r.end_date }, r.leave_request_ranges)}
                         </td>
-                        <td className="py-2.5 border-b border-[var(--line)]">
+                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                           <Pill tone={STATUS_TONE[r.status as LeaveStatus]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
                           {r.status === "rejected" && r.final_rejection && (
                             <div className="text-[10.5px] font-bold text-[var(--bad)] mt-1">Final — closed</div>
@@ -133,7 +133,7 @@ export default async function LeaveHistoryPage() {
                             <div className="text-[10.5px] text-[var(--muted)] mt-1 max-w-[180px]">{r.review_note}</div>
                           )}
                         </td>
-                        <td className="py-2.5 border-b border-[var(--line)]">
+                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                           {typeConfig?.behavior === "auto_approve_document" ? (
                             r.document_path ? (
                               <DocumentLinks requestId={r.id} canDownload={canDownload} />
@@ -144,7 +144,7 @@ export default async function LeaveHistoryPage() {
                             <span className="text-[var(--muted)]">N/A</span>
                           )}
                         </td>
-                        <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
+                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
                           {r.reviewed_at ? new Date(r.reviewed_at).toISOString().slice(0, 10) : "—"}
                         </td>
                       </tr>

@@ -34,26 +34,26 @@ export default async function AccessRequestsPage() {
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">PSID</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Name</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Email</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Mobile</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Message</th>
-                <th className="py-2.5 border-b border-[var(--line)]" />
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">PSID</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Name</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Email</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Mobile</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Message</th>
+                <th className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]" />
               </tr>
             </thead>
             <tbody>
               {pending && pending.length > 0 ? (
                 pending.map((r) => (
                   <tr key={r.id}>
-                    <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.psid ?? "—"}</td>
-                    <td className="py-2.5 border-b border-[var(--line)]">
+                    <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.psid ?? "—"}</td>
+                    <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                       {formatFullName(r.first_name, r.last_name)}
                     </td>
-                    <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.email}</td>
-                    <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.mobile_number ?? "—"}</td>
-                    <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.message ?? "—"}</td>
-                    <td className="py-2.5 border-b border-[var(--line)]">
+                    <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.email}</td>
+                    <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.mobile_number ?? "—"}</td>
+                    <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.message ?? "—"}</td>
+                    <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                       <ReviewForm requestId={r.id} suggestedPsid={r.psid} />
                     </td>
                   </tr>
@@ -75,22 +75,22 @@ export default async function AccessRequestsPage() {
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Name</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Email</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Mobile</th>
-                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Name</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Email</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Mobile</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Status</th>
               </tr>
             </thead>
             <tbody>
               {recent && recent.length > 0 ? (
                 recent.map((r) => (
                   <tr key={r.id}>
-                    <td className="py-2.5 border-b border-[var(--line)]">
+                    <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                       {formatFullName(r.first_name, r.last_name)}
                     </td>
-                    <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.email}</td>
-                    <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.mobile_number ?? "—"}</td>
-                    <td className="py-2.5 border-b border-[var(--line)]">
+                    <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.email}</td>
+                    <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{r.mobile_number ?? "—"}</td>
+                    <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                       <Pill tone={STATUS_TONE[r.status as AccessRequestStatus]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
                     </td>
                   </tr>

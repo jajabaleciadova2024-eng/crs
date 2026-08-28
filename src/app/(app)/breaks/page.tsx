@@ -170,7 +170,7 @@ export default async function BreaksPage() {
           label: d.label,
           isToday: d.isToday,
           content: (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-3">
               {d.slots.map(({ slot, entries, coverage }) => (
                 <Panel key={slot} title={BREAK_SLOT_LABEL[slot]} hint={`${entries.length} on break`}>
                   <BreakSlotCell slot={slot} date={d.date} entries={entries} canManage={canManage} />
