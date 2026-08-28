@@ -13,7 +13,7 @@ import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
 import RotationSettingsPanel from "./RotationSettingsPanel";
 import WeekTabs from "./WeekTabs";
-import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays, workDatesForWeek, weekdayShortLabel, isTomorrowRevealed } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays, workDatesForWeek, weekdayShortLabel, isTomorrowRevealed, nextWorkday } from "@/lib/scheduleDates";
 import { holidaysInRange } from "@/lib/phHolidays";
 import { formatFullName } from "@/lib/format";
 import { compareStationNames } from "@/lib/stationOrder";
@@ -241,13 +241,18 @@ export default async function SchedulePage() {
 
   const today = todayInManila();
   const thisWeekStart = startOfWorkWeek(today);
-  const tomorrow = addDays(today, 1);
+  // Next WORKING day — on a Friday the reveal at 12 PM unlocks Monday, not
+  // Saturday, which has no schedule at all.
+  const tomorrow = nextWorkday(today);
 
   // --- Task-based schedule blocking (associates/OIC only) ---
   // Only APPROVED completions unlock schedule — pending/rejected don't count
   let blockingTaskCount = 0;
   let blockedDatesCurrentWeek = new Set<string>();
   let blockNextWeekEntirely = false;
+  // Populated by the daily-reveal branch, which can partially unlock next
+  // week (Friday afternoon reveals Monday).
+  let nextWeekBlockedDatesEarly: Set<string> | null = null;
   if (!canManage) {
     const admin = createAdminClient();
     const [{ data: myTasks }, { data: myCompletions }] = await Promise.all([
@@ -281,21 +286,22 @@ export default async function SchedulePage() {
       }
       blockNextWeekEntirely = true;
     } else {
-      // No task blocking — apply the daily reveal rule:
-      // Only today and (after 12 PM PH) tomorrow are visible.
-      // All dates beyond tomorrow are always blocked.
-      const currentWorkDates = workDatesForWeek(thisWeekStart);
-      for (const d of currentWorkDates) {
-        if (d > tomorrow) {
-          // Days after tomorrow are always blocked
-          blockedDatesCurrentWeek.add(d);
-        } else if (d === tomorrow && !isTomorrowRevealed()) {
-          // Tomorrow is blocked until 12 PM PH
-          blockedDatesCurrentWeek.add(d);
-        }
+      // No task blocking — apply the daily reveal rule: today is always
+      // visible, the next working day unlocks at 12 PM, everything beyond
+      // stays hidden until its own turn comes.
+      //
+      // On a Friday the next working day is MONDAY, which lives in next
+      // week — so the rule has to reach across the week boundary rather than
+      // blocking next week wholesale, or Friday afternoon would never reveal
+      // anything.
+      const revealed = isTomorrowRevealed();
+      const isBlocked = (d: string) => (d > tomorrow ? true : d === tomorrow ? !revealed : false);
+
+      for (const d of workDatesForWeek(thisWeekStart)) {
+        if (isBlocked(d)) blockedDatesCurrentWeek.add(d);
       }
-      // Next week is always blocked (revealed day-by-day as each day approaches)
-      blockNextWeekEntirely = true;
+      nextWeekBlockedDatesEarly = new Set(workDatesForWeek(addDays(thisWeekStart, 7)).filter(isBlocked));
+      blockNextWeekEntirely = false;
     }
   }
 
@@ -341,8 +347,13 @@ export default async function SchedulePage() {
   // Build blocked dates set for next week
   const nextWeekBlockedDates = new Set<string>();
   if (blockNextWeekEntirely) {
+    for (const d of workDatesForWeek(nextWeekStart)) nextWeekBlockedDates.add(d);
+  } else if (nextWeekBlockedDatesEarly) {
+    // Recomputed against the real next-week start, which follows the org's
+    // cadence and isn't necessarily thisWeekStart + 7.
+    const revealed = isTomorrowRevealed();
     for (const d of workDatesForWeek(nextWeekStart)) {
-      nextWeekBlockedDates.add(d);
+      if (d > tomorrow || (d === tomorrow && !revealed)) nextWeekBlockedDates.add(d);
     }
   }
 
@@ -397,30 +408,20 @@ export default async function SchedulePage() {
           />
         }
         next={
-          blockNextWeekEntirely ? (
-            <WeekPanel
-              supabase={supabase}
-              viewerId={profile.id}
-              allStations={sortedWorkstations}
-              week={nextWeek}
-              weekStart={nextWeekStart}
-              canManage={canManage}
-              associates={associates ?? []}
-              workstationHeadcounts={canManage ? workstationHeadcounts : undefined}
-              blockedDates={nextWeekBlockedDates}
-            />
-          ) : (
-            <WeekPanel
-              supabase={supabase}
-              viewerId={profile.id}
-              allStations={sortedWorkstations}
-              week={nextWeek}
-              weekStart={nextWeekStart}
-              canManage={canManage}
-              associates={associates ?? []}
-              workstationHeadcounts={canManage ? workstationHeadcounts : undefined}
-            />
-          )
+          <WeekPanel
+            supabase={supabase}
+            viewerId={profile.id}
+            allStations={sortedWorkstations}
+            week={nextWeek}
+            weekStart={nextWeekStart}
+            canManage={canManage}
+            associates={associates ?? []}
+            workstationHeadcounts={canManage ? workstationHeadcounts : undefined}
+            // One panel, one set: empty for a manager, every day for a
+            // task-blocked member, and all-but-the-revealed-day otherwise —
+            // which is what lets Friday afternoon show Monday.
+            blockedDates={nextWeekBlockedDates.size > 0 ? nextWeekBlockedDates : undefined}
+          />
         }
       />
 

@@ -5,7 +5,7 @@ import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Panel, PageHeader, Pill } from "@/components/ui";
-import { todayInManila, startOfWorkWeek, isWorkday, workDatesForWeek, weekdayShortLabel, isTomorrowRevealed, addDays } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, isWorkday, workDatesForWeek, weekdayShortLabel, isTomorrowRevealed, nextWorkday } from "@/lib/scheduleDates";
 import { BREAK_SLOTS, BREAK_SLOT_LABEL, type BreakSlot } from "@/lib/breakTime";
 import { compareStationNames } from "@/lib/stationOrder";
 import { compareWindowLabels } from "@/lib/windowOrder";
@@ -30,7 +30,8 @@ export default async function BreaksPage() {
 
   const today = todayInManila();
   const weekStart = startOfWorkWeek(today);
-  const tomorrow = addDays(today, 1);
+  // Next WORKING day, so Friday reveals Monday rather than a blank Saturday.
+  const tomorrow = nextWorkday(today);
 
   const [{ data: week }, { data: stations }] = await Promise.all([
     supabase.from("schedule_weeks").select("id, week_start_date").eq("week_start_date", weekStart).maybeSingle(),
@@ -148,7 +149,7 @@ export default async function BreaksPage() {
       ) : days.length === 0 ? (
         <Panel title="Nothing to show yet">
           <p className="text-sm text-[var(--muted)] m-0">
-            Tomorrow&apos;s breaks are revealed at 12 PM Philippine time, along with the schedule.
+            The next working day&apos;s breaks are revealed at 12 PM Philippine time, along with the schedule.
           </p>
         </Panel>
       ) : (

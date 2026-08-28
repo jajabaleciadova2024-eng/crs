@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
-import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed, addDays } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed, addDays, nextWorkday, weekdayLongLabel } from "@/lib/scheduleDates";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { BREAK_SLOT_LABEL, type BreakSlot } from "@/lib/breakTime";
 import { toTitleCase, formatFullName } from "@/lib/format";
@@ -80,8 +80,13 @@ export default async function DashboardPage() {
   // Only rotating roles (associate/OIC) ever get seated at a station — the
   // Team Leader never does, so their own-station card never applies.
   const isRotatingRole = profile.role !== "team_leader";
-  const tomorrow = addDays(todayInManila(), 1);
-  // Find the schedule_week that contains tomorrow (could be current or next week)
+  // The next WORKING day, not literally tomorrow — on a Friday the floor
+  // cares about Monday, and Saturday has no schedule to show.
+  const tomorrow = nextWorkday(todayInManila());
+  const isLiterallyTomorrow = tomorrow === addDays(todayInManila(), 1);
+  // "Tomorrow" only when it really is; otherwise name the day.
+  const nextDayLabel = isLiterallyTomorrow ? "Tomorrow" : `On ${weekdayLongLabel(tomorrow)}`;
+  // Find the schedule_week that contains it (could be this week or next).
   const tomorrowWeekStart = startOfWorkWeek(tomorrow);
 
   const [{ data: assignments }, { data: recentLeave }, { data: tomorrowWeekRow }] = await Promise.all([
@@ -215,8 +220,8 @@ export default async function DashboardPage() {
               {blockingTaskCount > 0
                 ? "Complete tasks to view"
                 : !tomorrowRevealed
-                  ? "Tomorrow: Revealed at 12 PM"
-                  : `Tomorrow: ${myTomorrowStationName ?? "Not assigned"}`}
+                  ? `${nextDayLabel}: Revealed at 12 PM`
+                  : `${nextDayLabel}: ${myTomorrowStationName ?? "Not assigned"}`}
             </div>
           </a>
         )}

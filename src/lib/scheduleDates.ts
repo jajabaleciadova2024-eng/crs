@@ -78,6 +78,24 @@ export function isWorkday(dateStr: string): boolean {
   return day >= 1 && day <= 5;
 }
 
+const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// "Monday"/"Tuesday"/etc. — used where a day needs naming in prose rather
+// than as a column header (e.g. the Dashboard's "On Monday: Screener").
+export function weekdayLongLabel(dateStr: string): string {
+  return WEEKDAY_LONG[toDate(dateStr).getUTCDay()];
+}
+
+// The next Monday-Friday date after `dateStr`. On a Friday this is Monday,
+// not Saturday — "tomorrow" is meaningless on the floor when tomorrow is a
+// weekend, and no schedule exists for it.
+export function nextWorkday(dateStr: string): string {
+  let d = addDays(dateStr, 1);
+  // At most 3 hops: Fri -> Sat -> Sun -> Mon.
+  while (!isWorkday(d)) d = addDays(d, 1);
+  return d;
+}
+
 const MONTH_LABEL = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
