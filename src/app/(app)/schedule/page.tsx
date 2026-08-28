@@ -429,7 +429,7 @@ export default async function SchedulePage() {
         <Panel
           title="Rotation Settings"
           hint="Team Leader only"
-          footnote="Immune members are excluded from the weekly shuffle and must be placed manually when generating. Break-immune members keep the same break slot instead of being reshuffled — the two are separate, so someone can be one without the other. Tenure (OIC and associates) feeds the Tenured/New Hire quotas in the Generate modal."
+          footnote="Immune members are excluded from the weekly shuffle and must be placed manually when generating. Same break keeps a member on the break time they already have instead of reshuffling it each week — independent of station immunity, so someone can have either without the other. A member with no break time yet gets one on the next generate, and keeps it from then on. Tenure (OIC and associates) feeds the Tenured/New Hire quotas in the Generate modal."
         >
           <RotationSettingsPanel
             members={(allActive ?? [])

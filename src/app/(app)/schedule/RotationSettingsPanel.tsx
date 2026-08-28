@@ -66,9 +66,10 @@ function RotationRow({ member }: { member: Member }) {
             checked={isBreakImmune}
             onChange={(e) => setIsBreakImmune(e.target.checked)}
             className="w-4 h-4 cursor-pointer"
+            title="Keep this member's break time the same instead of reshuffling it each week"
           />
         ) : member.is_break_immune ? (
-          <Pill tone="warn">Fixed break</Pill>
+          <Pill tone="warn">Same slot</Pill>
         ) : (
           <span className="text-[var(--muted)]">—</span>
         )}
@@ -126,7 +127,7 @@ export default function RotationSettingsPanel({ members }: { members: Member[] }
             <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Name</th>
             <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Role</th>
             <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Immune</th>
-            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Break</th>
+            <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Same break</th>
             <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Tenure</th>
             <th className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]" />
           </tr>

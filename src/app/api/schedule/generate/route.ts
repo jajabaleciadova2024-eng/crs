@@ -262,6 +262,25 @@ export async function POST(request: Request) {
     );
     const windowById = new Map((allWindows ?? []).map((w: { id: string; label: string }) => [w.id, w.label]));
 
+    // Break immunity means "keep the break time you already have" — so it
+    // needs a slot to keep. Look up each immune member's most recent one;
+    // without this the flag was inert, since assignDayBreaks only honours a
+    // member who actually has a prior slot to preserve.
+    const immuneIdList = [...breakImmuneIds];
+    const { data: priorBreaks } = immuneIdList.length > 0
+      ? await supabase
+          .from("break_assignments")
+          .select("associate_id, break_slot, assignment_date")
+          .in("associate_id", immuneIdList)
+          .order("assignment_date", { ascending: false })
+      : { data: [] };
+
+    const lockedSlotFor = new Map<string, BreakSlot>();
+    for (const b of (priorBreaks ?? []) as { associate_id: string; break_slot: BreakSlot }[]) {
+      // Rows arrive newest-first, so the first one seen per member wins.
+      if (!lockedSlotFor.has(b.associate_id)) lockedSlotFor.set(b.associate_id, b.break_slot);
+    }
+
     const breakRows: {
       schedule_week_id: string;
       assignment_date: string;
@@ -280,7 +299,7 @@ export async function POST(request: Request) {
           workstation_id: a.workstation_id,
           associate_id: a.associate_id,
           is_break_immune: breakImmuneIds.has(a.associate_id),
-          locked_slot: null,
+          locked_slot: lockedSlotFor.get(a.associate_id) ?? null,
         }));
       if (seated.length === 0) continue;
 
