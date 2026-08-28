@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireProfile, canManageOperations } from "@/lib/auth";
 
 // GET — list holidays (optional ?year=YYYY filter)
@@ -32,6 +34,17 @@ export async function POST(request: Request) {
   }
   const { error } = await supabase.from("holidays").upsert({ date, name, created_by: profile.id });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Clear any existing assignments and break assignments on this date —
+  // a holiday overrides whatever was generated. Admin client bypasses RLS.
+  const admin = createAdminClient();
+  // Delete breaks first (they reference assignments via window_id + date).
+  await admin.from("break_assignments").delete().eq("assignment_date", date);
+  await admin.from("assignments").delete().eq("assignment_date", date);
+
+  revalidatePath("/schedule");
+  revalidatePath("/");
+  revalidatePath("/breaks");
   return NextResponse.json({ ok: true });
 }
 
