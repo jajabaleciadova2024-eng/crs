@@ -5,11 +5,12 @@ import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Panel, PageHeader, Pill } from "@/components/ui";
-import { todayInManila, startOfWorkWeek, isWorkday, workDatesForWeek, weekdayShortLabel, isTomorrowRevealed, nextWorkday } from "@/lib/scheduleDates";
+import { todayInManila, startOfWorkWeek, workDatesForWeek, weekdayShortLabel, isTomorrowRevealed, nextWorkday, addDays } from "@/lib/scheduleDates";
 import { BREAK_SLOTS, BREAK_SLOT_LABEL, type BreakSlot } from "@/lib/breakTime";
 import { compareStationNames } from "@/lib/stationOrder";
 import { compareWindowLabels } from "@/lib/windowOrder";
 import { formatFullName } from "@/lib/format";
+import WeekTabs from "../schedule/WeekTabs";
 import BreakDayTabs from "./BreakDayTabs";
 import BreakSlotCell from "./BreakSlotCell";
 
@@ -33,30 +34,41 @@ export default async function BreaksPage() {
   // Next WORKING day, so Friday reveals Monday rather than a blank Saturday.
   const tomorrow = nextWorkday(today);
 
-  const [{ data: week }, { data: stations }] = await Promise.all([
-    supabase.from("schedule_weeks").select("id, week_start_date").eq("week_start_date", weekStart).maybeSingle(),
+  const [{ data: stations }, { data: orgSettings }] = await Promise.all([
     supabase.from("workstations").select("id, name, man_priority, min_manned, is_reliever, can_be_pulled").eq("is_active", true),
+    supabase.from("org_settings").select("schedule_cadence").limit(1).maybeSingle(),
+  ]);
+  const cadenceDays = orgSettings?.schedule_cadence === "biweekly" ? 14 : 7;
+  const nextWeekStart = addDays(weekStart, cadenceDays);
+
+  // BOTH weeks, not just the current one: Generate produces the UPCOMING
+  // week's schedule, so looking only at the current week showed "no schedule"
+  // immediately after generating — which is exactly when you want to check it.
+  const [{ data: currentWeek }, { data: nextWeek }] = await Promise.all([
+    supabase.from("schedule_weeks").select("id, week_start_date").eq("week_start_date", weekStart).maybeSingle(),
+    supabase.from("schedule_weeks").select("id, week_start_date").eq("week_start_date", nextWeekStart).maybeSingle(),
   ]);
 
-  const workDates = workDatesForWeek(weekStart);
-  // Same reveal rule as the schedule: today always, tomorrow from 12 PM,
-  // nothing further out. Managers see the whole week.
-  const visibleDates = canManage
-    ? workDates
-    : workDates.filter((d) => d <= today || (d === tomorrow && isTomorrowRevealed()));
+  const weeks = [
+    { row: currentWeek, start: weekStart, label: "Current Week" },
+    { row: nextWeek, start: nextWeekStart, label: "Next Week" },
+  ].filter((w) => w.row);
 
+  const week = currentWeek ?? nextWeek;
+
+  const weekIds = weeks.map((w) => w.row!.id);
   const [{ data: breaks }, { data: assignments }] = await Promise.all([
-    week
+    weekIds.length > 0
       ? admin
           .from("break_assignments")
           .select("*, workstation_windows(label, workstation_id), profiles!break_assignments_associate_id_fkey(first_name, last_name)")
-          .eq("schedule_week_id", week.id)
+          .in("schedule_week_id", weekIds)
       : Promise.resolve({ data: [] }),
-    week
+    weekIds.length > 0
       ? admin
           .from("assignments")
           .select("associate_id, assignment_date, workstation_id, window_id, workstation_windows(label)")
-          .eq("schedule_week_id", week.id)
+          .in("schedule_week_id", weekIds)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -87,7 +99,12 @@ export default async function BreaksPage() {
     return (assignments ?? []).filter((a: any) => a.assignment_date === date && a.workstation_id === stationId);
   }
 
-  const days = visibleDates.map((date) => {
+  // Reveal rule per date: today always, the next working day from 12 PM,
+  // nothing beyond. Managers see everything.
+  const revealed = isTomorrowRevealed();
+  const isVisible = (d: string) => canManage || d <= today || (d === tomorrow && revealed);
+
+  const buildDays = (weekStartDate: string) => workDatesForWeek(weekStartDate).filter(isVisible).map((date) => {
     const dayBreaks = (breaks ?? []).filter((b: any) => b.assignment_date === date);
 
     const slots = BREAK_SLOTS.map((slot) => {
@@ -132,6 +149,61 @@ export default async function BreaksPage() {
     return { date, label: `${weekdayShortLabel(date)} ${date.slice(5)}`, slots, isToday: date === today };
   });
 
+  // One day-tab strip per week that actually has a schedule, wrapped in
+  // Current/Next tabs to match the Weekly Schedule page.
+  function renderWeek(weekStartDate: string) {
+    const days = buildDays(weekStartDate);
+    if (days.length === 0) {
+      return (
+        <Panel title="Nothing to show yet">
+          <p className="text-sm text-[var(--muted)] m-0">
+            Each day&apos;s breaks are revealed at 12 PM Philippine time the working day before, along with the
+            schedule.
+          </p>
+        </Panel>
+      );
+    }
+    return (
+      <BreakDayTabs
+        days={days.map((d) => ({
+          date: d.date,
+          label: d.label,
+          isToday: d.isToday,
+          content: (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              {d.slots.map(({ slot, entries, coverage }) => (
+                <Panel key={slot} title={BREAK_SLOT_LABEL[slot]} hint={`${entries.length} on break`}>
+                  <BreakSlotCell slot={slot} date={d.date} entries={entries} canManage={canManage} />
+                  {coverage.length > 0 && (
+                    <div className="mt-3 pt-2.5 border-t border-[var(--line)] flex flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">
+                        Manned during this break
+                      </span>
+                      {coverage.map((c) => (
+                        <div key={c.id} className="flex items-center justify-between gap-2 text-[11.5px]">
+                          <span className="text-[var(--muted)] truncate">
+                            {c.priority ? `${c.priority}. ` : ""}
+                            {c.name}
+                          </span>
+                          <span className="flex items-center gap-1 shrink-0">
+                            {c.relieved > 0 && <Pill tone="accent">+{c.relieved} relieved</Pill>}
+                            <Pill tone={c.remaining < c.minManned ? "bad" : c.remaining === c.minManned ? "warn" : "good"}>
+                              {c.remaining}/{c.total}
+                            </Pill>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Panel>
+              ))}
+            </div>
+          ),
+        }))}
+      />
+    );
+  }
+
   return (
     <>
       <PageHeader
@@ -139,62 +211,17 @@ export default async function BreaksPage() {
         subtitle="Staggered breaks at 10 AM, 11 AM and 12 PM — generated with the weekly schedule so a station is never left unmanned"
       />
 
-      {!week ? (
-        <Panel title="No schedule this week">
+      {weeks.length === 0 ? (
+        <Panel title="No schedule generated yet">
           <p className="text-sm text-[var(--muted)] m-0">
-            Breaks are generated together with the weekly schedule. Generate this week&apos;s schedule and the break
-            times will appear here.
+            Breaks are generated together with the weekly schedule. Generate a schedule and the break times will
+            appear here.
           </p>
         </Panel>
-      ) : days.length === 0 ? (
-        <Panel title="Nothing to show yet">
-          <p className="text-sm text-[var(--muted)] m-0">
-            The next working day&apos;s breaks are revealed at 12 PM Philippine time, along with the schedule.
-          </p>
-        </Panel>
+      ) : weeks.length === 1 ? (
+        renderWeek(weeks[0].start)
       ) : (
-        <BreakDayTabs
-          days={days.map((d) => ({
-            date: d.date,
-            label: d.label,
-            isToday: d.isToday,
-            content: (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                {d.slots.map(({ slot, entries, coverage }) => (
-                  <Panel key={slot} title={BREAK_SLOT_LABEL[slot]} hint={`${entries.length} on break`}>
-                    <BreakSlotCell
-                      slot={slot}
-                      date={d.date}
-                      entries={entries}
-                      canManage={canManage}
-                    />
-                    {coverage.length > 0 && (
-                      <div className="mt-3 pt-2.5 border-t border-[var(--line)] flex flex-col gap-1">
-                        <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">
-                          Manned during this break
-                        </span>
-                        {coverage.map((c) => (
-                          <div key={c.id} className="flex items-center justify-between gap-2 text-[11.5px]">
-                            <span className="text-[var(--muted)] truncate">
-                              {c.priority ? `${c.priority}. ` : ""}
-                              {c.name}
-                            </span>
-                            <span className="flex items-center gap-1 shrink-0">
-                              {c.relieved > 0 && <Pill tone="accent">+{c.relieved} relieved</Pill>}
-                              <Pill tone={c.remaining < c.minManned ? "bad" : c.remaining === c.minManned ? "warn" : "good"}>
-                                {c.remaining}/{c.total}
-                              </Pill>
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </Panel>
-                ))}
-              </div>
-            ),
-          }))}
-        />
+        <WeekTabs current={renderWeek(weekStart)} next={renderWeek(nextWeekStart)} />
       )}
     </>
   );
