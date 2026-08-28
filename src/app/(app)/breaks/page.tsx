@@ -10,6 +10,7 @@ import { BREAK_SLOTS, BREAK_SLOT_LABEL, type BreakSlot } from "@/lib/breakTime";
 import { compareStationNames } from "@/lib/stationOrder";
 import { compareWindowLabels } from "@/lib/windowOrder";
 import { formatFullName } from "@/lib/format";
+import { holidayDateSet } from "@/lib/holidays";
 import WeekTabs from "../schedule/WeekTabs";
 import BreakDayTabs from "./BreakDayTabs";
 import BreakSlotCell from "./BreakSlotCell";
@@ -31,8 +32,12 @@ export default async function BreaksPage() {
 
   const today = todayInManila();
   const weekStart = startOfWorkWeek(today);
-  // Next WORKING day, so Friday reveals Monday rather than a blank Saturday.
-  const tomorrow = nextWorkday(today);
+  // TL-declared holidays: those days have no schedule at all, so they get
+  // dropped from the day-tab strip rather than showing three empty slots.
+  const holidayDates = await holidayDateSet(supabase, weekStart, addDays(weekStart, 21));
+  // Next WORKING day, so Friday reveals Monday rather than a blank Saturday —
+  // and skips a holiday Monday the same way the Dashboard does.
+  const tomorrow = nextWorkday(today, holidayDates);
 
   const [{ data: stations }, { data: orgSettings }] = await Promise.all([
     supabase.from("workstations").select("id, name, man_priority, min_manned, is_reliever, can_be_pulled").eq("is_active", true),
@@ -102,7 +107,8 @@ export default async function BreaksPage() {
   // Reveal rule per date: today always, the next working day from 12 PM,
   // nothing beyond. Managers see everything.
   const revealed = isTomorrowRevealed();
-  const isVisible = (d: string) => canManage || d <= today || (d === tomorrow && revealed);
+  const isVisible = (d: string) =>
+    !holidayDates.has(d) && (canManage || d <= today || (d === tomorrow && revealed));
 
   const buildDays = (weekStartDate: string) => workDatesForWeek(weekStartDate).filter(isVisible).map((date) => {
     const dayBreaks = (breaks ?? []).filter((b: any) => b.assignment_date === date);

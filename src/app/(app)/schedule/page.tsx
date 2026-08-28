@@ -14,7 +14,7 @@ import ClearScheduleButton from "./ClearScheduleButton";
 import RotationSettingsPanel from "./RotationSettingsPanel";
 import WeekTabs from "./WeekTabs";
 import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays, workDatesForWeek, weekdayShortLabel, isTomorrowRevealed, nextWorkday } from "@/lib/scheduleDates";
-import { holidaysInRange } from "@/lib/holidays";
+import { holidaysInRange, holidayDateSet } from "@/lib/holidays";
 import { formatFullName } from "@/lib/format";
 import { compareStationNames } from "@/lib/stationOrder";
 
@@ -242,7 +242,6 @@ export default async function SchedulePage() {
   const today = todayInManila();
   const thisWeekStart = startOfWorkWeek(today);
   // Holidays for the next 2 weeks so nextWorkday skips them.
-  const { holidayDateSet } = await import("@/lib/holidays");
   const schedHolidayDates = await holidayDateSet(supabase, today, addDays(today, 14));
   // Next WORKING day — on a Friday the reveal at 12 PM unlocks Monday, not
   // Saturday, which has no schedule at all. Holidays are also skipped.
