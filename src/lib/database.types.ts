@@ -193,6 +193,17 @@ export interface MemberTaskCompletion {
   completed_at: string;
 }
 
+// A physically numbered service window belonging to a station (see
+// 0027_workstation_windows.sql). `label` is text because not every window is
+// numbered — Electronic Endorsement's is "EE".
+export interface WorkstationWindow {
+  id: string;
+  workstation_id: string;
+  label: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 export type AssignmentAction = "assigned" | "moved" | "reassigned" | "removed";
 
 // Append-only audit trail for station assignments (see
@@ -392,6 +403,12 @@ export interface Database {
           assign_to?: string;
           blocker_days_before?: number;
         };
+        Relationships: [];
+      };
+      workstation_windows: {
+        Row: WorkstationWindow;
+        Insert: { workstation_id: string; label: string; is_active?: boolean };
+        Update: { workstation_id?: string; label?: string; is_active?: boolean };
         Relationships: [];
       };
       assignment_history: {

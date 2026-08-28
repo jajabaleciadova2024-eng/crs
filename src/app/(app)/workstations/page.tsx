@@ -10,14 +10,23 @@ export default async function WorkstationsPage() {
   await requireRole(profile, ["team_leader"]);
 
   const supabase = await createClient();
-  const { data: rawWorkstations } = await supabase.from("workstations").select("*");
+  const [{ data: rawWorkstations }, { data: windows }] = await Promise.all([
+    supabase.from("workstations").select("*"),
+    supabase.from("workstation_windows").select("*"),
+  ]);
   // Team Leader's standing station order, not alphabetical — same order
   // used on the dashboard, Weekly Schedule, and the Generate modal.
   const workstations = rawWorkstations ? [...rawWorkstations].sort((a, b) => compareStationNames(a.name, b.name)) : rawWorkstations;
 
+  // Group windows by station so each row gets only its own.
+  const windowsByStation = new Map<string, typeof windows>();
+  for (const w of windows ?? []) {
+    windowsByStation.set(w.workstation_id, [...(windowsByStation.get(w.workstation_id) ?? []), w]);
+  }
+
   return (
     <>
-      <PageHeader title="Workstations" subtitle="The functional stations associates rotate through" />
+      <PageHeader title="Workstations" subtitle="The functional stations associates rotate through, and the physical windows each one occupies" />
 
       <Panel title="Active stations" action={<AddWorkstationForm />}>
         <div className="overflow-x-auto scroll-shadow-x">
@@ -26,16 +35,19 @@ export default async function WorkstationsPage() {
               <tr>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Station</th>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Headcount</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Windows</th>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-2.5 border-b border-[var(--line)]">Status</th>
                 <th className="py-2.5 border-b border-[var(--line)]" />
               </tr>
             </thead>
             <tbody>
               {workstations && workstations.length > 0 ? (
-                workstations.map((w) => <WorkstationRow key={w.id} workstation={w} />)
+                workstations.map((w) => (
+                  <WorkstationRow key={w.id} workstation={w} windows={windowsByStation.get(w.id) ?? []} />
+                ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-4 text-[var(--muted)]">
+                  <td colSpan={5} className="py-4 text-[var(--muted)]">
                     No workstations yet.
                   </td>
                 </tr>

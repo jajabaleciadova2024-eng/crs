@@ -4,9 +4,16 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Pill, Button } from "@/components/ui";
-import type { Workstation } from "@/lib/database.types";
+import type { Workstation, WorkstationWindow } from "@/lib/database.types";
+import WindowManager from "./WindowManager";
 
-export default function WorkstationRow({ workstation }: { workstation: Workstation }) {
+export default function WorkstationRow({
+  workstation,
+  windows,
+}: {
+  workstation: Workstation;
+  windows: WorkstationWindow[];
+}) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(workstation.name);
   const [headcount, setHeadcount] = useState(workstation.headcount);
@@ -55,6 +62,9 @@ export default function WorkstationRow({ workstation }: { workstation: Workstati
         ) : (
           <Pill tone="accent">{workstation.headcount} seat{workstation.headcount === 1 ? "" : "s"}</Pill>
         )}
+      </td>
+      <td className="py-2.5 border-b border-[var(--line)]">
+        <WindowManager workstationId={workstation.id} windows={windows} />
       </td>
       <td className="py-2.5 border-b border-[var(--line)]">
         <Pill tone={workstation.is_active ? "good" : "muted"}>{workstation.is_active ? "Active" : "Retired"}</Pill>
