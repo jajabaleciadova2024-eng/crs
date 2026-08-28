@@ -34,8 +34,8 @@ function StationLine({
   empty: string;
   windowLabel?: string;
   breakLabel?: string;
-  /** Set when this member is relieving someone that day. */
-  coverText?: string;
+  /** One entry per window this member relieves that day. */
+  coverText?: string[];
 }) {
   const meta = [windowLabel ? `W${windowLabel}` : null, breakLabel ? `Break ${breakLabel}` : null]
     .filter(Boolean)
@@ -48,9 +48,11 @@ function StationLine({
         {station ?? empty}
       </div>
       {meta && <div className="text-[11.5px] text-[var(--muted)] leading-snug mt-0.5">{meta}</div>}
-      {coverText && (
-        <div className="text-[11.5px] text-[var(--warn)] font-medium leading-snug mt-0.5">{coverText}</div>
-      )}
+      {coverText?.map((line) => (
+        <div key={line} className="text-[11.5px] text-[var(--warn)] font-medium leading-snug mt-0.5">
+          {line}
+        </div>
+      ))}
     </div>
   );
 }
@@ -224,8 +226,7 @@ export default async function DashboardPage() {
           .eq("schedule_week_id", week.id)
           .eq("assignment_date", displayDate)
           .eq("reliever_associate_id", profile.id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: [] }),
     isRotatingRole && tomorrowWeekRow
       ? supabase
           .from("break_assignments")
@@ -233,18 +234,20 @@ export default async function DashboardPage() {
           .eq("schedule_week_id", tomorrowWeekRow.id)
           .eq("assignment_date", tomorrow)
           .eq("reliever_associate_id", profile.id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: [] }),
   ]);
-  const coverText = (row: any): string | undefined => {
-    if (!row) return undefined;
-    const station = row.workstation_windows?.workstations?.name;
-    const label = row.workstation_windows?.label;
-    if (!station) return undefined;
-    return `Cover ${station}${label ? ` W${label}` : ""} ${BREAK_SLOT_LABEL[row.break_slot as BreakSlot]}`;
-  };
-  const myCoverTodayText = coverText(myCoverToday);
-  const myCoverNextDayText = coverText(myCoverNextDay);
+  // One line per window covered, ordered by slot so it reads chronologically.
+  const coverTexts = (rows: any): string[] =>
+    ((rows ?? []) as any[])
+      .filter((r) => r?.workstation_windows?.workstations?.name)
+      .sort((a, b) => String(a.break_slot).localeCompare(String(b.break_slot)))
+      .map((r) => {
+        const station = r.workstation_windows.workstations.name;
+        const label = r.workstation_windows.label;
+        return `Cover ${station}${label ? ` W${label}` : ""} ${BREAK_SLOT_LABEL[r.break_slot as BreakSlot]}`;
+      });
+  const myCoverTodayText = coverTexts(myCoverToday);
+  const myCoverNextDayText = coverTexts(myCoverNextDay);
 
   const myBreakSlot = (myBreakToday as any)?.break_slot as BreakSlot | undefined;
   const myNextBreakSlot = (myBreakNextDay as any)?.break_slot as BreakSlot | undefined;
