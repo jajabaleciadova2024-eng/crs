@@ -38,7 +38,7 @@ export default async function LeaveHistoryPage() {
     // Team-Leader-override note when approving a request that still has no
     // document (see LeaveQueueTable).
     .select(
-      "id, associate_id, leave_type, start_date, end_date, status, document_path, reviewed_at, review_note, final_rejection, is_half_day, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)"
+      "id, associate_id, leave_type, start_date, end_date, status, reason, document_path, reviewed_at, review_note, final_rejection, is_half_day, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)"
     )
     // Approved requests appear here IMMEDIATELY on approval (no reviewed_at
     // cutoff) — the Queue drops them the moment they're decided. Rejected
@@ -97,6 +97,7 @@ export default async function LeaveHistoryPage() {
                     {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Associate</th>}
                     <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Type</th>
                     <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Dates</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Reason</th>
                     <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Status</th>
                     <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Document</th>
                     <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Decided on</th>
@@ -123,6 +124,9 @@ export default async function LeaveHistoryPage() {
                         </td>
                         <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                           {formatLeaveRanges({ start_date: r.start_date, end_date: r.end_date }, r.leave_request_ranges)}
+                        </td>
+                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
+                          <span className="block max-w-[150px] sm:max-w-[260px] break-words">{r.reason ?? "—"}</span>
                         </td>
                         <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                           <Pill tone={STATUS_TONE[r.status as LeaveStatus]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>

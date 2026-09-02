@@ -72,13 +72,20 @@ export function PageHeader({
           fixed header (removed from flow) doesn't cause content below it
           to jump up underneath it. Same content/width as the visible
           copy so its height always matches, however long a given page's
-          title/subtitle/action ends up being. */}
-      <div aria-hidden="true" className="invisible px-3 sm:px-4 md:px-10 py-3.5 md:py-5 mb-4 md:mb-6 border-b border-transparent">
+          title/subtitle/action ends up being — which is why the md:pr-[84px]
+          below has to appear on BOTH copies, not just the real header.
+
+          That padding is the notification bell's footprint. The bell is
+          fixed at right-6 on desktop and floats ABOVE this header (z-40 vs
+          z-20), so without reserved space a page's action buttons run
+          straight underneath it. On mobile the bell sits in the hamburger
+          bar instead, clear of the header, so the reservation is md-only. */}
+      <div aria-hidden="true" className="invisible px-3 sm:px-4 md:px-10 md:pr-[84px] py-3.5 md:py-5 mb-4 md:mb-6 border-b border-transparent">
         {content}
       </div>
       <header
         ref={headerRef}
-        className="fixed z-20 top-[calc(56px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] px-3 sm:px-4 md:px-10 py-3.5 md:py-5 bg-[var(--paper)]/85 backdrop-blur-md border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out"
+        className="fixed z-20 top-[calc(56px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] px-3 sm:px-4 md:px-10 md:pr-[84px] py-3.5 md:py-5 bg-[var(--paper)]/85 backdrop-blur-md border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out"
       >
         {content}
       </header>
