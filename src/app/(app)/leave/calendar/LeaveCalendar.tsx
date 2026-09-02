@@ -5,8 +5,13 @@ import { Button, Pill } from "@/components/ui";
 import { addMonths, monthGridDates, MONTH_LABEL, type LeaveCalendarEntry } from "@/lib/leaveCalendar";
 import type { LeaveTypeConfig } from "@/lib/leaveTypes";
 
+// The month grid is always Sunday-first (see monthGridDates, which pins the
+// weekday to UTC so it never varies by device or locale) — so these labels
+// must be Sunday-first too, on EVERY screen size. A separate Monday-first
+// mobile set used to sit above the same Sunday-first cells, which put every
+// phone's column headers one day out of step with the dates under them.
+// One array, rendered once, is what keeps the two from drifting apart again.
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const WEEKDAY_LABELS_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
 
 export default function LeaveCalendar({
   dayMap,
@@ -75,9 +80,11 @@ export default function LeaveCalendar({
 
       <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
         {WEEKDAY_LABELS.map((label, i) => (
-          <div key={label + i} className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold text-center py-1.5">
-            <span className="hidden sm:inline">{label}</span>
-            <span className="sm:hidden">{WEEKDAY_LABELS_SHORT[i]}</span>
+          <div
+            key={label + i}
+            className="text-[9.5px] sm:text-[10px] uppercase tracking-normal sm:tracking-wider text-[var(--muted)] font-semibold text-center py-1.5"
+          >
+            {label}
           </div>
         ))}
         {dates.map((date) => {
