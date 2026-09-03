@@ -9,6 +9,7 @@ import UnseenAnnouncementModal from "@/components/announcements/UnseenAnnounceme
 import AutoLogout from "@/components/AutoLogout";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
+import { isPasswordBlocking } from "@/lib/passwordExpiry";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, realRole, previewing } = await requireProfileWithPreview();
@@ -79,6 +80,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ).length;
   }
 
+  // --- Account Security badge ---
+  // TL: resets claimed and waiting on them. Member: their own account needing
+  // action — inside the blocking window, expired, no baseline, or MFA still
+  // missing. Both are "something you must do", which is what a badge means
+  // everywhere else in this sidebar.
+  let accountAlerts = 0;
+  if (canManageOperations(profile.role)) {
+    const { count } = await admin
+      .from("password_resets")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+    accountAlerts = count ?? 0;
+  } else {
+    const { data: cred } = await admin
+      .from("credential_status")
+      .select("last_reset_at, mfa_proof_path")
+      .eq("profile_id", profile.id)
+      .maybeSingle();
+    if (isPasswordBlocking((cred?.last_reset_at as string | null) ?? null)) accountAlerts += 1;
+    if (!cred?.mfa_proof_path) accountAlerts += 1;
+  }
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       <SidebarShell>
@@ -87,6 +110,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           pendingAccessRequests={pendingAccessRequests}
           pendingLeaveRequests={pendingLeaveRequests}
           pendingTaskCount={pendingTaskCount}
+          accountAlerts={accountAlerts}
           realRole={realRole}
         />
       </SidebarShell>

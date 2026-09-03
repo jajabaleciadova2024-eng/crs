@@ -45,6 +45,9 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
   // first name you see, not buried alphabetically.
   const RANK: Record<string, number> = { expired: 0, unset: 1, blocking: 2, warning: 3, ok: 4 };
   const sorted = [...rows].sort((a, b) => {
+    // A claim waiting on you comes first regardless of expiry: it is the
+    // only row where you are the blocker rather than the member.
+    if (!!a.pendingResetId !== !!b.pendingResetId) return a.pendingResetId ? -1 : 1;
     const ra = RANK[expiryState(a.lastResetAt)], rb = RANK[expiryState(b.lastResetAt)];
     if (ra !== rb) return ra - rb;
     const da = daysRemaining(a.lastResetAt) ?? -1, db = daysRemaining(b.lastResetAt) ?? -1;
@@ -111,13 +114,28 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
             const st = expiryState(r.lastResetAt);
             const exp = expiryFrom(r.lastResetAt);
             return (
-              <tr key={r.profileId}>
+              <tr
+                key={r.profileId}
+                className={r.pendingResetId ? "bg-[var(--warn-soft)]/25" : undefined}
+              >
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">{r.name}</td>
-                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
-                  <Pill tone={STATE_PILL[st].tone}>{STATE_PILL[st].label}</Pill>
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
+                  {r.pendingResetId ? (
+                    // A claim outranks the expiry state here. The countdown
+                    // beside it is still the OLD one and stays that way until
+                    // confirmation — this pill is what says so.
+                    <Pill tone="warn">Awaiting your confirmation</Pill>
+                  ) : (
+                    <Pill tone={STATE_PILL[st].tone}>{STATE_PILL[st].label}</Pill>
+                  )}
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                   <PasswordCountdown lastResetAt={r.lastResetAt} size="sm" />
+                  {r.pendingResetId && (
+                    <div className="text-[10px] text-[var(--warn)] font-semibold mt-0.5">
+                      restarts on confirm
+                    </div>
+                  )}
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)] whitespace-nowrap">
                   {exp ? exp.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
@@ -246,7 +264,7 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
   return (
     <Panel
       title="Everyone's expiry"
-      hint={`${atRisk} at risk · ${awaiting} awaiting confirmation`}
+      hint={awaiting > 0 ? `${awaiting} awaiting your confirmation · ${atRisk} at risk` : `${atRisk} at risk`}
       footnote="Confirming a reset restarts that member's 60 days from the date they reported, not from when you confirmed it. A reset cannot be confirmed until the member has an MFA screenshot on file; a missing passkey is flagged but never blocks. Members with no baseline are treated as blocking until you set one."
     >
       {error && (

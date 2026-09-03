@@ -203,6 +203,16 @@ export default async function DashboardPage() {
   const credential = await credentialBlock(profile.id);
   const credState = expiryState(credential.lastResetAt);
 
+  // Resets claimed and waiting on the Team Leader. The bell announces one
+  // when it arrives, but a bell notification is a moment — this is the
+  // standing count, which is what actually gets acted on.
+  const { count: pendingResetCount } = profile.role === "team_leader"
+    ? await createAdminClient()
+        .from("password_resets")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending")
+    : { count: 0 };
+
   const tomorrowRevealed = isTomorrowRevealed();
 
   // Break slots for both lines of the station card — today's, and the next
@@ -392,6 +402,15 @@ export default async function DashboardPage() {
           />
         )}
         <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} />
+        {profile.role === "team_leader" && (
+          <Card
+            label="Password resets"
+            href="/account"
+            value={String(pendingResetCount ?? 0)}
+            sub={(pendingResetCount ?? 0) > 0 ? "Claimed — confirm them" : "Nothing to confirm"}
+            tone={(pendingResetCount ?? 0) > 0 ? "warn" : undefined}
+          />
+        )}
         {profile.role === "team_leader" && <Card label="Immune this cycle" value={String(immuneCount ?? 0)} sub="Excluded from shuffle" />}
         {profile.role === "team_leader" && (
           <Card

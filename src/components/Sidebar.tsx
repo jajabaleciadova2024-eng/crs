@@ -11,7 +11,7 @@ type NavItem = {
   href: string;
   label: string;
   roles?: Profile["role"][];
-  badgeKey?: "accessRequests" | "pendingLeave" | "pendingTasks";
+  badgeKey?: "accessRequests" | "pendingLeave" | "pendingTasks" | "accountAlerts";
   icon: ReactNode;
   // Highlight only on an exact path match — see NavLink's `exact` prop.
   exact?: boolean;
@@ -216,6 +216,7 @@ const BOTTOM_ITEMS: NavItem[] = [
   {
     href: "/account",
     label: "Account Security",
+    badgeKey: "accountAlerts",
     icon: (
       <Icon>
         <rect x="4" y="10.5" width="16" height="10" rx="2" />
@@ -248,11 +249,17 @@ const BOTTOM_ITEMS: NavItem[] = [
 
 function getBadgeCount(
   item: NavItem,
-  counts: { pendingAccessRequests: number; pendingLeaveRequests: number; pendingTaskCount: number },
+  counts: {
+    pendingAccessRequests: number;
+    pendingLeaveRequests: number;
+    pendingTaskCount: number;
+    accountAlerts: number;
+  },
 ): number {
   if (item.badgeKey === "accessRequests") return counts.pendingAccessRequests;
   if (item.badgeKey === "pendingLeave") return counts.pendingLeaveRequests;
   if (item.badgeKey === "pendingTasks") return counts.pendingTaskCount;
+  if (item.badgeKey === "accountAlerts") return counts.accountAlerts;
   return 0;
 }
 
@@ -265,16 +272,18 @@ export default function Sidebar({
   pendingAccessRequests = 0,
   pendingLeaveRequests = 0,
   pendingTaskCount = 0,
+  accountAlerts = 0,
   realRole,
 }: {
   profile: Profile;
   pendingAccessRequests?: number;
   pendingLeaveRequests?: number;
   pendingTaskCount?: number;
+  accountAlerts?: number;
   realRole?: AppRole;
 }) {
   const initials = `${profile.first_name[0] ?? ""}${profile.last_name[0] ?? ""}`.toUpperCase();
-  const counts = { pendingAccessRequests, pendingLeaveRequests, pendingTaskCount };
+  const counts = { pendingAccessRequests, pendingLeaveRequests, pendingTaskCount, accountAlerts };
 
   const requestsVisible = filterByRole(REQUESTS_ITEMS, profile.role);
   const requestsBadgeTotal = requestsVisible.reduce((sum, item) => sum + getBadgeCount(item, counts), 0);
