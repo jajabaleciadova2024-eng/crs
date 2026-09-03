@@ -43,7 +43,6 @@ export default function SocialFeed({
   mentionable,
   initialLimit,
   viewAllHref,
-  stickyComposer,
 }: {
   userId: string;
   currentUserRole: string;
@@ -57,41 +56,12 @@ export default function SocialFeed({
   // this href — used on the dashboard to send people to /feed for the
   // rest instead of paginating inline.
   viewAllHref?: string;
-  // Pins the composer just beneath the (fixed) PageHeader while
-  // scrolling — only used on the dedicated /feed page, not the
-  // dashboard's embedded Panel preview. Offset comes from --header-bottom,
-  // published by PageHeader's own ResizeObserver (see ui.tsx).
-  stickyComposer?: boolean;
 }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const channelsRef = useRef<RealtimeChannel[]>([]);
-  const [composerHeight, setComposerHeight] = useState<number | null>(null);
-  const composerFixedRef = useRef<HTMLDivElement>(null);
-
-  // `position: sticky` is deliberately avoided elsewhere in this app (see
-  // SidebarShell/PageHeader's comments — it's empirically unreliable in
-  // this layout, sticking on the way up but not engaging on the way down).
-  // Same fix here: the composer becomes `position: fixed`, matching the
-  // header, with a measured invisible spacer reserving its real (variable
-  // — image preview/emoji picker resize it) height in the flow so posts
-  // don't jump up underneath it.
-  useEffect(() => {
-    if (!stickyComposer) return;
-    const el = composerFixedRef.current;
-    if (!el) return;
-    const update = () => setComposerHeight(el.getBoundingClientRect().height);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    window.addEventListener("resize", update);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", update);
-    };
-  }, [stickyComposer]);
 
   const fetchPosts = useCallback(
     async (cursor?: string) => {
@@ -430,27 +400,17 @@ export default function SocialFeed({
 
   return (
     <div className="space-y-4">
-      {stickyComposer ? (
-        <>
-          {/* Space-reserving clone — the real composer below is removed
-              from flow (position: fixed), so this keeps posts from
-              jumping up underneath it. Height is measured live since the
-              composer's own height changes (image preview, emoji picker). */}
-          <div aria-hidden="true" style={{ height: composerHeight ?? undefined }} />
-          <div
-            id="whats-on-your-mind"
-            ref={composerFixedRef}
-            className="fixed z-10 left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] px-3 sm:px-4 md:px-10 pt-3 pb-3 bg-[var(--paper)] transition-[left,width] duration-200 ease-out"
-            style={{ top: "var(--header-bottom, 140px)" }}
-          >
-            <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />
-          </div>
-        </>
-      ) : (
-        <div id="whats-on-your-mind">
-          <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />
-        </div>
-      )}
+      {/* The composer scrolls with the feed. It used to be position:fixed,
+          pinned under the header, with a measured spacer holding its place —
+          but a pinned bar necessarily covers whatever scrolls beneath it, and
+          what scrolled beneath it here was always the NEWEST post. Measured
+          at 148-224px of the top post hidden once scrolled, and a 4px
+          overlap on phones even at rest, which clipped the author row before
+          you touched anything. Composing from anywhere is already handled by
+          the floating quick-post button, so the pin bought nothing. */}
+      <div id="whats-on-your-mind">
+        <PostComposer onSubmit={handleNewPost} mentionable={mentionable} />
+      </div>
       {posts.length === 0 ? (
         <div className="text-center py-12 text-[var(--muted)] text-sm">
           <div className="text-3xl mb-2">💬</div>
