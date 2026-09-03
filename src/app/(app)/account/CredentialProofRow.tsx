@@ -16,6 +16,7 @@ export default function CredentialProofRow({
   hasProof,
   verified,
   reviewNote,
+  isTeamLeader,
 }: {
   kind: "mfa" | "passkey";
   label: string;
@@ -24,6 +25,9 @@ export default function CredentialProofRow({
   hasProof: boolean;
   verified: boolean;
   reviewNote: string | null;
+  // The Team Leader is the one who checks these, so "awaiting TL check" on
+  // their own row reads as waiting on somebody else.
+  isTeamLeader: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -85,7 +89,7 @@ export default function CredentialProofRow({
           ) : reviewNote ? (
             <Pill tone="bad">Rejected</Pill>
           ) : (
-            <Pill tone="warn">Awaiting TL check</Pill>
+            <Pill tone="warn">{isTeamLeader ? "Needs your check" : "Awaiting TL check"}</Pill>
           )
         ) : (
           // Amber on an OPTIONAL item reads as a fault; the passkey is a

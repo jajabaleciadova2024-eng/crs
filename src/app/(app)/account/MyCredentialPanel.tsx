@@ -84,7 +84,9 @@ export default function MyCredentialPanel({
     !mfaProof
       ? "Upload your MFA screenshot"
       : !mfaVerified
-        ? "Your MFA screenshot is waiting on the Team Leader to verify it"
+        ? isTeamLeader
+          ? "Verify your own MFA screenshot in the table below"
+          : "Your MFA screenshot is waiting on the Team Leader to verify it"
         : null,
     !proof ? "Attach your \"Last updated\" screenshot" : null,
   ].filter(Boolean) as string[];
@@ -100,7 +102,9 @@ export default function MyCredentialPanel({
     if (!mfaVerified) {
       setError(
         mfaProof
-          ? "Your MFA screenshot is still waiting on the Team Leader to verify it."
+          ? isTeamLeader
+            ? "Verify your own MFA screenshot before reporting a reset."
+            : "Your MFA screenshot is still waiting on the Team Leader to verify it."
           : "Upload your MFA screenshot first — it must be verified before you can report a reset.",
       );
       return;
@@ -182,6 +186,7 @@ export default function MyCredentialPanel({
             hasProof={mfaProof}
             verified={mfaVerified}
             reviewNote={mfaNote}
+            isTeamLeader={isTeamLeader}
           />
           <CredentialProofRow
             kind="passkey"
@@ -191,6 +196,7 @@ export default function MyCredentialPanel({
             hasProof={passkeyProof}
             verified={passkeyVerified}
             reviewNote={passkeyNote}
+            isTeamLeader={isTeamLeader}
           />
         </div>
 
@@ -215,11 +221,13 @@ export default function MyCredentialPanel({
         <div className="border-t border-[var(--line)] pt-3.5">
           {pending ? (
             <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
-              <Pill tone="warn">Awaiting Team Leader confirmation</Pill>
+              <Pill tone="warn">{isTeamLeader ? "Awaiting your confirmation" : "Awaiting Team Leader confirmation"}</Pill>
               <span className="text-[var(--muted)]">
                 You reported a reset on{" "}
                 {new Date(pending.resetAt).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}.
-                The countdown restarts once it is confirmed.
+                {isTeamLeader
+                  ? "The countdown restarts once you confirm it below."
+                  : "The countdown restarts once it is confirmed."}
               </span>
             </div>
           ) : (
@@ -229,7 +237,9 @@ export default function MyCredentialPanel({
                   Reset your password on the platform, then report it here
                 </div>
                 <p className="text-[11.5px] text-[var(--muted)] m-0 mt-0.5 leading-snug">
-                  Your countdown restarts once the Team Leader confirms it — not when you submit.
+                  {isTeamLeader
+                    ? "Your countdown restarts once the reset is confirmed in the table below — not when you submit."
+                    : "Your countdown restarts once the Team Leader confirms it — not when you submit."}
                 </p>
               </div>
 
@@ -380,7 +390,7 @@ export default function MyCredentialPanel({
               {/* Header, so a bare date and a pill read as columns rather
                   than as three unlabelled values in a row. */}
               <div className="hidden sm:grid sm:grid-cols-[110px_120px_1fr_auto] gap-x-3 pb-1 border-b border-[var(--line)]">
-                {["Reset on", "Status", "Team Leader's note", ""].map((h, i) => (
+                {["Reset on", "Status", isTeamLeader ? "Review note" : "Team Leader's note", ""].map((h, i) => (
                   <span
                     key={h || i}
                     className="text-[9.5px] uppercase tracking-wider text-[var(--muted)] font-semibold"
