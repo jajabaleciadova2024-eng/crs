@@ -89,6 +89,13 @@ export default async function TasksPage() {
         }
       />
 
+      {canManage && completionsError && (
+        <div className="mb-4 rounded-lg border border-[var(--bad)]/40 bg-[var(--bad-soft)] px-4 py-3 text-[13px] text-[var(--bad)]">
+          Couldn&apos;t load member submissions — this list may be missing pending approvals right now. Reload the
+          page; if this keeps happening, tell your developer.
+        </div>
+      )}
+
       <Panel
         title="Tasks"
         hint={canManage ? "Team Leader" : undefined}

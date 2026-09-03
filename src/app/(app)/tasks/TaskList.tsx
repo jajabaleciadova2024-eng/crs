@@ -19,7 +19,11 @@ export default function TaskList({
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [editTask, setEditTask] = useState<TaskData | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  // Task + how many of its completions are still pending review, so the
+  // confirmation can name exactly what disappears — a generic warning was
+  // easy to click past without registering that real, un-reviewed work was
+  // about to be discarded along with the task.
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string; pendingCount: number } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const nameMap = new Map(members.map((m) => [m.id, `${m.first_name} ${m.last_name}`]));
@@ -36,15 +40,15 @@ export default function TaskList({
   );
 
   async function handleDelete() {
-    if (!deleteId) return;
+    if (!deleteTarget) return;
     setDeleting(true);
     await fetch("/api/tasks", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: deleteId }),
+      body: JSON.stringify({ id: deleteTarget.id }),
     });
     setDeleting(false);
-    setDeleteId(null);
+    setDeleteTarget(null);
     router.refresh();
   }
 
@@ -56,7 +60,13 @@ export default function TaskList({
         canManage={canManage}
         assigneeName={t.assign_to !== "all" ? nameMap.get(t.assign_to) : undefined}
         onEdit={() => { setEditTask(t); setShowModal(true); }}
-        onDelete={() => setDeleteId(t.id)}
+        onDelete={() =>
+          setDeleteTarget({
+            id: t.id,
+            title: t.title,
+            pendingCount: t.completions?.filter((c) => c.status === "pending").length ?? 0,
+          })
+        }
       />
     ));
   }
@@ -106,18 +116,26 @@ export default function TaskList({
         />
       )}
 
-      {deleteId && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 overflow-y-auto" onClick={() => setDeleteId(null)}>
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 overflow-y-auto" onClick={() => setDeleteTarget(null)}>
           <div
             className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl w-full max-w-sm p-5 animate-scale-in my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-sm font-bold mb-2">Delete task?</h2>
-            <p className="text-[13px] text-[var(--muted)] mb-4">
-              This will permanently delete this task and all completion records. This cannot be undone.
-            </p>
+            <h2 className="text-sm font-bold mb-2">Delete &ldquo;{deleteTarget.title}&rdquo;?</h2>
+            {deleteTarget.pendingCount > 0 ? (
+              <p className="text-[13px] text-[var(--bad)] font-semibold mb-4">
+                {deleteTarget.pendingCount} submission{deleteTarget.pendingCount !== 1 ? "s" : ""} still awaiting
+                your review will be discarded along with it — nobody will be notified, and there will be nothing left
+                to approve. This cannot be undone.
+              </p>
+            ) : (
+              <p className="text-[13px] text-[var(--muted)] mb-4">
+                This will permanently delete this task and all completion records. This cannot be undone.
+              </p>
+            )}
             <div className="flex justify-end gap-2">
-              <Button type="button" onClick={() => setDeleteId(null)}>
+              <Button type="button" onClick={() => setDeleteTarget(null)}>
                 Cancel
               </Button>
               <Button
