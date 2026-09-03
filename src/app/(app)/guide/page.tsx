@@ -1,7 +1,14 @@
 import { requireProfile, canManageOperations } from "@/lib/auth";
 import { Panel, PageHeader } from "@/components/ui";
+import { PASSWORD_VALID_DAYS, BLOCK_WITHIN_DAYS } from "@/lib/passwordExpiry";
 
 type Role = "team_leader" | "oic" | "associate";
+
+const ROLE_LABEL: Record<Role, string> = {
+  team_leader: "Team Leader",
+  oic: "OIC",
+  associate: "an Associate",
+};
 type GuideItem = { q: string; a: string; roles?: Role[] }; // omit roles = everyone
 
 type GuideSection = {
@@ -12,6 +19,31 @@ type GuideSection = {
 };
 
 const SECTIONS: GuideSection[] = [
+  {
+    title: "What you can access",
+    hint: "Your role",
+    items: [
+      {
+        q: "What can I do as an Associate?",
+        a: "Dashboard, Weekly Schedule (view), Break Schedule, Team Feed, Announcements, Leave Requests (file your own), Members Tasks (complete yours), Leave Calendar, Concerns (anonymous), Account Security (your own row), Settings and this guide. You cannot generate or change a schedule, approve anything, or see anyone else's credential status.",
+        roles: ["associate"],
+      },
+      {
+        q: "What can I do as OIC?",
+        a: "Everything an Associate can, plus two read-only oversight pages: Assignment History and Task Report. You are seated in the rotation like everyone else and your own tasks and password rules apply to you. You can see every leave request but cannot approve or reject one, and you cannot generate, clear or reassign a schedule.",
+        roles: ["oic"],
+      },
+      {
+        q: "What can I do as Team Leader?",
+        a: "Everything, and you are the only one who can: generate, clear and reassign the schedule; set holidays; approve or reject leave; create tasks and approve submissions; verify MFA and passkey proof and confirm password resets; add members, change roles and handle access requests; manage workstations and organization settings; and post announcements. You also see the whole team's credential board, which nobody else can.",
+        roles: ["team_leader"],
+      },
+      {
+        q: "Where is everything?",
+        a: "The sidebar is the map, and it only lists what your role can open. Badges on it are live counts of things waiting on you. On a phone, tap the menu button at the top-left to open it.",
+      },
+    ],
+  },
   {
     title: "Getting started",
     items: [
@@ -25,7 +57,7 @@ const SECTIONS: GuideSection[] = [
       },
       {
         q: "What's on the Dashboard?",
-        a: "A quick snapshot: how many stations are manned this week, how many leave requests are pending, your role, this week's full station assignment grid, and your 5 most recent leave requests. Team Leaders also see how many associates are currently immune from shuffling.",
+        a: "A row of cards across the top: how long until your password expires, how many seats are filled today (anyone on approved leave is subtracted, and the card says so), your station for today and the next working day with your window and break time, and anything waiting on you. Below that: the leave calendar, the team feed, and your recent leave activity. Your name, PSID and role sit beside your photo in the header.",
       },
       {
         q: "I don't have an account yet — how do I get one?",
@@ -39,6 +71,16 @@ const SECTIONS: GuideSection[] = [
       {
         q: "How do I see my station assignment?",
         a: "Go to Weekly Schedule. Your row is highlighted if you're assigned. If nothing shows, no schedule has been generated for the current week yet.",
+      },
+      {
+        q: "Why can't I see tomorrow yet?",
+        a: "Tomorrow's column unlocks at 12 PM Philippine time, so the Team Leader has the morning to assign the day's tasks before anyone reads ahead. A locked day shows a placeholder rather than disappearing.",
+        roles: ["associate", "oic"],
+      },
+      {
+        q: "Why are the future days locked for me?",
+        a: "Either a blocking task is waiting on approval or your password is inside its blocking window. The placeholder cell says which. Today's assignment always stays visible — you are never left not knowing where to sit.",
+        roles: ["associate", "oic"],
       },
       {
         q: "How does the weekly rotation work?",
@@ -148,6 +190,209 @@ const SECTIONS: GuideSection[] = [
     ],
   },
   {
+    title: "Break Schedule",
+    items: [
+      {
+        q: "How are breaks decided?",
+        a: "Windows go on break, not people — whoever is seated at a window that day takes that window's slot. There are three staggered slots (10 AM, 11 AM, 12 PM) and they are worked out automatically when the week is generated, under one rule: a station is never left unmanned. A window that would leave its station empty only breaks if a reliever can cover it.",
+      },
+      {
+        q: "Where do I see my break time?",
+        a: "Break Schedule shows the full day, and your break also appears on your Dashboard Station card next to your window number (e.g. \"W21 · Break 11 AM\").",
+      },
+      {
+        q: "My station moved — does my break move with it?",
+        a: "Yes. The break belongs to the window, so when the Team Leader moves you to a different seat you take that seat's break slot, and your old one is released. Check the Break Schedule after any change rather than assuming your old time still stands.",
+      },
+      {
+        q: "Why did the break schedule empty out on a holiday?",
+        a: "Setting a holiday clears that date's assignments and breaks together — there is no coverage to plan on a day nobody is on the floor.",
+      },
+      {
+        q: "Someone is break-immune — what does that mean?",
+        a: "A break-immune member keeps whatever slot they already had instead of being reshuffled with everyone else when a new week is generated.",
+      },
+    ],
+  },
+  {
+    title: "Members Tasks",
+    items: [
+      {
+        q: "Where do I find my tasks?",
+        a: "Members Tasks in the sidebar. The badge shows how many still need doing. Each task shows its description in the format the Team Leader wrote it, its deadline, and pills telling you whether it is for all members, whether it blocks your access, and whether a photo is required.",
+        roles: ["associate", "oic"],
+      },
+      {
+        q: "How do I mark a task complete?",
+        a: "Tick the checkbox on the task. If the task requires a photo you will be asked to upload one, and if it asks for a completion date you pick that too. Submitting does NOT complete the task on its own — it goes to the Team Leader as \"Pending approval\" until they review it.",
+        roles: ["associate", "oic"],
+      },
+      {
+        q: "What does a \"Blocking\" task actually block?",
+        a: "Until every blocking task assigned to you is APPROVED, you cannot see future dates on the Weekly Schedule (today stays visible), you cannot see tomorrow's station on your Dashboard, and you cannot file a Leave Request. Nothing else is restricted — the Team Feed, Announcements, Break Schedule, Concerns and your own Account Security stay open.",
+      },
+      {
+        q: "My task was rejected — what now?",
+        a: "The Team Leader's feedback appears on the task, the same way a rejected leave request works. Fix whatever they asked for and submit it again.",
+        roles: ["associate", "oic"],
+      },
+      {
+        q: "How do I create a task?",
+        a: "Members Tasks → Add task. Set the description, who it is for (all members or specific people), an optional deadline, and three switches: whether it blocks schedule and leave access until approved, whether a photo is required as proof, and whether a completion date must be entered. Blocking is the strong one — use it only when the work genuinely has to happen before someone's next shift.",
+        roles: ["team_leader"],
+      },
+      {
+        q: "How do I approve or reject a submission?",
+        a: "Submissions appear on Members Tasks with the member's name, their completion date and their photo if one was required. Approve to clear the task and lift any blocking. Reject with feedback — the member sees exactly what you wrote and can resubmit.",
+        roles: ["team_leader"],
+      },
+      {
+        q: "How do I see who is falling behind?",
+        a: "Task Report in the sidebar is the full history of every task and every submission, so you can see at a glance who needs following up rather than reading the live list task by task.",
+        roles: ["team_leader", "oic"],
+      },
+      {
+        q: "What is \"Poke\"?",
+        a: "A nudge. It sends the member a notification about an outstanding task without you having to message them separately.",
+        roles: ["team_leader"],
+      },
+    ],
+  },
+  {
+    title: "Account Security",
+    items: [
+      {
+        q: "What is the password rule?",
+        a: `Your password on the platform expires ${PASSWORD_VALID_DAYS} days after you reset it. The countdown on your Dashboard shows exactly how long is left, down to the second. Rule one is that nobody's password lapses — reset it before it runs out, not after.`,
+      },
+      {
+        q: "When does it start blocking me?",
+        a: `From ${BLOCK_WITHIN_DAYS} days before expiry — day ${PASSWORD_VALID_DAYS - BLOCK_WITHIN_DAYS} of the cycle. Blocking is the same as a blocking task: no future dates on the Weekly Schedule, no tomorrow's station on the Dashboard, and no filing a Leave Request until it is sorted. The countdown turns amber well before that as a warning.`,
+        roles: ["associate", "oic"],
+      },
+      {
+        q: "MFA and passkey — which is mandatory?",
+        a: "MFA is mandatory and must be uploaded AND verified by the Team Leader before you can report a password reset. A passkey is strongly recommended but optional — a missing passkey is flagged and never blocks anything.",
+        roles: ["associate", "oic"],
+      },
+      {
+        q: "What counts as proof of a reset?",
+        a: "A screenshot of the platform's own Security info › Password › \"Last updated\" line. That page is authoritative, carries the timestamp, and is always in the same place — a confirmation email is none of those things. There is a sample image on the Account Security page showing exactly what to capture.",
+        roles: ["associate", "oic"],
+      },
+      {
+        q: "How do I report that I have reset my password?",
+        a: "Account Security → \"Password Reset Complete\". Enter the date you actually reset it and attach the \"Last updated\" screenshot. The button stays unavailable until your MFA screenshot is uploaded and verified. Your countdown does NOT restart yet — it restarts when the Team Leader confirms.",
+        roles: ["associate", "oic"],
+      },
+      {
+        q: "Does confirmation restart my clock from today?",
+        a: `No — from the date YOU reported, not the date it was confirmed. If you reset on Monday and it is confirmed on Thursday, your ${PASSWORD_VALID_DAYS} days still run from Monday. A late confirmation never hands out extra days.`,
+      },
+      {
+        q: "Can I see everyone's status?",
+        a: "No. Your own row is yours alone. Only the Team Leader sees the whole team's credential board.",
+        roles: ["associate", "oic"],
+      },
+      {
+        q: "How do I confirm someone's reset?",
+        a: `Account Security shows every member: their status, time left, expiry date, reset proof, MFA and passkey. A claimed reset shows the date the member reported and a link to their screenshot — check the two against each other, then Confirm. Confirming restarts their ${PASSWORD_VALID_DAYS} days from the date they reported. Reject with an instruction if the proof does not match; they see exactly what you wrote.`,
+        roles: ["team_leader"],
+      },
+      {
+        q: "Why is Confirm greyed out on someone?",
+        a: "Because their MFA screenshot has not been verified. Uploading is not enough — you have to verify it, and replacing a verified screenshot sends it back for checking. A missing or unverified passkey is flagged but never blocks confirmation.",
+        roles: ["team_leader"],
+      },
+      {
+        q: "Someone has no countdown at all — what do I do?",
+        a: "They have no baseline. Set one from their row on Account Security using the date of their last known reset. Until then they are treated as blocking.",
+        roles: ["team_leader"],
+      },
+      {
+        q: "Does any of this apply to me as Team Leader?",
+        a: "Your own row is a record, not a compliance check — you set the policy. Upload what you like, and nothing on that page gates you or blocks your access. Your reports are confirmed as you submit them.",
+        roles: ["team_leader"],
+      },
+      {
+        q: "Will I be reminded before it expires?",
+        a: "Yes. A reminder lands in your notifications as expiry approaches, once a day at most, so it does not go unnoticed while you are busy.",
+      },
+    ],
+  },
+  {
+    title: "Team Feed & Announcements",
+    items: [
+      {
+        q: "What is the Team Feed for?",
+        a: "Day-to-day posts from anyone on the team. You can react to a post and comment on it, and mention a colleague with @ so they get a notification. Everyone can see who reacted to any post.",
+      },
+      {
+        q: "How do I post quickly?",
+        a: "The \"What's on your mind?\" box at the top of your Dashboard opens the composer without leaving the page.",
+      },
+      {
+        q: "What is the difference between the Feed and Announcements?",
+        a: "The Feed is conversation. An Announcement is something everybody must actually read, so it pops up as a modal after login rather than waiting to be scrolled past.",
+      },
+      {
+        q: "Why did the same announcement pop up again?",
+        a: "A new announcement is shown on three separate logins before it retires, so one distracted click does not make you miss it. The footer tells you which showing you are on (\"Reminder 2 of 3\", then \"Last reminder\"). Refreshing the page does not use one up — only a fresh login does.",
+      },
+      {
+        q: "How do I post an announcement?",
+        a: "Announcements → post it there. Keep it for things that genuinely need everyone's attention — it interrupts all fifteen people at login three times over.",
+        roles: ["team_leader"],
+      },
+    ],
+  },
+  {
+    title: "Concerns",
+    items: [
+      {
+        q: "How do I raise a concern?",
+        a: "Concerns in the sidebar. Your submission is anonymous — your identity is not attached to it and the Team Leader cannot see who filed it.",
+        roles: ["associate", "oic"],
+      },
+      {
+        q: "What do I see on Concerns?",
+        a: "Anonymous incident reports from the team, without the reporter's identity. Treat them as signal about the floor rather than something to trace back to a person.",
+        roles: ["team_leader"],
+      },
+    ],
+  },
+  {
+    title: "Notifications",
+    items: [
+      {
+        q: "What is the bell for?",
+        a: "In-app notifications, separate from email. It covers schedule publishing and changes, leave request submissions and decisions, task assignments, submissions, reviews and pokes, password reset claims, reviews and expiry reminders, announcements, and feed mentions, reactions and comments.",
+      },
+      {
+        q: "How do I clear them?",
+        a: "\"Mark all as read\" at the top of the bell panel.",
+      },
+      {
+        q: "Do the Settings toggles turn the bell off?",
+        a: "No — Settings → Notifications controls EMAIL only. The bell always shows everything that concerns you.",
+      },
+    ],
+  },
+  {
+    title: "Holidays",
+    roles: ["team_leader"],
+    items: [
+      {
+        q: "How do I set a holiday?",
+        a: "From the Weekly Schedule. Holidays are set by hand rather than pulled from a national calendar, because Naga's local holidays are not in one.",
+      },
+      {
+        q: "What happens to a schedule already generated on that date?",
+        a: "It is cleared — assignments and breaks both — and everyone who loses a shift is notified. Generating a new week skips holiday dates entirely, and the Dashboard's \"tomorrow\" jumps over a holiday to the next working day.",
+      },
+    ],
+  },
+  {
     title: "Settings",
     items: [
       {
@@ -186,12 +431,9 @@ export default async function GuidePage() {
     <>
       <PageHeader
         title="User Guide"
-        subtitle={
-          <>
-            How to use CRS Naga — tailored to what {canManage ? "you can manage" : "you can do"} as {profile.first_name}
-            &apos;s role.
-          </>
-        }
+        subtitle={`How to use CRS Naga — showing only what ${
+          canManage ? "you can manage" : "applies to you"
+        } as ${ROLE_LABEL[profile.role]}.`}
       />
 
       {visibleSections.map((section) => (
