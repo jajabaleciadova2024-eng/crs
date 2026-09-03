@@ -321,13 +321,20 @@ export default async function DashboardPage() {
           </div>
           <PasswordCountdown lastResetAt={credential.lastResetAt} size="md" />
           <div className="text-[10px] text-[var(--muted)] mt-1 font-mono tracking-tight">DD:HH:MM:SS</div>
+          {/* Role-aware: the Team Leader IS the person who sets baselines and
+              is never schedule-blocked, so telling them to ask their TL, or
+              that their schedule is locked, is nonsense. */}
           <div className="text-[11.5px] mt-1.5 leading-snug text-[var(--muted)]">
             {credState === "unset"
-              ? "No baseline set — ask your TL"
+              ? profile.role === "team_leader"
+                ? "No baseline yet — set your own on Account Security"
+                : "No baseline set — ask your TL"
               : credState === "expired"
                 ? "Expired — reset it now"
                 : credState === "blocking"
-                  ? "Schedule locked until reset"
+                  ? profile.role === "team_leader"
+                    ? "Expiring within 5 days — reset it now"
+                    : "Schedule locked until reset"
                   : credState === "warning"
                     ? "Reset it soon"
                     : "In good standing"}

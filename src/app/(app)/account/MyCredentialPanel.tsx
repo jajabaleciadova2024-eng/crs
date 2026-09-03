@@ -10,16 +10,34 @@ import CredentialProofRow from "./CredentialProofRow";
 
 type Reset = { id: string; resetAt: string; status: string; reviewNote: string | null; hasProof: boolean };
 
-const BANNER: Record<string, { text: string; tone: "good" | "warn" | "bad" }> = {
-  ok: { text: "Your password is in good standing.", tone: "good" },
-  warning: { text: "Your password expires soon — reset it before it bites.", tone: "warn" },
-  blocking: {
-    text: `Inside the final ${BLOCK_WITHIN_DAYS} days: your upcoming schedule is locked until this is reset and confirmed.`,
-    tone: "bad",
-  },
-  expired: { text: "Your password has expired. Reset it on the platform now.", tone: "bad" },
-  unset: { text: "No reset on record yet — ask your Team Leader to set your baseline.", tone: "bad" },
-};
+// The Team Leader sets baselines and confirms resets, and is never
+// schedule-blocked — so the member wording ("ask your Team Leader", "your
+// schedule is locked") reads as nonsense on their own card. Same states,
+// different second half.
+function banner(state: string, isTL: boolean): { text: string; tone: "good" | "warn" | "bad" } {
+  switch (state) {
+    case "ok":
+      return { text: "Your password is in good standing.", tone: "good" };
+    case "warning":
+      return { text: "Your password expires soon — reset it before it bites.", tone: "warn" };
+    case "blocking":
+      return {
+        text: isTL
+          ? `Inside the final ${BLOCK_WITHIN_DAYS} days — reset it on the platform and confirm your own report.`
+          : `Inside the final ${BLOCK_WITHIN_DAYS} days: your upcoming schedule and leave filing are locked until this is reset and confirmed.`,
+        tone: "bad",
+      };
+    case "expired":
+      return { text: "Your password has expired. Reset it on the platform now.", tone: "bad" };
+    default:
+      return {
+        text: isTL
+          ? "No reset on record yet — set your own baseline in the table below."
+          : "No reset on record yet — ask your Team Leader to set your baseline.",
+        tone: "bad",
+      };
+  }
+}
 
 export default function MyCredentialPanel({
   lastResetAt,
@@ -27,12 +45,14 @@ export default function MyCredentialPanel({
   passkeyProof,
   pending,
   history,
+  isTeamLeader,
 }: {
   lastResetAt: string | null;
   mfaProof: boolean;
   passkeyProof: boolean;
   pending: { id: string; resetAt: string } | null;
   history: Reset[];
+  isTeamLeader: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -43,7 +63,7 @@ export default function MyCredentialPanel({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const state = expiryState(lastResetAt);
-  const banner = BANNER[state];
+  const note = banner(state, isTeamLeader);
   const expiry = expiryFrom(lastResetAt);
 
   function choose(f: File) {
@@ -109,16 +129,16 @@ export default function MyCredentialPanel({
           className="rounded-lg px-3 py-2 text-[12.5px] font-semibold"
           style={{
             background:
-              banner.tone === "good"
+              note.tone === "good"
                 ? "var(--good-soft)"
-                : banner.tone === "warn"
+                : note.tone === "warn"
                   ? "var(--warn-soft)"
                   : "var(--bad-soft)",
             color:
-              banner.tone === "good" ? "var(--good)" : banner.tone === "warn" ? "var(--warn)" : "var(--bad)",
+              note.tone === "good" ? "var(--good)" : note.tone === "warn" ? "var(--warn)" : "var(--bad)",
           }}
         >
-          {banner.text}
+          {note.text}
         </div>
 
         {/* MFA / passkey. Uploading the screenshot is what marks it done —

@@ -59,6 +59,7 @@ export default async function AccountPage() {
         lastResetAt={mine?.last_reset_at ?? null}
         mfaProof={!!mine?.mfa_proof_path}
         passkeyProof={!!mine?.passkey_proof_path}
+        isTeamLeader={canManage}
         pending={myPending ? { id: myPending.id, resetAt: myPending.reset_at } : null}
         history={myHistory.map((r: any) => ({
           id: r.id,
