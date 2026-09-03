@@ -303,7 +303,7 @@ export default function MyCredentialPanel({
                       onClick={() => fileRef.current?.click()}
                       className="px-2.5 py-1.5 rounded-md text-[12px] font-bold border border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      ✉️ Email Confirmation
+                      Email Confirmation
                     </button>
                   )}
                 </div>
@@ -346,17 +346,41 @@ export default function MyCredentialPanel({
             <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-2">
               My reset history
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-0.5">
+              {/* Header, so a bare date and a pill read as columns rather
+                  than as three unlabelled values in a row. */}
+              <div className="hidden sm:grid sm:grid-cols-[110px_120px_1fr_auto] gap-x-3 pb-1 border-b border-[var(--line)]">
+                {["Reset on", "Status", "Team Leader's note", ""].map((h, i) => (
+                  <span
+                    key={h || i}
+                    className="text-[9.5px] uppercase tracking-wider text-[var(--muted)] font-semibold"
+                  >
+                    {h}
+                  </span>
+                ))}
+              </div>
               {history.map((h) => (
-                <div key={h.id} className="flex flex-wrap items-center gap-2 text-[12px]">
-                  <span className="text-[var(--ink)]">
+                <div
+                  key={h.id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 text-[12px] border-b border-[var(--line)] last:border-b-0 sm:grid sm:grid-cols-[110px_120px_1fr_auto]"
+                >
+                  <span className="min-w-[92px] sm:min-w-0 text-[var(--ink)] whitespace-nowrap">
                     {new Date(h.resetAt).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })}
                   </span>
-                  <Pill tone={h.status === "approved" ? "good" : h.status === "rejected" ? "bad" : "warn"}>
-                    {h.status === "approved" ? "Confirmed" : h.status === "rejected" ? "Rejected" : "Pending"}
-                  </Pill>
-                  {h.hasProof && <ProofLink resetId={h.id} />}
-                  {h.reviewNote && <span className="text-[var(--muted)]">{h.reviewNote}</span>}
+                  <span className="sm:justify-self-start">
+                    <Pill tone={h.status === "approved" ? "good" : h.status === "rejected" ? "bad" : "warn"}>
+                      {h.status === "approved" ? "Confirmed" : h.status === "rejected" ? "Rejected" : "Pending"}
+                    </Pill>
+                  </span>
+                  {/* Full width on a phone so a long note always drops to its own
+                      line — wrapping inline in one row and not another was what
+                      knocked the columns out of step there. */}
+                  <span className="w-full sm:w-auto order-last sm:order-none text-[var(--muted)] min-w-0 break-words">
+                    {h.reviewNote ?? "—"}
+                  </span>
+                  <span className="ml-auto sm:ml-0 sm:justify-self-end">
+                    {h.hasProof ? <ProofLink resetId={h.id} /> : <span className="text-[var(--muted)]">—</span>}
+                  </span>
                 </div>
               ))}
             </div>
