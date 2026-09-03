@@ -155,6 +155,11 @@ export default function TaskCard({
   // Which completion is mid-decline, and the reason being typed for it.
   const [declining, setDeclining] = useState<string | null>(null);
   const [declineNote, setDeclineNote] = useState("");
+  // Nudges: keyed by profile id for one person, or "all" for the whole
+  // outstanding set, so each button reports its own state.
+  const [poking, setPoking] = useState<string | null>(null);
+  const [poked, setPoked] = useState<Record<string, boolean>>({});
+  const [pokeError, setPokeError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   // Photo-proof flow: the member picks a file, sees what they picked, and
   // then submits deliberately. Nothing is uploaded until they press Submit.
@@ -237,6 +242,11 @@ export default function TaskCard({
 
   const awaitingReview = rosterRows.filter((r) => r.completion?.status === "pending").length;
   const notSubmitted = rosterRows.filter((r) => !r.completion).length;
+  // Who still owes work: nothing submitted, or submitted and declined. The
+  // people a nudge is actually for.
+  const owingIds = rosterRows
+    .filter((r) => !r.completion || r.completion.status === "rejected")
+    .map((r) => r.profileId);
 
   async function handleSubmit(photo?: File) {
     if (task.requires_completion_date && !completionDate) {
@@ -297,6 +307,25 @@ export default function TaskCard({
     setDeclining(null);
     setDeclineNote("");
     router.refresh();
+  }
+
+  // Nudge whoever still owes this task. The API re-checks and drops anyone
+  // already approved or awaiting review, so a stale button can't spam
+  // somebody who has since submitted.
+  async function poke(profileIds: string[], key: string) {
+    setPoking(key);
+    setPokeError(null);
+    const res = await fetch("/api/tasks/poke", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task_id: task.id, profile_ids: profileIds }),
+    });
+    setPoking(null);
+    if (!res.ok) {
+      setPokeError((await res.json().catch(() => ({}))).error ?? "Couldn't send that nudge.");
+      return;
+    }
+    setPoked((p) => ({ ...p, [key]: true }));
   }
 
   // Opens the proof photo in a viewer on this page. The signed URL is
@@ -692,7 +721,27 @@ export default function TaskCard({
                 {notSubmitted > 0 && (
                   <span className="text-[var(--muted)]">{notSubmitted} not submitted</span>
                 )}
+                {owingIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => poke(owingIds, "all")}
+                    disabled={poking === "all"}
+                    className="ml-auto px-2 py-0.5 rounded text-[10.5px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-50"
+                  >
+                    {poking === "all"
+                      ? "Nudging…"
+                      : poked.all
+                        ? `Nudged ${owingIds.length}`
+                        : `Nudge all ${owingIds.length}`}
+                  </button>
+                )}
               </div>
+
+              {pokeError && (
+                <p role="alert" className="text-[11.5px] text-[var(--bad)] m-0 mb-1.5">
+                  {pokeError}
+                </p>
+              )}
 
               <div className="overflow-x-auto scroll-shadow-x -mx-1 px-1">
                 <table className="w-full text-[12px] border-collapse min-w-[560px]">
@@ -753,7 +802,20 @@ export default function TaskCard({
                             )}
                           </td>
                           <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
-                            {c && st === "pending" ? (
+                            {!c || st === "rejected" ? (
+                              poked[r.profileId] || poked.all ? (
+                                <span className="text-[10.5px] text-[var(--good)] font-bold">Nudged</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => poke([r.profileId], r.profileId)}
+                                  disabled={poking === r.profileId}
+                                  className="px-2 py-0.5 rounded text-[10.5px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-50"
+                                >
+                                  {poking === r.profileId ? "\u2026" : "Nudge"}
+                                </button>
+                              )
+                            ) : c && st === "pending" ? (
                               declining === c.id ? (
                                 <span className="text-[10.5px] text-[var(--muted)]">deciding\u2026</span>
                               ) : (
