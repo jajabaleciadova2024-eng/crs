@@ -128,26 +128,25 @@ export default function MyCredentialPanel({
   return (
     <Panel title="My account" hint="Password expires 60 days after each reset">
       <div className="flex flex-col gap-4">
-        {/* Countdown — the thing this page exists for. */}
-        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+        {/* Countdown — the thing this page exists for. Each unit is its own
+            tile with its label underneath, so the row reads without a
+            separate legend line sitting under it. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">
+            <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-2">
               Time until expiry
             </div>
-            <PasswordCountdown lastResetAt={lastResetAt} size="lg" />
-            <div className="text-[10.5px] text-[var(--muted)] mt-1 font-mono">DD : HH : MM : SS</div>
+            <PasswordCountdown lastResetAt={lastResetAt} variant="segments" />
           </div>
-          <div className="text-[12px] text-[var(--muted)]">
-            {expiry ? (
-              <>
-                Expires{" "}
-                <span className="text-[var(--ink)] font-semibold">
-                  {expiry.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })}
-                </span>
-              </>
-            ) : (
-              "No reset on record"
-            )}
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">
+              Expires on
+            </div>
+            <div className="text-[14px] font-semibold text-[var(--ink)]">
+              {expiry
+                ? expiry.toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })
+                : "No reset on record"}
+            </div>
           </div>
         </div>
 
@@ -223,19 +222,16 @@ export default function MyCredentialPanel({
               </span>
             </div>
           ) : (
-            <div className="flex flex-col gap-2.5">
-              <div className="text-[12.5px] font-semibold text-[var(--ink)]">
-                Reset your password on the platform, then report it here
+            <div className="flex flex-col gap-3">
+              <div>
+                <div className="text-[12.5px] font-semibold text-[var(--ink)]">
+                  Reset your password on the platform, then report it here
+                </div>
+                <p className="text-[11.5px] text-[var(--muted)] m-0 mt-0.5 leading-snug">
+                  Your countdown restarts once the Team Leader confirms it — not when you submit.
+                </p>
               </div>
-              {blockers.length > 0 && (
-                <ul className="flex flex-col gap-0.5 m-0 pl-4 text-[12px] text-[var(--muted)]">
-                  {blockers.map((b) => (
-                    <li key={b} className="list-disc">
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-              )}
+
               <input
                 ref={fileRef}
                 type="file"
@@ -247,57 +243,91 @@ export default function MyCredentialPanel({
                   if (f) choose(f);
                 }}
               />
-              <div className="flex flex-wrap items-center gap-2.5">
-                <label className="text-[11.5px] font-semibold text-[var(--ink)]" htmlFor="reset-date">
-                  Reset on
-                </label>
-                <input
-                  id="reset-date"
-                  type="date"
-                  value={resetDate}
-                  max={new Date().toISOString().slice(0, 10)}
-                  onChange={(e) => setResetDate(e.target.value)}
-                  className="px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[12px] text-[var(--ink)]"
-                />
-                {proof ? (
-                  <span className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={preview ?? ""} alt="" className="w-9 h-9 rounded object-cover border border-[var(--line)]" />
-                    <span className="text-[12px] text-[var(--ink)] max-w-[150px] truncate">{proof.name}</span>
+
+              {/* Labelled fields on their own lines rather than one long
+                  unlabelled row: the date and the attachment are separate
+                  inputs and were reading as a single toolbar. */}
+              <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+                <div>
+                  <label
+                    htmlFor="reset-date"
+                    className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1"
+                  >
+                    Date you reset it
+                  </label>
+                  <input
+                    id="reset-date"
+                    type="date"
+                    value={resetDate}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => setResetDate(e.target.value)}
+                    className="px-2.5 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[12.5px] text-[var(--ink)]"
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <span className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">
+                    Proof
+                  </span>
+                  {proof ? (
+                    <span className="flex items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={preview ?? ""}
+                        alt=""
+                        className="w-8 h-8 rounded object-cover border border-[var(--line)] shrink-0"
+                      />
+                      <span className="text-[12px] text-[var(--ink)] max-w-[140px] truncate">{proof.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => fileRef.current?.click()}
+                        className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (preview) URL.revokeObjectURL(preview);
+                          setProof(null);
+                          setPreview(null);
+                        }}
+                        className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </span>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => fileRef.current?.click()}
-                      className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-md text-[12px] font-bold border border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      Change
+                      ✉️ Email Confirmation
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (preview) URL.revokeObjectURL(preview);
-                        setProof(null);
-                        setPreview(null);
-                      }}
-                      className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    className="px-2.5 py-1.5 rounded-md text-[11.5px] font-bold border border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] transition-colors cursor-pointer"
-                  >
-                    ✉️ Email Confirmation of the reset
-                  </button>
-                )}
+                  )}
+                </div>
+              </div>
+
+              {/* What is still outstanding, so a disabled button is never a
+                  mystery. */}
+              {blockers.length > 0 && (
+                <ul className="flex flex-col gap-0.5 m-0 pl-4 text-[11.5px] text-[var(--muted)]">
+                  {blockers.map((b) => (
+                    <li key={b} className="list-disc">
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div>
                 <button
                   type="button"
                   onClick={submit}
                   disabled={busy || !proof || !mfaVerified}
                   title={blockers.length > 0 ? blockers.join(" · ") : undefined}
-                  className="px-3 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3.5 py-2 rounded-md text-[12.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
                 >
                   {busy ? "Submitting…" : "Password Reset Complete"}
                 </button>

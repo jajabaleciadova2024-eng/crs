@@ -12,9 +12,15 @@ import { formatCountdown, expiryFrom, expiryState } from "@/lib/passwordExpiry";
 export default function PasswordCountdown({
   lastResetAt,
   size = "md",
+  // "segments" gives each unit its own tile with the label underneath, so
+  // the reading is self-describing. The inline form needed a separate
+  // "DD : HH : MM : SS" legend line, which sat under the number looking
+  // like a stray caption and had to be mentally lined up with it.
+  variant = "inline",
 }: {
   lastResetAt: string | null;
   size?: "sm" | "md" | "lg";
+  variant?: "inline" | "segments";
 }) {
   const expiry = expiryFrom(lastResetAt);
   const [now, setNow] = useState<number | null>(null);
@@ -31,6 +37,15 @@ export default function PasswordCountdown({
   const text = { sm: "text-[15px]", md: "text-[22px]", lg: "text-[30px]" }[size];
 
   if (!expiry) {
+    if (variant === "segments") {
+      return (
+        <div className="flex items-start gap-1.5">
+          {["Days", "Hrs", "Min", "Sec"].map((u) => (
+            <Segment key={u} value="--" unit={u} color="var(--muted)" />
+          ))}
+        </div>
+      );
+    }
     return <span className={`${text} font-mono tabular-nums text-[var(--muted)]`}>--:--:--:--</span>;
   }
 
@@ -43,6 +58,18 @@ export default function PasswordCountdown({
         ? "var(--warn)"
         : "var(--good)";
 
+  if (variant === "segments") {
+    const [dd, hh, mm, ss] = formatCountdown(ms).split(":");
+    return (
+      <div className="flex items-start gap-1.5" title={`Expires ${expiry.toLocaleString()}`}>
+        <Segment value={dd} unit="Days" color={color} />
+        <Segment value={hh} unit="Hrs" color={color} />
+        <Segment value={mm} unit="Min" color={color} />
+        <Segment value={ss} unit="Sec" color={color} />
+      </div>
+    );
+  }
+
   return (
     <span
       className={`${text} font-mono tabular-nums font-bold leading-none`}
@@ -54,5 +81,21 @@ export default function PasswordCountdown({
     >
       {formatCountdown(ms)}
     </span>
+  );
+}
+
+// One unit of the countdown: the number, and what it counts.
+function Segment({ value, unit, color }: { value: string; unit: string; color: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <span
+        className="font-mono tabular-nums font-bold text-[24px] sm:text-[28px] leading-none px-2 py-1.5 rounded-lg bg-[var(--paper)] border border-[var(--line)] min-w-[46px] sm:min-w-[52px] text-center"
+        style={{ color }}
+        suppressHydrationWarning
+      >
+        {value}
+      </span>
+      <span className="text-[9.5px] uppercase tracking-wider text-[var(--muted)] font-semibold mt-1">{unit}</span>
+    </div>
   );
 }
