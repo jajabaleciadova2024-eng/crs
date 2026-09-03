@@ -280,9 +280,19 @@ export interface CredentialStatus {
   // MFA proof is mandatory: no path here means no reset can be reported or
   // confirmed. The passkey proof is wanted but never gates anything.
   mfa_proof_path: string | null;
+  // A tick only counts once the Team Leader has checked the screenshot;
+  // uploading alone leaves this false.
+  mfa_verified: boolean;
+  mfa_verified_by: string | null;
+  mfa_verified_at: string | null;
+  mfa_review_note: string | null;
   passkey_configured: boolean;
   passkey_confirmed_at: string | null;
   passkey_proof_path: string | null;
+  passkey_verified: boolean;
+  passkey_verified_by: string | null;
+  passkey_verified_at: string | null;
+  passkey_review_note: string | null;
   updated_at: string;
 }
 

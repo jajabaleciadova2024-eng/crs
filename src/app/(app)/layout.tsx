@@ -87,19 +87,30 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // everywhere else in this sidebar.
   let accountAlerts = 0;
   if (canManageOperations(profile.role)) {
-    const { count } = await admin
-      .from("password_resets")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending");
-    accountAlerts = count ?? 0;
+    // Claimed resets, plus proofs uploaded and not yet checked — both are
+    // work sitting on the Team Leader, and a reset cannot be confirmed while
+    // its member's MFA proof is unverified.
+    const [{ count: claimed }, { data: unchecked }] = await Promise.all([
+      admin.from("password_resets").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      admin
+        .from("credential_status")
+        .select("mfa_proof_path, mfa_verified, mfa_review_note, passkey_proof_path, passkey_verified, passkey_review_note"),
+    ]);
+    const needsCheck = (unchecked ?? []).reduce((n: number, c: any) => {
+      // A rejected proof is already actioned — it is the member's move now.
+      if (c.mfa_proof_path && !c.mfa_verified && !c.mfa_review_note) n += 1;
+      if (c.passkey_proof_path && !c.passkey_verified && !c.passkey_review_note) n += 1;
+      return n;
+    }, 0);
+    accountAlerts = (claimed ?? 0) + needsCheck;
   } else {
     const { data: cred } = await admin
       .from("credential_status")
-      .select("last_reset_at, mfa_proof_path")
+      .select("last_reset_at, mfa_proof_path, mfa_verified")
       .eq("profile_id", profile.id)
       .maybeSingle();
     if (isPasswordBlocking((cred?.last_reset_at as string | null) ?? null)) accountAlerts += 1;
-    if (!cred?.mfa_proof_path) accountAlerts += 1;
+    if (!cred?.mfa_proof_path || !cred?.mfa_verified) accountAlerts += 1;
   }
 
   return (

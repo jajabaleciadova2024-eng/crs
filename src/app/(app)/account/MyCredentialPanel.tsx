@@ -42,14 +42,22 @@ function banner(state: string, isTL: boolean): { text: string; tone: "good" | "w
 export default function MyCredentialPanel({
   lastResetAt,
   mfaProof,
+  mfaVerified,
+  mfaNote,
   passkeyProof,
+  passkeyVerified,
+  passkeyNote,
   pending,
   history,
   isTeamLeader,
 }: {
   lastResetAt: string | null;
   mfaProof: boolean;
+  mfaVerified: boolean;
+  mfaNote: string | null;
   passkeyProof: boolean;
+  passkeyVerified: boolean;
+  passkeyNote: string | null;
   pending: { id: string; resetAt: string } | null;
   history: Reset[];
   isTeamLeader: boolean;
@@ -68,6 +76,18 @@ export default function MyCredentialPanel({
   // History is newest-first, so the first entry is the current state of play.
   const lastRejected = !pending && history[0]?.status === "rejected" ? history[0] : null;
 
+  // Everything still standing between the member and a reportable reset,
+  // listed plainly. A disabled button with no explanation is the worst thing
+  // a form can do, and this one had three separate reasons to be disabled.
+  const blockers = [
+    !mfaProof
+      ? "Upload your MFA screenshot"
+      : !mfaVerified
+        ? "Your MFA screenshot is waiting on the Team Leader to verify it"
+        : null,
+    !proof ? "Attach the email confirmation of the reset" : null,
+  ].filter(Boolean) as string[];
+
   function choose(f: File) {
     if (preview) URL.revokeObjectURL(preview);
     setProof(f);
@@ -76,8 +96,12 @@ export default function MyCredentialPanel({
   }
 
   async function submit() {
-    if (!mfaProof) {
-      setError("Upload your MFA screenshot first — it's required before you can report a reset.");
+    if (!mfaVerified) {
+      setError(
+        mfaProof
+          ? "Your MFA screenshot is still waiting on the Team Leader to verify it."
+          : "Upload your MFA screenshot first — it must be verified before you can report a reset.",
+      );
       return;
     }
     if (!proof) {
@@ -156,6 +180,8 @@ export default function MyCredentialPanel({
             priority="1st priority · required"
             required
             hasProof={mfaProof}
+            verified={mfaVerified}
+            reviewNote={mfaNote}
           />
           <CredentialProofRow
             kind="passkey"
@@ -163,6 +189,8 @@ export default function MyCredentialPanel({
             priority="2nd priority · recommended"
             required={false}
             hasProof={passkeyProof}
+            verified={passkeyVerified}
+            reviewNote={passkeyNote}
           />
         </div>
 
@@ -199,10 +227,14 @@ export default function MyCredentialPanel({
               <div className="text-[12.5px] font-semibold text-[var(--ink)]">
                 Reset your password on the platform, then report it here
               </div>
-              {!mfaProof && (
-                <div className="text-[12px] text-[var(--bad)] font-semibold">
-                  MFA screenshot required before you can report a reset.
-                </div>
+              {blockers.length > 0 && (
+                <ul className="flex flex-col gap-0.5 m-0 pl-4 text-[12px] text-[var(--muted)]">
+                  {blockers.map((b) => (
+                    <li key={b} className="list-disc">
+                      {b}
+                    </li>
+                  ))}
+                </ul>
               )}
               <input
                 ref={fileRef}
@@ -263,8 +295,8 @@ export default function MyCredentialPanel({
                 <button
                   type="button"
                   onClick={submit}
-                  disabled={busy || !proof || !mfaProof}
-                  title={mfaProof ? undefined : "Upload your MFA screenshot first"}
+                  disabled={busy || !proof || !mfaVerified}
+                  title={blockers.length > 0 ? blockers.join(" · ") : undefined}
                   className="px-3 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {busy ? "Submitting…" : "Password Reset Complete"}

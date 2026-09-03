@@ -14,12 +14,16 @@ export default function CredentialProofRow({
   priority,
   required,
   hasProof,
+  verified,
+  reviewNote,
 }: {
   kind: "mfa" | "passkey";
   label: string;
   priority: string;
   required: boolean;
   hasProof: boolean;
+  verified: boolean;
+  reviewNote: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -70,7 +74,15 @@ export default function CredentialProofRow({
       <span className="text-[11px] text-[var(--muted)]">{priority}</span>
       {hasProof ? (
         <>
-          <Pill tone="good">Uploaded</Pill>
+          {/* Three states, not two. A tick means the Team Leader checked it;
+              an upload on its own only means a file exists. */}
+          {verified ? (
+            <Pill tone="good">Verified</Pill>
+          ) : reviewNote ? (
+            <Pill tone="bad">Rejected</Pill>
+          ) : (
+            <Pill tone="warn">Awaiting TL check</Pill>
+          )}
           <ProofImage kind={kind} label="View" />
           <button
             type="button"
@@ -106,6 +118,13 @@ export default function CredentialProofRow({
             {busy ? "Uploading…" : "📷 Upload screenshot"}
           </button>
         </>
+      )}
+      {/* The Team Leader's reason, so a rejected proof says what to fix
+          rather than just going red. */}
+      {hasProof && !verified && reviewNote && (
+        <span className="w-full text-[11.5px] text-[var(--bad)] leading-snug">
+          {reviewNote} — upload a corrected one.
+        </span>
       )}
       {error && <span className="text-[11.5px] text-[var(--bad)] w-full">{error}</span>}
     </div>

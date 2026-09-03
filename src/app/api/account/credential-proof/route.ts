@@ -40,10 +40,28 @@ export async function POST(request: Request) {
   if (!uploaded.ok) return NextResponse.json({ error: uploaded.error }, { status: 400 });
 
   const now = new Date().toISOString();
+  // Uploading resets the verification state. Replacing a verified proof with
+  // a new file must not inherit the old file's green tick.
   const patch =
     kind === "mfa"
-      ? { mfa_proof_path: path, mfa_configured: true, mfa_confirmed_at: now }
-      : { passkey_proof_path: path, passkey_configured: true, passkey_confirmed_at: now };
+      ? {
+          mfa_proof_path: path,
+          mfa_configured: true,
+          mfa_confirmed_at: now,
+          mfa_verified: false,
+          mfa_verified_by: null,
+          mfa_verified_at: null,
+          mfa_review_note: null,
+        }
+      : {
+          passkey_proof_path: path,
+          passkey_configured: true,
+          passkey_confirmed_at: now,
+          passkey_verified: false,
+          passkey_verified_by: null,
+          passkey_verified_at: null,
+          passkey_review_note: null,
+        };
 
   const admin = createAdminClient();
   const { error } = await admin
@@ -129,8 +147,14 @@ export async function DELETE(request: Request) {
 
   const patch =
     kind === "mfa"
-      ? { mfa_proof_path: null, mfa_configured: false, mfa_confirmed_at: null }
-      : { passkey_proof_path: null, passkey_configured: false, passkey_confirmed_at: null };
+      ? {
+          mfa_proof_path: null, mfa_configured: false, mfa_confirmed_at: null,
+          mfa_verified: false, mfa_verified_by: null, mfa_verified_at: null, mfa_review_note: null,
+        }
+      : {
+          passkey_proof_path: null, passkey_configured: false, passkey_confirmed_at: null,
+          passkey_verified: false, passkey_verified_by: null, passkey_verified_at: null, passkey_review_note: null,
+        };
 
   const { error } = await admin
     .from("credential_status")

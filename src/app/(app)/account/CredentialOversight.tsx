@@ -7,7 +7,7 @@ import PasswordCountdown from "@/components/PasswordCountdown";
 import { expiryState, expiryFrom, daysRemaining } from "@/lib/passwordExpiry";
 import ProofLink from "./ProofLink";
 import ProofImage from "./ProofImage";
-import ProofRemove from "./ProofRemove";
+import ProofVerify from "./ProofVerify";
 
 export type OversightRow = {
   profileId: string;
@@ -15,7 +15,9 @@ export type OversightRow = {
   role: string;
   lastResetAt: string | null;
   mfa: boolean;
+  mfaVerified: boolean;
   passkey: boolean;
+  passkeyVerified: boolean;
   pendingResetId: string | null;
   pendingResetAt: string | null;
   pendingHasProof: boolean;
@@ -141,24 +143,16 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
                   {exp ? exp.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
-                  {r.mfa ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <ProofImage kind="mfa" profileId={r.profileId} label="✓ View" />
-                      <ProofRemove kind="mfa" profileId={r.profileId} />
-                    </span>
-                  ) : (
-                    <Pill tone="bad">Missing</Pill>
-                  )}
+                  <ProofVerify kind="mfa" profileId={r.profileId} hasProof={r.mfa} verified={r.mfaVerified} required />
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
-                  {r.passkey ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <ProofImage kind="passkey" profileId={r.profileId} label="✓ View" />
-                      <ProofRemove kind="passkey" profileId={r.profileId} />
-                    </span>
-                  ) : (
-                    <Pill tone="warn">None</Pill>
-                  )}
+                  <ProofVerify
+                    kind="passkey"
+                    profileId={r.profileId}
+                    hasProof={r.passkey}
+                    verified={r.passkeyVerified}
+                    required={false}
+                  />
                 </td>
                 {(
                   <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
@@ -194,19 +188,23 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
                           {r.pendingHasProof && <ProofLink resetId={r.pendingResetId} />}
                           <button
                             type="button"
-                            disabled={busy === r.pendingResetId || !r.mfa}
+                            disabled={busy === r.pendingResetId || !r.mfaVerified}
                             onClick={() => review(r.pendingResetId!, "approved")}
                             title={
-                              r.mfa
+                              r.mfaVerified
                                 ? "Confirm the reset and restart their 60 days"
-                                : "No MFA screenshot on file — they must upload it first"
+                                : r.mfa
+                                  ? "Verify their MFA screenshot first"
+                                  : "No MFA screenshot on file — they must upload it first"
                             }
                             className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             Confirm
                           </button>
-                          {!r.mfa && (
-                            <span className="text-[10.5px] text-[var(--bad)] font-semibold">MFA missing</span>
+                          {!r.mfaVerified && (
+                            <span className="text-[10.5px] text-[var(--bad)] font-semibold">
+                              {r.mfa ? "Verify MFA first" : "MFA missing"}
+                            </span>
                           )}
                           <button
                             type="button"
@@ -265,7 +263,7 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
     <Panel
       title="Everyone's expiry"
       hint={awaiting > 0 ? `${awaiting} awaiting your confirmation · ${atRisk} at risk` : `${atRisk} at risk`}
-      footnote="Confirming a reset restarts that member's 60 days from the date they reported, not from when you confirmed it. A reset cannot be confirmed until the member has an MFA screenshot on file; a missing passkey is flagged but never blocks. Members with no baseline are treated as blocking until you set one."
+      footnote="Confirming a reset restarts that member's 60 days from the date they reported, not from when you confirmed it. A reset cannot be confirmed until you have VERIFIED that member's MFA screenshot — uploading one is not enough, and replacing a verified screenshot sends it back for checking. A missing or unverified passkey is flagged but never blocks. Members with no baseline are treated as blocking until you set one."
     >
       {error && (
         <p role="alert" className="text-[12.5px] text-[var(--bad)] mb-2">

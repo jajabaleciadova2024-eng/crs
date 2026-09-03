@@ -47,12 +47,18 @@ export async function POST(request: Request) {
   if (status === "approved") {
     const { data: cred } = await admin
       .from("credential_status")
-      .select("mfa_proof_path")
+      .select("mfa_proof_path, mfa_verified")
       .eq("profile_id", reset.profile_id)
       .maybeSingle();
     if (!cred?.mfa_proof_path) {
       return NextResponse.json(
         { error: "This member has no MFA screenshot on file — it must be uploaded before you can confirm." },
+        { status: 400 },
+      );
+    }
+    if (!cred.mfa_verified) {
+      return NextResponse.json(
+        { error: "Verify this member's MFA screenshot before confirming their reset." },
         { status: 400 },
       );
     }

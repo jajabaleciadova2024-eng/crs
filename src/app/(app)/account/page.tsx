@@ -55,7 +55,9 @@ export default async function AccountPage() {
       role: m.role,
       lastResetAt: st?.last_reset_at ?? null,
       mfa: !!st?.mfa_proof_path,
+      mfaVerified: !!st?.mfa_verified,
       passkey: !!st?.passkey_proof_path,
+      passkeyVerified: !!st?.passkey_verified,
       pendingResetId: pending?.id ?? null,
       pendingResetAt: pending?.reset_at ?? null,
       pendingHasProof: !!pending?.proof_path,
@@ -74,7 +76,11 @@ export default async function AccountPage() {
       <MyCredentialPanel
         lastResetAt={mine?.last_reset_at ?? null}
         mfaProof={!!mine?.mfa_proof_path}
+        mfaVerified={!!mine?.mfa_verified}
+        mfaNote={mine?.mfa_review_note ?? null}
         passkeyProof={!!mine?.passkey_proof_path}
+        passkeyVerified={!!mine?.passkey_verified}
+        passkeyNote={mine?.passkey_review_note ?? null}
         isTeamLeader={canManage}
         pending={myPending ? { id: myPending.id, resetAt: myPending.reset_at } : null}
         history={myHistory.map((r: any) => ({

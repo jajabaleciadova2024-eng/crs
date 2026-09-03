@@ -48,12 +48,18 @@ export async function POST(request: Request) {
   // no MFA on file would restart a 60-day clock on a non-compliant account.
   const { data: cred } = await admin
     .from("credential_status")
-    .select("mfa_proof_path")
+    .select("mfa_proof_path, mfa_verified")
     .eq("profile_id", user.id)
     .maybeSingle();
   if (!cred?.mfa_proof_path) {
     return NextResponse.json(
       { error: "Upload your MFA screenshot before reporting a password reset." },
+      { status: 400 },
+    );
+  }
+  if (!cred.mfa_verified) {
+    return NextResponse.json(
+      { error: "Your MFA screenshot is still waiting on the Team Leader to verify it." },
       { status: 400 },
     );
   }
