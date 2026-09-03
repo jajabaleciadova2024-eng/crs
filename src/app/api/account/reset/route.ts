@@ -19,20 +19,30 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
+  const admin = createAdminClient();
+  // The Team Leader's own row is a record, not a compliance check: they set
+  // the policy, so nothing here gates them. Their report is confirmed on
+  // submission and the proof is optional.
+  const { data: submitter } = await admin.from("profiles").select("role").eq("id", user.id).single();
+  const selfConfirms = submitter?.role === "team_leader";
+
   const form = await request.formData();
   const proof = form.get("proof");
   const resetAtRaw = (form.get("reset_at") as string) || "";
 
-  if (!(proof instanceof File) || proof.size === 0) {
+  // Proof is required of a member and optional for the Team Leader, whose
+  // own row is a record rather than something being checked.
+  const hasProof = proof instanceof File && proof.size > 0;
+  if (!hasProof && !selfConfirms) {
     return NextResponse.json(
       { error: "Attach a screenshot of Security info > Password > Last updated." },
       { status: 400 },
     );
   }
-  if (proof.size > MAX_BYTES) {
+  if (hasProof && proof.size > MAX_BYTES) {
     return NextResponse.json({ error: "That file is too large (10MB max)." }, { status: 400 });
   }
-  if (!proof.type.startsWith("image/")) {
+  if (hasProof && !proof.type.startsWith("image/")) {
     return NextResponse.json({ error: "Proof must be an image." }, { status: 400 });
   }
 
@@ -46,31 +56,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "The reset date can't be in the future." }, { status: 400 });
   }
 
-  const admin = createAdminClient();
-
-  // MFA proof is a hard prerequisite. The button is hidden without it, but
-  // this is the half that actually holds: a reset reported by someone with
-  // no MFA on file would restart a 60-day clock on a non-compliant account.
-  // Same reasoning as a self-verified upload: the Team Leader confirms
-  // resets, so making them file a claim and then confirm their own is a
-  // round trip that checks nothing. Theirs is recorded as confirmed on
-  // submission, reviewed by themselves, and still keeps the proof and the
-  // history entry.
-  const { data: submitter } = await admin.from("profiles").select("role").eq("id", user.id).single();
-  const selfConfirms = submitter?.role === "team_leader";
-
+  // MFA proof is a hard prerequisite for a MEMBER. The button is hidden
+  // without it, but this is the half that actually holds: a reset reported
+  // by someone with no verified MFA would restart a 60-day clock on a
+  // non-compliant account.
   const { data: cred } = await admin
     .from("credential_status")
     .select("mfa_proof_path, mfa_verified")
     .eq("profile_id", user.id)
     .maybeSingle();
-  if (!cred?.mfa_proof_path) {
+  if (!selfConfirms && !cred?.mfa_proof_path) {
     return NextResponse.json(
       { error: "Upload your MFA screenshot before reporting a password reset." },
       { status: 400 },
     );
   }
-  if (!cred.mfa_verified) {
+  if (!selfConfirms && !cred?.mfa_verified) {
     return NextResponse.json(
       { error: "Your MFA screenshot is still waiting on the Team Leader to verify it." },
       { status: 400 },
@@ -92,10 +93,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const buffer = Buffer.from(await proof.arrayBuffer());
-  const path = `${user.id}/${Date.now()}-${proof.name}`;
-  const uploaded = await uploadResetProof(path, proof.type || "image/png", buffer);
-  if (!uploaded.ok) return NextResponse.json({ error: uploaded.error }, { status: 400 });
+  let path: string | null = null;
+  if (hasProof) {
+    const buffer = Buffer.from(await proof.arrayBuffer());
+    path = `${user.id}/${Date.now()}-${proof.name}`;
+    const uploaded = await uploadResetProof(path, proof.type || "image/png", buffer);
+    if (!uploaded.ok) return NextResponse.json({ error: uploaded.error }, { status: 400 });
+  }
 
   const now = new Date().toISOString();
   const { error } = await admin.from("password_resets").insert({

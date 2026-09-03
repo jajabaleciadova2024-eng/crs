@@ -34,7 +34,16 @@ const STATE_PILL: Record<string, { label: string; tone: "good" | "warn" | "bad" 
 // Team Leader only — the page never renders this for anyone else, and the
 // member-facing variant it used to support is gone deliberately: credential
 // state is not a shared board.
-export default function CredentialOversight({ rows }: { rows: OversightRow[] }) {
+export default function CredentialOversight({
+  rows,
+  viewerId,
+}: {
+  rows: OversightRow[];
+  // The Team Leader's own row is a record, not a demand: nothing on this
+  // page asks anything of them, so their proofs read neutrally rather than
+  // as a red "Missing".
+  viewerId: string;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -143,7 +152,13 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
                   {exp ? exp.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
-                  <ProofVerify kind="mfa" profileId={r.profileId} hasProof={r.mfa} verified={r.mfaVerified} required />
+                  <ProofVerify
+                    kind="mfa"
+                    profileId={r.profileId}
+                    hasProof={r.mfa}
+                    verified={r.mfaVerified}
+                    required={r.profileId !== viewerId}
+                  />
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                   <ProofVerify

@@ -97,7 +97,7 @@ export default function MyCredentialPanel({
   }
 
   async function submit() {
-    if (!mfaVerified) {
+    if (!isTeamLeader && !mfaVerified) {
       setError(
         mfaProof
           ? "Your MFA screenshot is still waiting on the Team Leader to verify it."
@@ -105,14 +105,14 @@ export default function MyCredentialPanel({
       );
       return;
     }
-    if (!proof) {
+    if (!proof && !isTeamLeader) {
       setError("Attach a screenshot of Security info › Password › Last updated.");
       return;
     }
     setBusy(true);
     setError(null);
     const fd = new FormData();
-    fd.append("proof", proof);
+    if (proof) fd.append("proof", proof);
     fd.append("reset_at", new Date(`${resetDate}T00:00:00`).toISOString());
     const res = await fetch("/api/account/reset", { method: "POST", body: fd });
     setBusy(false);
@@ -172,13 +172,14 @@ export default function MyCredentialPanel({
             evidenced because it gates the whole reset flow below. */}
         <div className="flex flex-col gap-1 border-t border-[var(--line)] pt-3.5">
           <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">
-            Required setup
+            {isTeamLeader ? "My setup — for the record" : "Required setup"}
           </div>
           <CredentialProofRow
             kind="mfa"
             label="MFA"
-            priority="1st priority · required"
-            required
+            priority={isTeamLeader ? "1st priority" : "1st priority · required"}
+            required={!isTeamLeader}
+            emptyLabel="Not uploaded"
             hasProof={mfaProof}
             verified={mfaVerified}
             reviewNote={mfaNote}
@@ -186,8 +187,9 @@ export default function MyCredentialPanel({
           <CredentialProofRow
             kind="passkey"
             label="Passkey"
-            priority="2nd priority · recommended"
+            priority={isTeamLeader ? "2nd priority" : "2nd priority · recommended"}
             required={false}
+            emptyLabel={isTeamLeader ? "Not uploaded" : "Recommended"}
             hasProof={passkeyProof}
             verified={passkeyVerified}
             reviewNote={passkeyNote}
@@ -276,7 +278,9 @@ export default function MyCredentialPanel({
 
               <div>
                 <span className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">
-                  Proof — &quot;Last updated&quot; screenshot
+                  {isTeamLeader
+                    ? 'Proof — "Last updated" screenshot (optional)'
+                    : 'Proof — "Last updated" screenshot'}
                 </span>
 
                 {proof ? (
@@ -359,7 +363,7 @@ export default function MyCredentialPanel({
                 <button
                   type="button"
                   onClick={submit}
-                  disabled={busy || !proof || !mfaVerified}
+                  disabled={busy || (!isTeamLeader && (!proof || !mfaVerified))}
                   title={blockers.length > 0 ? blockers.join(" · ") : undefined}
                   className="px-3.5 py-2 rounded-md text-[12.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
                 >

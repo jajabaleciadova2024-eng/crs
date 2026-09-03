@@ -13,6 +13,7 @@ export default function CredentialProofRow({
   label,
   priority,
   required,
+  emptyLabel = "Recommended",
   hasProof,
   verified,
   reviewNote,
@@ -21,6 +22,10 @@ export default function CredentialProofRow({
   label: string;
   priority: string;
   required: boolean;
+  // What an empty row says when it is not required: "Recommended" nudges a
+  // member towards a passkey, but on the Team Leader's own rows nothing is
+  // being asked for, so it just states the fact.
+  emptyLabel?: string;
   hasProof: boolean;
   verified: boolean;
   reviewNote: string | null;
@@ -90,7 +95,7 @@ export default function CredentialProofRow({
         ) : (
           // Amber on an OPTIONAL item reads as a fault; the passkey is a
           // nice-to-have, so it stays neutral until it matters.
-          <Pill tone={required ? "bad" : "muted"}>{required ? "Required" : "Recommended"}</Pill>
+          <Pill tone={required ? "bad" : "muted"}>{required ? "Required" : emptyLabel}</Pill>
         )}
       </span>
 

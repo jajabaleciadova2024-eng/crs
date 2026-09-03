@@ -92,7 +92,7 @@ export default async function AccountPage() {
         }))}
       />
 
-      {canManage && <CredentialOversight rows={rows} />}
+      {canManage && <CredentialOversight rows={rows} viewerId={profile.id} />}
     </>
   );
 }
