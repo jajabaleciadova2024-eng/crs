@@ -143,9 +143,9 @@ export default function ImageCropModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4 py-6 z-[60] animate-fade-in" onClick={onCancel}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-[60] animate-fade-in overflow-y-auto" onClick={onCancel}>
       <div
-        className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl p-5 sm:p-6 flex flex-col gap-4 animate-scale-in"
+        className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl p-5 sm:p-6 flex flex-col gap-4 animate-scale-in my-auto"
         style={{ boxShadow: "var(--shadow-xl)" }}
         onClick={(e) => e.stopPropagation()}
       >

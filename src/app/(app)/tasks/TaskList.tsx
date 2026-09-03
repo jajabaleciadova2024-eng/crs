@@ -107,9 +107,9 @@ export default function TaskList({
       )}
 
       {deleteId && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 px-4" onClick={() => setDeleteId(null)}>
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 overflow-y-auto" onClick={() => setDeleteId(null)}>
           <div
-            className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl w-full max-w-sm p-5 animate-scale-in"
+            className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl w-full max-w-sm p-5 animate-scale-in my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-sm font-bold mb-2">Delete task?</h2>

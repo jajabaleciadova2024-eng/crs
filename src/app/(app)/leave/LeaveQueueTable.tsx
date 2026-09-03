@@ -389,9 +389,9 @@ export default function LeaveQueueTable({
       const isReopenableType = rejectingTypeConfig?.behavior === "auto_approve_document";
       const busy = pendingId === rejectingRequest.id;
       return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setRejectingRequest(null)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto" onClick={() => setRejectingRequest(null)}>
           <div
-            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in"
+            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in my-auto"
             style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -446,9 +446,9 @@ export default function LeaveQueueTable({
       const busy = pendingId === approvingRequest.id;
       const typeConfig = leaveTypeConfigs.find((c) => c.key === approvingRequest.leave_type);
       return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setApprovingRequest(null)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto" onClick={() => setApprovingRequest(null)}>
           <div
-            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in"
+            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in my-auto"
             style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -484,9 +484,9 @@ export default function LeaveQueueTable({
       const busy = pendingId === deletingRequest.id;
       const typeConfig = leaveTypeConfigs.find((c) => c.key === deletingRequest.leave_type);
       return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setDeletingRequest(null)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto" onClick={() => setDeletingRequest(null)}>
           <div
-            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in"
+            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in my-auto"
             style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >

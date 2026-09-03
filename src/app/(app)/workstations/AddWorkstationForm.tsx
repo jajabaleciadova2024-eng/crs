@@ -50,8 +50,8 @@ export default function AddWorkstationForm() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-10 px-4">
-      <div className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-md w-full max-w-sm p-5">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center z-50 px-4 py-6 overflow-y-auto">
+      <div className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-md w-full max-w-sm p-5 my-auto">
         <h2 className="text-sm font-bold mb-4">Add workstation</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>

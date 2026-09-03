@@ -102,9 +102,9 @@ export default function TaskModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 px-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 overflow-y-auto" onClick={onClose}>
       <div
-        className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl w-full max-w-md p-5 animate-scale-in"
+        className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl w-full max-w-md p-5 animate-scale-in my-auto"
         style={{ boxShadow: "var(--shadow-lg, 0 10px 25px rgba(0,0,0,.1))" }}
         onClick={(e) => e.stopPropagation()}
       >

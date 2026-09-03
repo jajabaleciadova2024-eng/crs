@@ -35,7 +35,8 @@ export default function NotificationPrefsForm({
   ];
 
   return (
-    <table className="w-full text-[13px] border-collapse">
+    <div className="overflow-x-auto scroll-shadow-x">
+      <table className="w-full text-[13px] border-collapse min-w-[380px]">
       <tbody>
         {rows
           .filter((r) => r.show)
@@ -54,5 +55,6 @@ export default function NotificationPrefsForm({
           ))}
       </tbody>
     </table>
+      </div>
   );
 }
