@@ -80,7 +80,7 @@ export function PageHeader({
           z-20), so without reserved space a page's action buttons run
           straight underneath it. On mobile the bell sits in the hamburger
           bar instead, clear of the header, so the reservation is md-only. */}
-      <div aria-hidden="true" className="invisible px-3 sm:px-4 md:px-10 md:pr-[84px] py-3.5 md:py-5 mb-4 md:mb-6 border-b border-transparent">
+      <div aria-hidden="true" className="invisible px-3 sm:px-4 md:px-10 md:pr-[84px] py-3.5 md:py-5 mb-3 md:mb-4 border-b border-transparent">
         {content}
       </div>
       <header
