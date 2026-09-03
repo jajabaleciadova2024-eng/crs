@@ -20,6 +20,10 @@ type Notification = {
   comment_id: string | null;
   reaction: string | null;
   read: boolean;
+  /** Set by /api/notifications when the thing this announced no longer
+      exists — a task submission that was withdrawn or whose task was
+      deleted. Rendered as such instead of as work still waiting. */
+  stale?: boolean;
   created_at: string;
   profiles: { first_name: string; last_name: string; avatar_url: string | null } | null;
 };
@@ -57,6 +61,10 @@ function describe(n: Notification): string {
   if (n.type === "announcement") return `${name} posted a new announcement`;
   if (n.type === "ticket_new") return "New anonymous concern submitted";
   if (n.type === "ticket_reply") return "New reply on your concern";
+  // Reconciled server-side against the completions table: the submission
+  // this announced no longer exists, so saying it is waiting on approval
+  // sends the Team Leader hunting for a row that is not there.
+  if (n.type === "task_submitted" && n.stale) return `${name} withdrew their task submission`;
   if (n.type === "task_submitted") return `${name} submitted a task for approval`;
   if (n.type === "task_reviewed") return `${name} reviewed your task completion`;
   if (n.type === "task_poke") return `${name} is waiting on a task from you`;
@@ -244,7 +252,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     setOpen(false);
                   }}
                   className={`flex items-start gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0 hover:bg-[var(--accent-soft)]/30 transition-colors ${
-                    !n.read ? "bg-[var(--accent-soft)]/15" : ""
+                    n.stale ? "opacity-60" : !n.read ? "bg-[var(--accent-soft)]/15" : ""
                   }`}
                 >
                   {n.type === "schedule_published" || n.type === "schedule_changed" ? (
@@ -279,7 +287,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     <p className="text-[12.5px] text-[var(--ink)] leading-snug m-0">{describe(n)}</p>
                     <span className="text-[10.5px] text-[var(--muted)]">{timeAgo(n.created_at)}</span>
                   </div>
-                  {!n.read && <span className="w-2 h-2 rounded-full bg-[var(--accent)] mt-1.5 shrink-0" />}
+                  {!n.read && !n.stale && <span className="w-2 h-2 rounded-full bg-[var(--accent)] mt-1.5 shrink-0" />}
                 </Link>
               ))
             )}

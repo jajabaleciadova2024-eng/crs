@@ -89,16 +89,30 @@ export async function POST(request: Request) {
     // task reference, so this clears the most recent UNREAD one from this
     // member: a read notice is already part of the Team Leader's history
     // and is not rewritten behind them.
-    const { data: stale } = await admin
-      .from("notifications")
+    const { data: remaining } = await admin
+      .from("member_task_completions")
       .select("id")
-      .eq("actor_id", user.id)
-      .eq("type", "task_submitted")
-      .eq("read", false)
-      .order("created_at", { ascending: false })
+      .eq("profile_id", user.id)
       .limit(1);
-    if (stale && stale.length > 0) {
-      await admin.from("notifications").delete().eq("id", stale[0].id);
+    if (!remaining || remaining.length === 0) {
+      await admin
+        .from("notifications")
+        .delete()
+        .eq("actor_id", user.id)
+        .eq("type", "task_submitted")
+        .eq("read", false);
+    } else {
+      const { data: stale } = await admin
+        .from("notifications")
+        .select("id")
+        .eq("actor_id", user.id)
+        .eq("type", "task_submitted")
+        .eq("read", false)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (stale && stale.length > 0) {
+        await admin.from("notifications").delete().eq("id", stale[0].id);
+      }
     }
   } else {
     if (task.requires_photo && !photo) {
