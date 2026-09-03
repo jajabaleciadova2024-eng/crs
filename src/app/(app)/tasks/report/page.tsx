@@ -9,6 +9,7 @@ import { Panel, PageHeader, Card } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import TaskReport, { type ReportRow, type ReportTask } from "./TaskReport";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 
 // Full task × member matrix. The point of this page is the people who are
 // MISSING: a member who never submitted has no member_task_completions row
@@ -67,12 +68,9 @@ export default async function TaskReportPage() {
     // visibility here because they were deactivated (or their role
     // changed) between submitting and being reviewed is exactly the kind
     // of person a Team Leader must not lose track of.
-    const rosterAssigneeIds =
-      t.assign_to === "all"
-        ? (members ?? []).map((m: any) => m.id as string)
-        : (members ?? []).some((m: any) => m.id === t.assign_to)
-          ? [t.assign_to as string]
-          : [];
+    const rosterAssigneeIds = (members ?? [])
+      .map((m: any) => m.id as string)
+      .filter((id: string) => taskAppliesTo(t, id));
     const strayAssigneeIds = strayIds.filter((id) => byTaskProfile.has(`${t.id}::${id}`));
     const assigneeIds = [...new Set([...rosterAssigneeIds, ...strayAssigneeIds])];
 

@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 
 // How many assigned tasks are actively blocking `profileId` right now.
@@ -16,7 +17,7 @@ export async function countBlockingTasks(profileId: string): Promise<number> {
   const [{ data: tasks }, { data: completions }] = await Promise.all([
     admin
       .from("member_tasks")
-      .select("id, deadline, blocker_days_before, assign_to")
+      .select("id, deadline, blocker_days_before, assign_to, excluded_ids")
       .or(`assign_to.eq.all,assign_to.eq.${profileId}`),
     admin.from("member_task_completions").select("task_id, status").eq("profile_id", profileId),
   ]);
@@ -27,8 +28,10 @@ export async function countBlockingTasks(profileId: string): Promise<number> {
       .map((c: { task_id: string }) => c.task_id),
   );
 
+  // The .or() above matches on assign_to alone; the exemption list has to
+  // be applied here, or an excused member stays blocked by the task.
   return (tasks ?? []).filter(
-    (t: { id: string; deadline: string | null; blocker_days_before: number }) =>
-      !approvedIds.has(t.id) && isTaskBlockingToday(t),
+    (t: { id: string; deadline: string | null; blocker_days_before: number; assign_to: string; excluded_ids: string[] | null }) =>
+      taskAppliesTo(t, profileId) && !approvedIds.has(t.id) && isTaskBlockingToday(t),
   ).length;
 }

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { uploadTaskPhoto, deleteTaskPhoto } from "@/lib/taskPhotoStorage";
 import { todayInManila } from "@/lib/scheduleDates";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024; // 10MB
 
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
   // Verify the task exists and is assigned to this user (or all)
   const { data: task } = await admin
     .from("member_tasks")
-    .select("id, assign_to, title, requires_approval, requires_photo, requires_completion_date")
+    .select("id, assign_to, excluded_ids, title, requires_approval, requires_photo, requires_completion_date")
     .eq("id", task_id)
     .single();
 
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
 
   const { data: profile } = await admin.from("profiles").select("role, first_name, last_name").eq("id", user.id).single();
 
-  if (task.assign_to !== "all" && task.assign_to !== user.id && profile?.role !== "team_leader") {
+  if (!taskAppliesTo(task, user.id) && profile?.role !== "team_leader") {
     return NextResponse.json({ error: "This task is not assigned to you." }, { status: 403 });
   }
 

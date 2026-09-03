@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Panel, PageHeader } from "@/components/ui";
 import Link from "next/link";
 import TaskList from "./TaskList";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 
 export default async function TasksPage() {
   const profile = await requireProfile();
@@ -62,8 +63,8 @@ export default async function TasksPage() {
   );
 
   // Filter tasks: associates/OIC only see tasks assigned to 'all' or to them
-  const filtered = (tasks ?? []).filter(
-    (t: { assign_to: string }) => canManage || t.assign_to === "all" || t.assign_to === profile.id,
+  const filtered = (tasks ?? []).filter((t: { assign_to: string; excluded_ids: string[] | null }) =>
+    canManage ? true : taskAppliesTo(t, profile.id),
   );
 
   const enriched = filtered.map((t: any) => ({

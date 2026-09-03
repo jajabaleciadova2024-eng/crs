@@ -10,6 +10,7 @@ import AutoLogout from "@/components/AutoLogout";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { isPasswordBlocking } from "@/lib/passwordExpiry";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, realRole, previewing } = await requireProfileWithPreview();
@@ -62,7 +63,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const [{ data: myTasks }, { data: myCompletions }] = await Promise.all([
       admin
         .from("member_tasks")
-        .select("id, deadline, blocker_days_before, assign_to")
+        .select("id, deadline, blocker_days_before, assign_to, excluded_ids")
         .or(`assign_to.eq.all,assign_to.eq.${profile.id}`),
       admin
         .from("member_task_completions")
@@ -74,9 +75,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         .filter((c: { status: string }) => c.status === "approved")
         .map((c: { task_id: string }) => c.task_id),
     );
+    // .or() matches assign_to only — the exemption list is applied here, or
+    // an excused member keeps a sidebar badge for a task that is not theirs.
     pendingTaskCount = (myTasks ?? []).filter(
-      (t: { id: string; deadline: string | null; blocker_days_before: number }) =>
-        !approvedIds.has(t.id) && isTaskBlockingToday(t),
+      (t: { id: string; deadline: string | null; blocker_days_before: number; assign_to: string; excluded_ids: string[] | null }) =>
+        taskAppliesTo(t, profile.id) && !approvedIds.has(t.id) && isTaskBlockingToday(t),
     ).length;
   }
 

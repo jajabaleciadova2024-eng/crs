@@ -1,23 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const MAX_IMAGES = 6;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 export default function AnnouncementComposer({
   onSubmit,
 }: {
-  onSubmit: (title: string, body: string) => Promise<void>;
+  onSubmit: (title: string, body: string, images: File[]) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [images, setImages] = useState<File[]>([]);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Object URLs are a manual resource: created per file, revoked when that
+  // file is dropped or the composer closes, or every re-pick leaks one.
+  const [previews, setPreviews] = useState<string[]>([]);
+  useEffect(() => {
+    const urls = images.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [images]);
+
+  function addFiles(picked: FileList | null) {
+    if (!picked) return;
+    setImageError(null);
+    const incoming = [...picked];
+    const tooBig = incoming.find((f) => f.size > MAX_IMAGE_BYTES);
+    if (tooBig) {
+      setImageError(`"${tooBig.name}" is too large (10MB max).`);
+      return;
+    }
+    const notImage = incoming.find((f) => !f.type.startsWith("image/"));
+    if (notImage) {
+      setImageError("Only images can be attached.");
+      return;
+    }
+    setImages((prev) => {
+      // Adding, not replacing — picking a second time should extend the set
+      // rather than throw away what was already chosen.
+      const next = [...prev, ...incoming].slice(0, MAX_IMAGES);
+      if (prev.length + incoming.length > MAX_IMAGES) {
+        setImageError(`Up to ${MAX_IMAGES} images — the rest were left out.`);
+      }
+      return next;
+    });
+  }
+
+  function reset() {
+    setTitle("");
+    setBody("");
+    setImages([]);
+    setImageError(null);
+  }
 
   async function handleSubmit() {
     if (!title.trim() || !body.trim() || submitting) return;
     setSubmitting(true);
-    await onSubmit(title.trim(), body.trim());
-    setTitle("");
-    setBody("");
+    await onSubmit(title.trim(), body.trim(), images);
+    reset();
     setSubmitting(false);
     setOpen(false);
   }
@@ -40,7 +86,11 @@ export default function AnnouncementComposer({
       {open && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto"
-          onClick={() => !submitting && setOpen(false)}
+          onClick={() => {
+            if (submitting) return;
+            reset();
+            setOpen(false);
+          }}
         >
           <div
             className="w-full max-w-lg bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl p-6 flex flex-col gap-4 animate-scale-in my-auto"
@@ -80,10 +130,72 @@ export default function AnnouncementComposer({
               </span>
             </label>
 
+            <div>
+              <span className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold">
+                Images (optional)
+              </span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  // Clear it, or picking the same file twice in a row is a
+                  // no-op because the input's value never changed.
+                  e.target.value = "";
+                }}
+              />
+
+              {previews.length > 0 && (
+                <div className="mt-1.5 grid grid-cols-3 gap-2">
+                  {previews.map((src, i) => (
+                    <div key={src} className="relative aspect-square rounded-lg overflow-hidden border border-[var(--line)]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={images[i]?.name ?? ""} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                        disabled={submitting}
+                        aria-label={`Remove ${images[i]?.name ?? "image"}`}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white text-[13px] leading-none flex items-center justify-center hover:bg-black cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={submitting || images.length >= MAX_IMAGES}
+                className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+                {images.length === 0 ? "Add images" : `Add more (${images.length}/${MAX_IMAGES})`}
+              </button>
+
+              {imageError && (
+                <p role="alert" className="text-[11.5px] text-[var(--bad)] m-0 mt-1.5">
+                  {imageError}
+                </p>
+              )}
+            </div>
+
             <div className="flex justify-end gap-2 mt-1">
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  reset();
+                  setOpen(false);
+                }}
                 disabled={submitting}
                 className="px-4 py-2 text-[12.5px] font-bold text-[var(--muted)] hover:text-[var(--ink)] rounded-lg hover:bg-[var(--paper)] border border-[var(--line)] transition-colors"
               >

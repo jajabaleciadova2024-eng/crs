@@ -29,6 +29,9 @@ export type Announcement = {
   profiles: AnnouncementAuthor;
   announcement_reactions: Reaction[];
   announcement_comments: Comment[];
+  /** Signed, short-lived URLs for the attached images, in attachment order.
+      The bucket is private, so these come from the API, not from the row. */
+  image_urls?: string[];
 };
 
 export default function AnnouncementsFeed({
@@ -135,12 +138,23 @@ export default function AnnouncementsFeed({
     };
   }, []);
 
-  async function handleNewAnnouncement(title: string, body: string) {
-    const res = await fetch("/api/announcements", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body }),
-    });
+  async function handleNewAnnouncement(title: string, body: string, images: File[]) {
+    // Multipart only when there is actually something to upload — a plain
+    // text announcement stays a plain JSON post.
+    let res: Response;
+    if (images.length > 0) {
+      const fd = new FormData();
+      fd.append("title", title);
+      fd.append("body", body);
+      for (const f of images) fd.append("images", f);
+      res = await fetch("/api/announcements", { method: "POST", body: fd });
+    } else {
+      res = await fetch("/api/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body }),
+      });
+    }
     if (!res.ok) return;
     const { announcement } = await res.json();
     setItems((prev) => {

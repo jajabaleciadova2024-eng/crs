@@ -3,6 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
 import { toTitleCase, formatFullName } from "@/lib/format";
+import {
+  uploadAnnouncementImage,
+  signAnnouncementImages,
+  deleteAnnouncementImages,
+  MAX_IMAGES,
+  MAX_IMAGE_BYTES,
+} from "@/lib/announcementImageStorage";
 
 const ANN_SELECT = `*, profiles!announcements_author_id_fkey(first_name, last_name, avatar_url, role),
    announcement_reactions(id, profile_id, reaction),
@@ -39,8 +46,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Sign every image across the whole page in ONE call, then hand each
+  // announcement its own URLs back in the order they were attached.
+  const rows = (data ?? []) as { image_paths?: string[] | null }[];
+  const allPaths = rows.flatMap((a) => a.image_paths ?? []);
+  const signed = await signAnnouncementImages(allPaths);
+  let cursorIdx = 0;
+  const announcements = rows.map((a) => {
+    const n = (a.image_paths ?? []).length;
+    const urls = signed.slice(cursorIdx, cursorIdx + n).filter((u): u is string => !!u);
+    cursorIdx += n;
+    return { ...a, image_urls: urls };
+  });
+
   return NextResponse.json(
-    { announcements: data, hasMore: (data?.length ?? 0) === limit },
+    { announcements, hasMore: rows.length === limit },
     { headers: { "Cache-Control": "no-store, max-age=0" } },
   );
 }
@@ -59,26 +79,72 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Only Team Leaders can post announcements." }, { status: 403 });
   }
 
-  const body = await request.json();
-  const title = (body.title ?? "").trim();
-  const announcementBody = (body.body ?? "").trim();
+  // Two content types: JSON for a plain text announcement, multipart when
+  // images are attached. Reading formData on a JSON body throws, so branch
+  // on the header rather than try/catch.
+  let title = "";
+  let announcementBody = "";
+  let files: File[] = [];
+  if (request.headers.get("content-type")?.includes("multipart/form-data")) {
+    const form = await request.formData();
+    title = ((form.get("title") as string) ?? "").trim();
+    announcementBody = ((form.get("body") as string) ?? "").trim();
+    files = form
+      .getAll("images")
+      .filter((f): f is File => f instanceof File && f.size > 0);
+  } else {
+    const body = await request.json();
+    title = (body.title ?? "").trim();
+    announcementBody = (body.body ?? "").trim();
+  }
   if (!title) return NextResponse.json({ error: "Title is required." }, { status: 400 });
   if (!announcementBody) return NextResponse.json({ error: "Description is required." }, { status: 400 });
   if (title.length > 200) return NextResponse.json({ error: "Title must be under 200 characters." }, { status: 400 });
   if (announcementBody.length > 5000) return NextResponse.json({ error: "Description must be under 5000 characters." }, { status: 400 });
 
+  if (files.length > MAX_IMAGES) {
+    return NextResponse.json({ error: `You can attach up to ${MAX_IMAGES} images.` }, { status: 400 });
+  }
+  for (const f of files) {
+    if (!f.type.startsWith("image/")) {
+      return NextResponse.json({ error: "Attachments must be images." }, { status: 400 });
+    }
+    if (f.size > MAX_IMAGE_BYTES) {
+      return NextResponse.json({ error: `"${f.name}" is too large (10MB max).` }, { status: 400 });
+    }
+  }
+
+  // Upload before the insert: an announcement that goes out referencing an
+  // image that failed to store is worse than one that never goes out.
+  const image_paths: string[] = [];
+  for (const [i, f] of files.entries()) {
+    const buffer = Buffer.from(await f.arrayBuffer());
+    const path = `${user.id}/${Date.now()}-${i}-${f.name.replace(/[^\w.\-]/g, "_")}`;
+    const uploaded = await uploadAnnouncementImage(path, f.type || "image/jpeg", buffer);
+    if (!uploaded.ok) {
+      await deleteAnnouncementImages(image_paths);
+      return NextResponse.json({ error: uploaded.error }, { status: 400 });
+    }
+    image_paths.push(path);
+  }
+
   const { data: inserted, error } = await supabase
     .from("announcements")
-    .insert({ author_id: user.id, title, body: announcementBody })
+    .insert({ author_id: user.id, title, body: announcementBody, image_paths })
     .select("id")
     .single();
 
   if (error || !inserted) {
     console.error("[announcements] POST error:", error);
+    // Nothing points at the uploads now — do not leave them orphaned.
+    await deleteAnnouncementImages(image_paths);
     return NextResponse.json({ error: error?.message ?? "Couldn't post." }, { status: 400 });
   }
 
-  const { data: announcement } = await admin.from("announcements").select(ANN_SELECT).eq("id", inserted.id).single();
+  const { data: row } = await admin.from("announcements").select(ANN_SELECT).eq("id", inserted.id).single();
+  const announcement = row
+    ? { ...row, image_urls: (await signAnnouncementImages(image_paths)).filter((u): u is string => !!u) }
+    : row;
 
   // Mark as seen for the poster so they don't get the unseen modal
   await supabase.from("announcement_seen").insert({ announcement_id: inserted.id, profile_id: user.id });

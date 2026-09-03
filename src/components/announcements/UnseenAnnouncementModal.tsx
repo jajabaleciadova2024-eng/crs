@@ -9,6 +9,7 @@ type UnseenAnnouncement = {
   body: string;
   created_at: string;
   profiles: { first_name: string; last_name: string } | null;
+  image_urls?: string[];
 };
 
 // Pops the newest announcement the member has not finished being shown,
@@ -92,6 +93,24 @@ export default function UnseenAnnouncementModal() {
           <p className="text-[14px] text-[var(--ink)] leading-relaxed whitespace-pre-wrap break-words m-0">
             {announcement.body}
           </p>
+
+          {(announcement.image_urls?.length ?? 0) > 0 && (
+            <div
+              className={`mt-3 grid gap-2 ${
+                announcement.image_urls!.length === 1 ? "grid-cols-1" : "grid-cols-2"
+              }`}
+            >
+              {announcement.image_urls!.map((src, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={src}
+                  src={src}
+                  alt={`Attachment ${i + 1}`}
+                  className="w-full rounded-lg border border-[var(--line)] object-cover"
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Footer */}

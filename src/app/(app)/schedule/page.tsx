@@ -18,6 +18,7 @@ import { todayInManila, startOfWorkWeek, endOfWorkWeek, formatWeekRange, addDays
 import { holidaysInRange, holidayDateSet } from "@/lib/holidays";
 import { formatFullName } from "@/lib/format";
 import { compareStationNames } from "@/lib/stationOrder";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 
 function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string) {
   return aStart <= bEnd && bStart <= aEnd;
@@ -270,7 +271,7 @@ export default async function SchedulePage() {
     const [{ data: myTasks }, { data: myCompletions }] = await Promise.all([
       admin
         .from("member_tasks")
-        .select("id, deadline, blocker_days_before, assign_to")
+        .select("id, deadline, blocker_days_before, assign_to, excluded_ids")
         .or(`assign_to.eq.all,assign_to.eq.${profile.id}`),
       admin
         .from("member_task_completions")
@@ -283,8 +284,11 @@ export default async function SchedulePage() {
         .filter((c: { status: string }) => c.status === "approved")
         .map((c: { task_id: string }) => c.task_id),
     );
+    // .or() matches assign_to only — the exemption list is applied here, or
+    // a member excused from a task still cannot see their future schedule.
     const incompleteTasks = (myTasks ?? []).filter(
-      (t: { id: string }) => !approvedIds.has(t.id),
+      (t: { id: string; assign_to: string; excluded_ids: string[] | null }) =>
+        taskAppliesTo(t, profile.id) && !approvedIds.has(t.id),
     );
     blockingTaskCount = incompleteTasks.filter(
       (t: { deadline: string | null; blocker_days_before: number }) => isTaskBlockingToday(t),

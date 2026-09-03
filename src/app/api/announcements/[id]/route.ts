@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { deleteAnnouncementImages } from "@/lib/announcementImageStorage";
 
 // PATCH — edit announcement (TL only, enforced by RLS)
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -49,7 +50,17 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
 
+  // Read the image paths before the row goes: nothing else records them,
+  // so deleting first would leave the files orphaned in the bucket with no
+  // way left to find them.
+  const { data: doomed } = await admin
+    .from("announcements")
+    .select("image_paths")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase.from("announcements").delete().eq("id", id);
+  if (!error) await deleteAnnouncementImages((doomed?.image_paths as string[] | null) ?? []);
   if (error) {
     console.error("[announcements] DELETE error:", error);
     return NextResponse.json({ error: error.message }, { status: 400 });

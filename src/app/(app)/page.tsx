@@ -23,6 +23,7 @@ import { associatesOnLeave } from "@/lib/leaveOnDate";
 import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
 import SocialFeed from "@/components/feed/SocialFeed";
 import QuickPostButton from "@/components/feed/QuickPostButton";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 
 // One day's posting on the Dashboard station card: a small muted day label,
 // the station as the headline, then window and break together underneath.
@@ -193,7 +194,7 @@ export default async function DashboardPage() {
     const [{ data: dashTasks }, { data: dashCompletions }] = await Promise.all([
       adminClient
         .from("member_tasks")
-        .select("id, deadline, blocker_days_before, assign_to")
+        .select("id, deadline, blocker_days_before, assign_to, excluded_ids")
         .or(`assign_to.eq.all,assign_to.eq.${profile.id}`),
       adminClient
         .from("member_task_completions")
@@ -205,9 +206,11 @@ export default async function DashboardPage() {
         .filter((c: { status: string }) => c.status === "approved")
         .map((c: { task_id: string }) => c.task_id),
     );
+    // .or() matches assign_to only — the exemption list is applied here, or
+    // a member excused from a task still has their schedule locked by it.
     blockingTaskCount = (dashTasks ?? []).filter(
-      (t: { id: string; deadline: string | null; blocker_days_before: number }) =>
-        !dashApprovedIds.has(t.id) && isTaskBlockingToday(t),
+      (t: { id: string; deadline: string | null; blocker_days_before: number; assign_to: string; excluded_ids: string[] | null }) =>
+        taskAppliesTo(t, profile.id) && !dashApprovedIds.has(t.id) && isTaskBlockingToday(t),
     ).length;
   }
 

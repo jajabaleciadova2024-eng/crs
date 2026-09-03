@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { todayInManila } from "@/lib/scheduleDates";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 
 
 const TAG_TONE: Record<string, string> = {
@@ -105,6 +106,8 @@ export interface TaskData {
   description: string | null;
   deadline: string | null;
   assign_to: string;
+  /** Members excused from this task — not assigned, not blocked, not nudged. */
+  excluded_ids?: string[] | null;
   blocker_days_before: number;
   completionStatus: CompletionStatus;
   requires_approval?: boolean;
@@ -212,8 +215,7 @@ export default function TaskCard({
     if (!canManage) return [];
     const completionFor = new Map((task.completions ?? []).map((c) => [c.profile_id, c]));
     const members = roster ?? [];
-    const base =
-      task.assign_to === "all" ? members : members.filter((m) => m.id === task.assign_to);
+    const base = members.filter((m) => taskAppliesTo(task, m.id));
     const rows: RosterRow[] = base.map((m) => ({
       profileId: m.id,
       name: `${m.first_name} ${m.last_name}`,

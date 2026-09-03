@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bellNotify, allActiveMemberIds } from "@/lib/bellNotify";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -61,8 +62,8 @@ export async function GET(request: Request) {
 
   // Filter tasks: only return tasks assigned to 'all' or to this user
   // TL sees all tasks regardless of assignment
-  const filtered = (tasks ?? []).filter((t: { assign_to: string }) =>
-    profile?.role === "team_leader" || t.assign_to === "all" || t.assign_to === user.id,
+  const filtered = (tasks ?? []).filter((t: { assign_to: string; excluded_ids: string[] | null }) =>
+    profile?.role === "team_leader" ? true : taskAppliesTo(t, user.id),
   );
 
   const enriched = filtered.map((t: { id: string; assign_to: string }) => ({
@@ -99,6 +100,11 @@ export async function POST(request: Request) {
   const description = (body.description ?? "").trim() || null;
   const deadline = body.deadline || null;
   const assign_to = body.assign_to || "all";
+  // Members excused from this task. Ids only, deduped — a bad id here would
+  // silently exempt nobody, which is the wrong way for this to fail.
+  const excluded_ids: string[] = Array.isArray(body.excluded_ids)
+    ? [...new Set((body.excluded_ids as unknown[]).filter((id): id is string => typeof id === "string" && !!id))]
+    : [];
   const blocker_days_before = Number(body.blocker_days_before) || 0;
   // Both default to the pre-0030 behavior when a caller omits them:
   // approval required, no photo.
@@ -124,6 +130,7 @@ export async function POST(request: Request) {
       description,
       deadline,
       assign_to,
+      excluded_ids,
       blocker_days_before: deadline ? blocker_days_before : 0,
       requires_approval,
       requires_photo,
@@ -139,7 +146,9 @@ export async function POST(request: Request) {
   }
 
   // Notify whoever the task landed on — everyone, or the one assignee.
-  const recipients = assign_to === "all" ? await allActiveMemberIds() : [assign_to];
+  const recipients = (assign_to === "all" ? await allActiveMemberIds() : [assign_to]).filter(
+    (id) => !excluded_ids.includes(id),
+  );
   await bellNotify(recipients, user.id, "task_assigned");
 
   return NextResponse.json({ ok: true, id: inserted.id });
@@ -181,6 +190,16 @@ export async function PATCH(request: Request) {
       if (!target) return NextResponse.json({ error: "Assigned member not found." }, { status: 400 });
     }
     updates.assign_to = body.assign_to;
+  }
+  if (body.excluded_ids !== undefined) {
+    if (!Array.isArray(body.excluded_ids)) {
+      return NextResponse.json({ error: "excluded_ids must be a list." }, { status: 400 });
+    }
+    updates.excluded_ids = [
+      ...new Set(
+        (body.excluded_ids as unknown[]).filter((id): id is string => typeof id === "string" && !!id),
+      ),
+    ];
   }
   if (body.requires_approval !== undefined) updates.requires_approval = body.requires_approval === true;
   if (body.requires_photo !== undefined) updates.requires_photo = body.requires_photo === true;

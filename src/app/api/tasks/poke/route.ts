@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bellNotify } from "@/lib/bellNotify";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 
 // Nudges a member about a task they still owe. Team Leader only, and only
 // for a task that is genuinely outstanding for that person — poking someone
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
 
   const { data: task } = await admin
     .from("member_tasks")
-    .select("id, assign_to")
+    .select("id, assign_to, excluded_ids")
     .eq("id", task_id)
     .single();
   if (!task) return NextResponse.json({ error: "Task not found." }, { status: 404 });
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
   );
 
   const targets = (profile_ids as string[]).filter(
-    (id) => !settled.has(id) && (task.assign_to === "all" || task.assign_to === id),
+    (id) => !settled.has(id) && taskAppliesTo(task, id),
   );
   if (targets.length === 0) {
     return NextResponse.json({ error: "Nobody to nudge — they're all up to date." }, { status: 400 });

@@ -42,6 +42,7 @@ export default function TaskModal({
     requires_approval?: boolean;
     requires_photo?: boolean;
     requires_completion_date?: boolean;
+    excluded_ids?: string[] | null;
   } | null;
   onClose: () => void;
 }) {
@@ -62,6 +63,12 @@ export default function TaskModal({
           requires_completion_date: editTask.requires_completion_date ?? false,
         }
       : EMPTY,
+  );
+  // Members excused from this task. Kept out of TaskForm because it is a
+  // set, not a form field, and the whole point is toggling one name at a
+  // time without disturbing the rest.
+  const [excluded, setExcluded] = useState<Set<string>>(
+    () => new Set(editTask?.excluded_ids ?? []),
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -84,6 +91,9 @@ export default function TaskModal({
       requires_approval: form.requires_approval,
       requires_photo: form.requires_photo,
       requires_completion_date: form.requires_completion_date,
+      // Only meaningful on an "all members" task — an individually assigned
+      // one is removed by reassigning it, not by excusing the assignee.
+      excluded_ids: form.assign_to === "all" ? [...excluded] : [],
     };
 
     if (isEdit) payload.id = editTask!.id;
@@ -144,6 +154,54 @@ export default function TaskModal({
               ))}
             </select>
           </div>
+
+          {/* Excusing people from an "all members" task. Assigning to
+              everyone and then finding some of them had already done it used
+              to have no expression: the choice was to keep chasing them for
+              finished work, or delete the task and lose every other
+              submission with it. Excused members are not assigned it, not
+              blocked by it, and cannot be nudged about it. */}
+          {form.assign_to === "all" && members.length > 0 && (
+            <div>
+              <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+                Exclude members (optional)
+              </label>
+              <p className="text-[11.5px] text-[var(--muted)] m-0 mb-2 leading-snug">
+                Tap anyone who does not need to do this — already done it, or it does not apply to them.
+                {excluded.size > 0 && (
+                  <span className="text-[var(--ink)] font-semibold"> {excluded.size} excluded.</span>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-1.5 max-h-[132px] overflow-y-auto p-1 -m-1">
+                {members.map((m) => {
+                  const off = excluded.has(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      aria-pressed={off}
+                      onClick={() =>
+                        setExcluded((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(m.id)) next.delete(m.id);
+                          else next.add(m.id);
+                          return next;
+                        })
+                      }
+                      className={`px-2 py-1 rounded-full text-[11.5px] font-semibold border transition-colors cursor-pointer ${
+                        off
+                          ? "border-[var(--bad)] text-[var(--bad)] line-through opacity-70"
+                          : "border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)]"
+                      }`}
+                    >
+                      {m.first_name} {m.last_name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
               Deadline (optional)

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ANNOUNCEMENT_SHOWINGS } from "@/lib/announcementShowings";
+import { signAnnouncementImages } from "@/lib/announcementImageStorage";
 
 // GET — returns the announcement to pop up on this visit, if any.
 //
@@ -40,7 +41,7 @@ export async function GET() {
 
   let query = admin
     .from("announcements")
-    .select("id, title, body, created_at, profiles!announcements_author_id_fkey(first_name, last_name)")
+    .select("id, title, body, image_paths, created_at, profiles!announcements_author_id_fkey(first_name, last_name)")
     .order("created_at", { ascending: false })
     .limit(1);
 
@@ -55,7 +56,19 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const announcement = data?.[0] ?? null;
+  const raw = data?.[0] as
+    | ({ id: string; image_paths?: string[] | null } & Record<string, unknown>)
+    | undefined;
+  // The modal is where most people actually read an announcement, so its
+  // images have to come through here too, not only in the feed.
+  const announcement = raw
+    ? {
+        ...raw,
+        image_urls: (await signAnnouncementImages(raw.image_paths ?? [])).filter(
+          (u): u is string => !!u,
+        ),
+      }
+    : null;
 
   // Which showing this is (1-based) so the modal can say so. A member who
   // knows they are on 2 of 3 knows it is the same notice, not a new one.

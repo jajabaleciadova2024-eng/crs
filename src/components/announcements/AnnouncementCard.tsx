@@ -60,6 +60,8 @@ export default function AnnouncementCard({
   const [showMenu, setShowMenu] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  // Which attached image is open full-size, if any.
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   const isTeamLeader = currentUserRole === "team_leader";
   const wasEdited = ann.updated_at !== ann.created_at;
@@ -187,9 +189,49 @@ export default function AnnouncementCard({
             <p className="text-[14px] text-[var(--ink)] leading-relaxed whitespace-pre-wrap break-words m-0">
               {ann.body}
             </p>
+
+            {/* One image runs full width; several tile two-up. Each opens
+                full size, because an announcement image is usually a
+                screenshot with text in it that a thumbnail cannot carry. */}
+            {(ann.image_urls?.length ?? 0) > 0 && (
+              <div
+                className={`mt-3 grid gap-2 ${
+                  ann.image_urls!.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                }`}
+              >
+                {ann.image_urls!.map((src, i) => (
+                  <button
+                    key={src}
+                    type="button"
+                    onClick={() => setLightbox(src)}
+                    className="block rounded-lg overflow-hidden border border-[var(--line)] cursor-zoom-in bg-[var(--paper)]"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={src}
+                      alt={`Attachment ${i + 1} of ${ann.title}`}
+                      loading="lazy"
+                      className={`w-full object-cover ${
+                        ann.image_urls!.length === 1 ? "max-h-[420px]" : "aspect-[4/3]"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
+
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/85 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setLightbox(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={lightbox} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
+        </div>
+      )}
 
       {/* Reaction summary + comment count */}
       {(totalReactions > 0 || ann.announcement_comments.length > 0) && (
