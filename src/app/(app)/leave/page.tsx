@@ -6,6 +6,7 @@ import { Panel, PageHeader, Button } from "@/components/ui";
 import LeaveRequestForm from "./LeaveRequestForm";
 import LeaveQueueTable from "./LeaveQueueTable";
 import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
+import { countBlockingTasks } from "@/lib/taskBlockingServer";
 
 export default async function LeavePage() {
   const profile = await requireProfile();
@@ -21,6 +22,12 @@ export default async function LeavePage() {
   const canViewAll = isApprover(profile.role);
   const canManage = canManageOperations(profile.role);
   const canFile = profile.role !== "team_leader";
+  // Filing is gated on tasks the same way the Weekly Schedule is: an
+  // assigned task with no APPROVED completion blocks new leave requests
+  // until the Team Leader clears it. The Team Leader never files here, so
+  // they are never gated. The API enforces this too — hiding the form is
+  // only the visible half (see /api/leave POST).
+  const blockingTaskCount = canFile ? await countBlockingTasks(profile.id) : 0;
 
   // The Queue mirrors History in every way except its time window: pending
   // requests always show here, but decided (approved/rejected) ones only
@@ -98,7 +105,24 @@ export default async function LeavePage() {
       />
 
       <div className="grid grid-cols-1 gap-4">
-        {canFile && (
+        {canFile && blockingTaskCount > 0 && (
+          <Panel title="File a request">
+            <div className="flex flex-col items-start gap-2 py-1">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--ink)]">
+                <span>🔒</span>
+                <span>
+                  Filing is locked — {blockingTaskCount} task{blockingTaskCount !== 1 ? "s" : ""} pending
+                </span>
+              </div>
+              <p className="text-[12.5px] text-[var(--muted)] m-0 leading-snug">
+                Complete your assigned task{blockingTaskCount !== 1 ? "s" : ""} and wait for the Team Leader to
+                approve them. Requests you have already filed are unaffected and still show in the Queue below.
+              </p>
+              <Button href="/tasks">Go to my tasks →</Button>
+            </div>
+          </Panel>
+        )}
+        {canFile && blockingTaskCount === 0 && (
           <Panel title="File a request">
             <LeaveRequestForm leaveTypeConfigs={leaveTypeConfigs} requireReason={orgSettings?.require_leave_reason ?? true} />
           </Panel>

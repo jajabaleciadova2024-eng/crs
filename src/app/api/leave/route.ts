@@ -5,6 +5,7 @@ import { notifyApproversNewLeave } from "@/lib/notify";
 import { bellNotify, approverIds } from "@/lib/bellNotify";
 import { hasVacationConflict, recomputeVacationConflicts } from "@/lib/leaveConflict";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
+import { countBlockingTasks } from "@/lib/taskBlockingServer";
 
 // Files a leave request as the signed-in associate (insert respects the
 // existing "leave_requests_insert_own" RLS policy — no admin client for the
@@ -21,6 +22,23 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  // Task gate. The Leave page hides the filing form when a task is
+  // blocking, but that is presentation only — this is a write, so it has to
+  // be enforced here or a direct POST walks straight past it. The Team
+  // Leader never files through this route, so the check costs them nothing.
+  const { data: filerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (filerProfile && filerProfile.role !== "team_leader") {
+    const blocking = await countBlockingTasks(user.id);
+    if (blocking > 0) {
+      return NextResponse.json(
+        {
+          error: `You have ${blocking} pending task${blocking !== 1 ? "s" : ""} to complete before filing a leave request.`,
+        },
+        { status: 403 },
+      );
+    }
   }
 
   const body = await request.json();
