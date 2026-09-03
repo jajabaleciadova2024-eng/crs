@@ -54,7 +54,7 @@ export async function GET(request: Request) {
   if (profile?.role === "team_leader") {
     const { data } = await admin
       .from("member_task_completions")
-      .select("id, task_id, profile_id, status, completed_at, completion_date, photo_path, review_note, profiles(first_name, last_name)")
+      .select("id, task_id, profile_id, status, completed_at, completion_date, photo_path, review_note, profiles!member_task_completions_profile_id_fkey(first_name, last_name)")
       .order("completed_at", { ascending: false });
     allCompletions = (data ?? []) as unknown as typeof allCompletions;
   }

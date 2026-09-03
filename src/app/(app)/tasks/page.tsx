@@ -12,8 +12,15 @@ export default async function TasksPage() {
   const canManage = canManageOperations(profile.role);
   const admin = createAdminClient();
 
-  // Fetch tasks, completions, and members in parallel
-  const [{ data: tasks }, { data: myCompletions }, { data: allCompletions }, { data: members }] =
+  // Fetch tasks, completions, and members in parallel.
+  //
+  // member_task_completions has TWO foreign keys to profiles — profile_id
+  // (who did the task) and reviewed_by (who approved it, added in 0024) — so
+  // the embed below MUST name which one. A bare `profiles(...)` is ambiguous:
+  // PostgREST refuses it, the whole query returns null, and the Team Leader
+  // silently sees no submissions at all. Same trap that once emptied the
+  // leave queue; see leave/page.tsx.
+  const [{ data: tasks }, { data: myCompletions }, { data: allCompletions, error: completionsError }, { data: members }] =
     await Promise.all([
       admin
         .from("member_tasks")
@@ -26,13 +33,17 @@ export default async function TasksPage() {
       canManage
         ? admin
             .from("member_task_completions")
-            .select("id, task_id, profile_id, status, completed_at, photo_path, review_note, profiles(first_name, last_name)")
+            .select("id, task_id, profile_id, status, completed_at, completion_date, photo_path, review_note, profiles!member_task_completions_profile_id_fkey(first_name, last_name)")
             .order("completed_at", { ascending: false })
-        : Promise.resolve({ data: [] }),
+        : Promise.resolve({ data: [], error: null }),
       canManage
         ? admin.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
         : admin.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name"),
     ]);
+
+  // Surface it rather than rendering an empty list as if nobody had
+  // submitted — an embed that stops resolving is invisible otherwise.
+  if (completionsError) console.error("[tasks] completions query failed:", completionsError);
 
   // Only approved completions count as truly done
   const approvedIds = new Set(
