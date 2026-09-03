@@ -80,6 +80,26 @@ export async function POST(request: Request) {
     for (const row of deleted) {
       if (row.photo_path) await deleteTaskPhoto(row.photo_path);
     }
+
+    // Take back the "submitted a task for approval" notice as well. The
+    // submission it announced no longer exists, so leaving it in the Team
+    // Leader's bell points them at a queue with nothing in it — they go
+    // looking for something to approve and find nothing, with no way to
+    // tell that it was withdrawn rather than lost. notifications carries no
+    // task reference, so this clears the most recent UNREAD one from this
+    // member: a read notice is already part of the Team Leader's history
+    // and is not rewritten behind them.
+    const { data: stale } = await admin
+      .from("notifications")
+      .select("id")
+      .eq("actor_id", user.id)
+      .eq("type", "task_submitted")
+      .eq("read", false)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (stale && stale.length > 0) {
+      await admin.from("notifications").delete().eq("id", stale[0].id);
+    }
   } else {
     if (task.requires_photo && !photo) {
       return NextResponse.json({ error: "This task requires a photo as proof." }, { status: 400 });

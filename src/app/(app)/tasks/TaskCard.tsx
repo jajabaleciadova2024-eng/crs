@@ -97,6 +97,8 @@ interface CompletionEntry {
   profiles: { first_name: string; last_name: string } | null;
 }
 
+export type RosterMember = { id: string; first_name: string; last_name: string };
+
 export interface TaskData {
   id: string;
   title: string;
@@ -115,6 +117,14 @@ export interface TaskData {
   completions?: CompletionEntry[];
 }
 
+// One line of the Team Leader's roster table: an assignee and whatever they
+// have (or have not) submitted.
+type RosterRow = {
+  profileId: string;
+  name: string;
+  completion: CompletionEntry | null;
+};
+
 const STATUS_PILL: Record<CompletionStatus, { label: string; tone: "warn" | "good" | "bad" } | null> = {
   none: null,
   pending: { label: "Pending Approval", tone: "warn" },
@@ -126,12 +136,16 @@ export default function TaskCard({
   task,
   canManage,
   assigneeName,
+  roster,
   onEdit,
   onDelete,
 }: {
   task: TaskData;
   canManage: boolean;
   assigneeName?: string;
+  /** Active members, so the Team Leader's table can list everyone the task
+      is for — including the people who have submitted nothing. */
+  roster?: RosterMember[];
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -179,6 +193,50 @@ export default function TaskCard({
   }
   const blocking = isTaskBlockingToday(task);
   const isDone = task.completionStatus === "approved";
+
+  // Every person this task is for, with their submission attached if they
+  // made one.
+  //
+  // Built from the ROSTER, not from the completions table. Listing only the
+  // rows that exist meant somebody who submitted and then withdrew — or who
+  // never started — simply was not on screen at all, so the Team Leader had
+  // no way to tell "nobody has done this" apart from "everybody has". A
+  // notification saying a task was submitted with nothing to match it on
+  // this page is exactly that gap.
+  const rosterRows: RosterRow[] = (() => {
+    if (!canManage) return [];
+    const completionFor = new Map((task.completions ?? []).map((c) => [c.profile_id, c]));
+    const members = roster ?? [];
+    const base =
+      task.assign_to === "all" ? members : members.filter((m) => m.id === task.assign_to);
+    const rows: RosterRow[] = base.map((m) => ({
+      profileId: m.id,
+      name: `${m.first_name} ${m.last_name}`,
+      completion: completionFor.get(m.id) ?? null,
+    }));
+    // Anyone who submitted but is no longer on the roster (deactivated, role
+    // changed) still has work waiting on a decision — never drop them.
+    const seen = new Set(rows.map((r) => r.profileId));
+    for (const c of task.completions ?? []) {
+      if (seen.has(c.profile_id)) continue;
+      rows.push({
+        profileId: c.profile_id,
+        name: c.profiles ? `${c.profiles.first_name} ${c.profiles.last_name}` : c.profile_id,
+        completion: c,
+      });
+    }
+    // Waiting-on-you first, then declined, then not-submitted, then done —
+    // the order the Team Leader actually works through them in.
+    const rank = (r: RosterRow) =>
+      r.completion?.status === "pending" ? 0
+      : r.completion?.status === "rejected" ? 1
+      : !r.completion ? 2
+      : 3;
+    return rows.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+  })();
+
+  const awaitingReview = rosterRows.filter((r) => r.completion?.status === "pending").length;
+  const notSubmitted = rosterRows.filter((r) => !r.completion).length;
 
   async function handleSubmit(photo?: File) {
     if (task.requires_completion_date && !completionDate) {
@@ -293,13 +351,20 @@ export default function TaskCard({
         {!canManage && (
           <button
             type="button"
-            onClick={canUndo ? handleUndo : needsPhoto ? focusPhotoPanel : () => handleSubmit()}
-            disabled={toggling || isDone}
+            // Deliberately NOT an undo control while a submission is
+            // pending. One stray tap on an already-ticked box silently
+            // deleted the submission and left the Team Leader holding a
+            // "submitted a task for approval" notification with nothing
+            // behind it — the member believed it was sent, the Team Leader
+            // had nothing to approve, and neither could see why. Withdrawing
+            // is still possible, but only through the labelled button below.
+            onClick={canUndo ? undefined : needsPhoto ? focusPhotoPanel : () => handleSubmit()}
+            disabled={toggling || isDone || canUndo}
             aria-label={
               isDone
                 ? "Completed and approved"
                 : canUndo
-                  ? "Undo submission"
+                  ? "Submitted — waiting on your Team Leader"
                   : needsPhoto
                     ? "Attach the required photo to complete this task"
                     : "Mark as complete"
@@ -609,105 +674,168 @@ export default function TaskCard({
             </p>
           )}
 
-          {/* TL: show completions with approve/reject */}
-          {canManage && task.completions && task.completions.length > 0 && (
-            <div className="mt-2.5 flex flex-col gap-1.5">
-              {task.completions.map((c) => {
-                const name = c.profiles ? `${c.profiles.first_name} ${c.profiles.last_name}` : c.profile_id;
-                return (
-                  <div key={c.id} className="flex flex-col gap-1 text-[11.5px]">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[var(--ink)] font-medium">{name}</span>
-                      {c.completion_date && (
-                        <span className="text-[10.5px] text-[var(--muted)]">
-                          done {formatDeadline(c.completion_date)}
-                        </span>
-                      )}
-                      {c.photo_path ? (
-                        <button
-                          type="button"
-                          onClick={() => openPhoto(c.id)}
-                          className="text-[10.5px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
+          {/* TL: every assignee in a row, with what they owe or submitted.
+              Columns, not a run-on line: name, when they sent it, the date
+              they say they did the work, their proof, where it stands, and
+              the decision. Those were six different things crammed onto one
+              wrapping line before, which is why a Pending row read the same
+              as an Approved one at a glance. */}
+          {canManage && rosterRows.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center gap-2 mb-1.5 text-[11px]">
+                <span className="uppercase tracking-wider text-[var(--muted)] font-semibold">
+                  Members ({rosterRows.length})
+                </span>
+                {awaitingReview > 0 && (
+                  <span className="text-[var(--warn)] font-bold">{awaitingReview} awaiting your review</span>
+                )}
+                {notSubmitted > 0 && (
+                  <span className="text-[var(--muted)]">{notSubmitted} not submitted</span>
+                )}
+              </div>
+
+              <div className="overflow-x-auto scroll-shadow-x -mx-1 px-1">
+                <table className="w-full text-[12px] border-collapse min-w-[560px]">
+                  <thead>
+                    <tr>
+                      {["Member", "Submitted", "Date done", "Proof", "Status", "Action"].map((h) => (
+                        <th
+                          key={h}
+                          className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 py-1.5 border-b border-[var(--line)] whitespace-nowrap"
                         >
-                          View photo
-                        </button>
-                      ) : (
-                        task.requires_photo && (
-                          // Submitted before the photo requirement was turned
-                          // on, so there is nothing to show. Say so rather
-                          // than leaving a gap that reads as a broken link.
-                          <span className="text-[10.5px] text-[var(--muted)] italic">No photo attached</span>
-                        )
-                      )}
-                      {c.status === "pending" ? (
-                        <div className="flex items-center gap-1">
-                          <Pill tone="warn">Pending</Pill>
-                          <button
-                            type="button"
-                            onClick={() => handleReview(c.id, "approved")}
-                            disabled={reviewing === c.id}
-                            className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDeclining(declining === c.id ? null : c.id);
-                              setDeclineNote("");
-                            }}
-                            disabled={reviewing === c.id}
-                            className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
-                          >
-                            Decline
-                          </button>
-                        </div>
-                      ) : (
-                        <Pill tone={c.status === "approved" ? "good" : "bad"}>
-                          {c.status === "approved" ? "Approved" : "Declined"}
-                        </Pill>
-                      )}
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rosterRows.map((r) => {
+                      const c = r.completion;
+                      const st = c?.status ?? "none";
+                      return (
+                        <tr
+                          key={r.profileId}
+                          className={st === "pending" ? "bg-[var(--warn-soft)]/25" : undefined}
+                        >
+                          <td className="px-2 py-2 border-b border-[var(--line)]/60 text-[var(--ink)] font-medium whitespace-nowrap">
+                            {r.name}
+                          </td>
+                          <td className="px-2 py-2 border-b border-[var(--line)]/60 text-[var(--muted)] whitespace-nowrap">
+                            {c?.completed_at ? formatDeadline(c.completed_at.slice(0, 10)) : "\u2014"}
+                          </td>
+                          <td className="px-2 py-2 border-b border-[var(--line)]/60 text-[var(--muted)] whitespace-nowrap">
+                            {c?.completion_date ? formatDeadline(c.completion_date) : "\u2014"}
+                          </td>
+                          <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
+                            {c?.photo_path ? (
+                              <button
+                                type="button"
+                                onClick={() => openPhoto(c.id)}
+                                className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
+                              >
+                                View
+                              </button>
+                            ) : task.requires_photo && c ? (
+                              <span className="text-[10.5px] text-[var(--muted)] italic">none</span>
+                            ) : (
+                              <span className="text-[var(--muted)]">{"\u2014"}</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
+                            {st === "pending" ? (
+                              <Pill tone="warn">Awaiting review</Pill>
+                            ) : st === "approved" ? (
+                              <Pill tone="good">Approved</Pill>
+                            ) : st === "rejected" ? (
+                              <Pill tone="bad">Declined</Pill>
+                            ) : (
+                              <span className="text-[11px] text-[var(--muted)]">Not submitted</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
+                            {c && st === "pending" ? (
+                              declining === c.id ? (
+                                <span className="text-[10.5px] text-[var(--muted)]">deciding\u2026</span>
+                              ) : (
+                                <span className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleReview(c.id, "approved")}
+                                    disabled={reviewing === c.id}
+                                    className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDeclining(c.id);
+                                      setDeclineNote("");
+                                    }}
+                                    disabled={reviewing === c.id}
+                                    className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                                  >
+                                    Decline
+                                  </button>
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-[var(--muted)]">{"\u2014"}</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* A decline needs a reason \u2014 the member only sees this note,
+                  so "Declined" with nothing attached leaves them guessing.
+                  The API rejects an empty one too. */}
+              {rosterRows.map((r) =>
+                r.completion && declining === r.completion.id ? (
+                  <div key={r.completion.id} className="flex flex-col gap-1.5 mt-2">
+                    <span className="text-[11.5px] text-[var(--ink)] font-semibold">
+                      Declining {r.name}&apos;s submission
+                    </span>
+                    <textarea
+                      value={declineNote}
+                      onChange={(e) => setDeclineNote(e.target.value)}
+                      rows={2}
+                      autoFocus
+                      placeholder="Why are you declining? The member will see this."
+                      className="w-full max-w-[380px] px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper)] text-[12px]"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleReview(r.completion!.id, "rejected", declineNote.trim())}
+                        disabled={reviewing === r.completion.id || !declineNote.trim()}
+                        className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Confirm decline
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeclining(null)}
+                        className="px-2 py-0.5 rounded text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+                      >
+                        Cancel
+                      </button>
                     </div>
-
-                    {/* A decline needs a reason — the member only sees this
-                        note, so "Declined" with nothing attached leaves them
-                        guessing. The API rejects an empty one too. */}
-                    {declining === c.id && (
-                      <div className="flex flex-col gap-1.5 pl-1 pt-1">
-                        <textarea
-                          value={declineNote}
-                          onChange={(e) => setDeclineNote(e.target.value)}
-                          rows={2}
-                          autoFocus
-                          placeholder="Why are you declining? The member will see this."
-                          className="w-full max-w-[380px] px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper)] text-[12px]"
-                        />
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleReview(c.id, "rejected", declineNote.trim())}
-                            disabled={reviewing === c.id || !declineNote.trim()}
-                            className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            Confirm decline
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeclining(null)}
-                            className="px-2 py-0.5 rounded text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {c.status === "rejected" && c.review_note && (
-                      <span className="text-[11px] text-[var(--muted)] pl-1">Reason: {c.review_note}</span>
-                    )}
                   </div>
-                );
-              })}
+                ) : null,
+              )}
+
+              {rosterRows
+                .filter((r) => r.completion?.status === "rejected" && r.completion.review_note)
+                .map((r) => (
+                  <div key={r.profileId} className="text-[11px] text-[var(--muted)] mt-1.5">
+                    <span className="font-semibold text-[var(--ink)]">{r.name}</span> declined:{" "}
+                    {r.completion!.review_note}
+                  </div>
+                ))}
             </div>
           )}
 

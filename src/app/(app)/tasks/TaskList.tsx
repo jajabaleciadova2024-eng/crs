@@ -59,6 +59,7 @@ export default function TaskList({
         task={t}
         canManage={canManage}
         assigneeName={t.assign_to !== "all" ? nameMap.get(t.assign_to) : undefined}
+        roster={members}
         onEdit={() => { setEditTask(t); setShowModal(true); }}
         onDelete={() =>
           setDeleteTarget({
