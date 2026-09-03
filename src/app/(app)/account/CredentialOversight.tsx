@@ -28,13 +28,10 @@ const STATE_PILL: Record<string, { label: string; tone: "good" | "warn" | "bad" 
   unset: { label: "No baseline", tone: "muted" },
 };
 
-export default function CredentialOversight({
-  rows,
-  readOnly = false,
-}: {
-  rows: OversightRow[];
-  readOnly?: boolean;
-}) {
+// Team Leader only — the page never renders this for anyone else, and the
+// member-facing variant it used to support is gone deliberately: credential
+// state is not a shared board.
+export default function CredentialOversight({ rows }: { rows: OversightRow[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +95,7 @@ export default function CredentialOversight({
       <table className="w-full text-[13px] border-collapse min-w-[640px]">
         <thead>
           <tr>
-            {["Member", "Status", "Time left", "Expires", "MFA", "Passkey", readOnly ? "" : "Action"].map((h, i) => (
+            {["Member", "Status", "Time left", "Expires", "MFA", "Passkey", "Action"].map((h, i) => (
               <th
                 key={h || i}
                 className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap"
@@ -138,7 +135,7 @@ export default function CredentialOversight({
                     <Pill tone="warn">None</Pill>
                   )}
                 </td>
-                {!readOnly && (
+                {(
                   <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                     {r.pendingResetId ? (
                       rejecting === r.pendingResetId ? (
@@ -238,8 +235,6 @@ export default function CredentialOversight({
       </table>
     </div>
   );
-
-  if (readOnly) return table;
 
   return (
     <Panel

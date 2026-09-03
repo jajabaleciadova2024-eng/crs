@@ -13,13 +13,22 @@ export default async function AccountPage() {
   const canManage = canManageOperations(profile.role);
   const admin = createAdminClient();
 
+  // Scoped to the caller unless they manage: a member's request never even
+  // loads anyone else's credential state, so there is nothing to leak into
+  // the payload by a later mistake. password_resets has two FKs to profiles
+  // (profile_id, reviewed_by), hence the explicit FK name on the embed.
+  const statusQuery = admin.from("credential_status").select("*");
+  const resetQuery = admin
+    .from("password_resets")
+    .select("*, profiles!password_resets_profile_id_fkey(first_name, last_name)")
+    .order("submitted_at", { ascending: false });
+
   const [{ data: statuses }, { data: resets }, { data: members }] = await Promise.all([
-    admin.from("credential_status").select("*"),
-    admin
-      .from("password_resets")
-      .select("*, profiles!password_resets_profile_id_fkey(first_name, last_name)")
-      .order("submitted_at", { ascending: false }),
-    admin.from("profiles").select("id, first_name, last_name, role").eq("is_active", true).order("first_name"),
+    canManage ? statusQuery : statusQuery.eq("profile_id", profile.id),
+    canManage ? resetQuery : resetQuery.eq("profile_id", profile.id),
+    canManage
+      ? admin.from("profiles").select("id, first_name, last_name, role").eq("is_active", true).order("first_name")
+      : Promise.resolve({ data: [] }),
   ]);
 
   const statusByProfile = new Map((statuses ?? []).map((s: any) => [s.profile_id, s]));
@@ -29,10 +38,15 @@ export default async function AccountPage() {
   );
   const myHistory = (resets ?? []).filter((r: any) => r.profile_id === profile.id).slice(0, 5);
 
+  // Team Leader only. Built inside the guard rather than filtered in the
+  // component: a non-manager must never receive other members' credential
+  // data in their page payload, where hiding the table would leave it
+  // sitting in the HTML for anyone who looks.
+  //
   // Everyone appears, including members who have never had a baseline set —
   // an unmonitored account is exactly what this page exists to surface, so
   // it must not be able to hide by having no row.
-  const rows: OversightRow[] = (members ?? []).map((m: any) => {
+  const rows: OversightRow[] = !canManage ? [] : (members ?? []).map((m: any) => {
     const st = statusByProfile.get(m.id);
     const pending = (resets ?? []).find((r: any) => r.profile_id === m.id && r.status === "pending");
     return {
@@ -52,7 +66,9 @@ export default async function AccountPage() {
     <>
       <PageHeader
         title="Account Security"
-        subtitle="Passwords expire 60 days after each reset — keep yours alive, and get MFA and your passkey configured"
+        subtitle={canManage
+          ? "Passwords expire 60 days after each reset — keep yours alive, and oversee everyone else's"
+          : "Your password expires 60 days after each reset — keep it alive, and get MFA and your passkey configured"}
       />
 
       <MyCredentialPanel
@@ -70,16 +86,7 @@ export default async function AccountPage() {
         }))}
       />
 
-      {canManage ? (
-        <CredentialOversight rows={rows} />
-      ) : (
-        <Panel title="Everyone's status" hint="Shared board">
-          <p className="text-[12.5px] text-[var(--muted)] m-0 mb-3">
-            Everyone can see where the team stands — nobody&apos;s account should be the one that lapses.
-          </p>
-          <CredentialOversight rows={rows} readOnly />
-        </Panel>
-      )}
+      {canManage && <CredentialOversight rows={rows} />}
     </>
   );
 }
