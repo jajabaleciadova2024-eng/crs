@@ -298,9 +298,19 @@ export default async function DashboardPage() {
             avatarUrl={profile.avatar_url}
           />
           <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <h1 className="font-serif text-lg sm:text-2xl md:text-[28px] m-0 tracking-tight truncate shrink-0">
-              Good day, {toTitleCase(profile.first_name)}
-            </h1>
+            <div className="min-w-0 shrink-0">
+              <h1 className="font-serif text-lg sm:text-2xl md:text-[28px] m-0 tracking-tight truncate">
+                Good day, {toTitleCase(profile.first_name)}
+              </h1>
+              {/* Identity sits with the face it belongs to. As a stat card it
+                  read as a metric, and it is the one card whose value can
+                  never change while you are looking at it. */}
+              <div className="flex items-center gap-2 mt-0.5 text-[11.5px] text-[var(--muted)]">
+                <span className="font-semibold text-[var(--accent-strong)]">{ROLE_LABEL[profile.role]}</span>
+                <span aria-hidden="true">·</span>
+                <span className="tabular-nums">{profile.psid}</span>
+              </div>
+            </div>
             <QuickPostButton mentionable={mentionableProfiles ?? []} />
           </div>
         </div>
@@ -308,7 +318,10 @@ export default async function DashboardPage() {
 
       <div
         className={`grid grid-cols-1 min-[400px]:grid-cols-2 ${
-          profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-4"
+          // Six cards for a Team Leader, four or five for everyone else.
+          // Three columns divides the six evenly instead of leaving one
+          // stranded on a second row, which is what five did.
+          profile.role === "team_leader" ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4"
         } gap-3 mb-4`}
       >
         {/* Password countdown. Deliberately first and always present — rule 1
@@ -420,7 +433,6 @@ export default async function DashboardPage() {
             tone={(pendingAccessCount ?? 0) > 0 ? "warn" : undefined}
           />
         )}
-        <Card label="Your role" value={ROLE_LABEL[profile.role]} sub={profile.psid} />
       </div>
 
       <Panel
