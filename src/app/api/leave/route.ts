@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
-    const blocking = await countBlockingTasks(user.id);
+    const blocking = await countBlockingTasks(user.id, "leave");
     if (blocking > 0) {
       return NextResponse.json(
         {

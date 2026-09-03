@@ -21,7 +21,13 @@ export default async function TasksPage() {
   // PostgREST refuses it, the whole query returns null, and the Team Leader
   // silently sees no submissions at all. Same trap that once emptied the
   // leave queue; see leave/page.tsx.
-  const [{ data: tasks }, { data: myCompletions }, { data: allCompletions, error: completionsError }, { data: members }] =
+  const [
+    { data: tasks },
+    { data: myCompletions },
+    { data: allCompletions, error: completionsError },
+    { data: members },
+    { data: pokes },
+  ] =
     await Promise.all([
       admin
         .from("member_tasks")
@@ -40,6 +46,11 @@ export default async function TasksPage() {
       canManage
         ? admin.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
         : admin.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name"),
+      // Last nudge per (task, member), so a button on cooldown can say so
+      // instead of looking available and then failing.
+      canManage
+        ? admin.from("task_pokes").select("task_id, profile_id, poked_at")
+        : Promise.resolve({ data: [] }),
     ]);
 
   // Surface it rather than rendering an empty list as if nobody had
@@ -73,6 +84,13 @@ export default async function TasksPage() {
     myReviewNote: (myNoteMap.get(t.id) as string | null | undefined) ?? null,
     completions: canManage
       ? (allCompletions ?? []).filter((c: any) => c.task_id === t.id)
+      : undefined,
+    lastPokedAt: canManage
+      ? Object.fromEntries(
+          (pokes ?? [])
+            .filter((p: any) => p.task_id === t.id)
+            .map((p: any) => [p.profile_id as string, p.poked_at as string]),
+        )
       : undefined,
   }));
 

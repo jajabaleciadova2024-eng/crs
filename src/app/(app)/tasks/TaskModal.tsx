@@ -13,6 +13,8 @@ interface TaskForm {
   requires_approval: boolean;
   requires_photo: boolean;
   requires_completion_date: boolean;
+  blocks_schedule: boolean;
+  blocks_leave: boolean;
 }
 
 const EMPTY: TaskForm = {
@@ -24,6 +26,8 @@ const EMPTY: TaskForm = {
   requires_approval: true,
   requires_photo: false,
   requires_completion_date: false,
+  blocks_schedule: true,
+  blocks_leave: true,
 };
 
 export default function TaskModal({
@@ -43,6 +47,8 @@ export default function TaskModal({
     requires_photo?: boolean;
     requires_completion_date?: boolean;
     excluded_ids?: string[] | null;
+    blocks_schedule?: boolean;
+    blocks_leave?: boolean;
   } | null;
   onClose: () => void;
 }) {
@@ -61,6 +67,10 @@ export default function TaskModal({
           requires_approval: editTask.requires_approval ?? true,
           requires_photo: editTask.requires_photo ?? false,
           requires_completion_date: editTask.requires_completion_date ?? false,
+          // Tasks predating 0042 have neither flag, and back then a blocking
+          // task blocked everything — so absent edits as both on.
+          blocks_schedule: editTask.blocks_schedule ?? true,
+          blocks_leave: editTask.blocks_leave ?? true,
         }
       : EMPTY,
   );
@@ -91,6 +101,8 @@ export default function TaskModal({
       requires_approval: form.requires_approval,
       requires_photo: form.requires_photo,
       requires_completion_date: form.requires_completion_date,
+      blocks_schedule: form.blocks_schedule,
+      blocks_leave: form.blocks_leave,
       // Only meaningful on an "all members" task — an individually assigned
       // one is removed by reassigning it, not by excusing the assignee.
       excluded_ids: form.assign_to === "all" ? [...excluded] : [],
@@ -215,12 +227,57 @@ export default function TaskModal({
           </div>
           {form.deadline && (
             <Field
-              label="Block schedule viewing X days before deadline"
+              label="Start blocking X days before deadline"
               value={form.blocker_days_before}
               onChange={(v) => update("blocker_days_before", v)}
               type="number"
             />
           )}
+
+          {/* WHAT this task blocks, as opposed to WHEN (the field above).
+              Every blocking task used to lock both of these, so a task that
+              only needed to gate one had to gate the other as well. Turning
+              both off leaves a task that is tracked and chased but locks
+              nothing — which is a real thing to want. */}
+          <div>
+            <span className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+              While blocking, lock
+            </span>
+            <div className="flex flex-col gap-2">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.blocks_schedule}
+                  onChange={(e) => update("blocks_schedule", e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-[var(--accent)] cursor-pointer"
+                />
+                <span className="text-[13px] text-[var(--ink)] leading-snug">
+                  Schedule viewing
+                  <span className="block text-[11.5px] text-[var(--muted)]">
+                    Future dates on Weekly Schedule, and tomorrow&apos;s station on their Dashboard. Today stays
+                    visible either way.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.blocks_leave}
+                  onChange={(e) => update("blocks_leave", e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-[var(--accent)] cursor-pointer"
+                />
+                <span className="text-[13px] text-[var(--ink)] leading-snug">
+                  Filing a leave request
+                </span>
+              </label>
+              {!form.blocks_schedule && !form.blocks_leave && (
+                <p className="text-[11.5px] text-[var(--muted)] m-0 leading-snug">
+                  Nothing is locked — members still see the task, and you can still nudge them, but it will not
+                  hold anything up.
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="flex flex-col gap-2 pt-1">
             <label className="flex items-start gap-2.5 cursor-pointer">

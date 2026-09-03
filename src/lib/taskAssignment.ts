@@ -13,6 +13,26 @@ export type AssignableTask = {
   excluded_ids?: string[] | null;
 };
 
+/** The things a task can lock. */
+export type BlockScope = "schedule" | "leave";
+
+export type ScopedTask = {
+  blocks_schedule?: boolean | null;
+  blocks_leave?: boolean | null;
+};
+
+/**
+ * Whether a blocking task locks this particular thing.
+ *
+ * Both columns default true, and a task written before 0042 has neither —
+ * which is the same thing, since back then every blocking task locked
+ * everything. So absent means yes, and only an explicit false turns one off.
+ */
+export function taskBlocks(task: ScopedTask, scope: BlockScope): boolean {
+  const flag = scope === "schedule" ? task.blocks_schedule : task.blocks_leave;
+  return flag !== false;
+}
+
 /** True when `profileId` owes this task. */
 export function taskAppliesTo(task: AssignableTask, profileId: string): boolean {
   if ((task.excluded_ids ?? []).includes(profileId)) return false;

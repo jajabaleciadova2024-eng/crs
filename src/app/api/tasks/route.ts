@@ -132,6 +132,10 @@ export async function POST(request: Request) {
       assign_to,
       excluded_ids,
       blocker_days_before: deadline ? blocker_days_before : 0,
+      // Absent means yes: a task created without saying otherwise blocks
+      // both, which is how every task behaved before these existed.
+      blocks_schedule: body.blocks_schedule !== false,
+      blocks_leave: body.blocks_leave !== false,
       requires_approval,
       requires_photo,
       requires_completion_date,
@@ -201,6 +205,8 @@ export async function PATCH(request: Request) {
       ),
     ];
   }
+  if (body.blocks_schedule !== undefined) updates.blocks_schedule = body.blocks_schedule === true;
+  if (body.blocks_leave !== undefined) updates.blocks_leave = body.blocks_leave === true;
   if (body.requires_approval !== undefined) updates.requires_approval = body.requires_approval === true;
   if (body.requires_photo !== undefined) updates.requires_photo = body.requires_photo === true;
   if (body.requires_completion_date !== undefined)

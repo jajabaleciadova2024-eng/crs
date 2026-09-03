@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bellNotify } from "@/lib/bellNotify";
+import { pokeCooldownRemaining, formatCooldown } from "@/lib/pokeCooldown";
 import { taskAppliesTo } from "@/lib/taskAssignment";
 
 // Nudges a member about a task they still owe. Team Leader only, and only
@@ -46,13 +47,54 @@ export async function POST(request: Request) {
       .map((c: { profile_id: string }) => c.profile_id),
   );
 
-  const targets = (profile_ids as string[]).filter(
+  const eligible = (profile_ids as string[]).filter(
     (id) => !settled.has(id) && taskAppliesTo(task, id),
   );
-  if (targets.length === 0) {
+  if (eligible.length === 0) {
     return NextResponse.json({ error: "Nobody to nudge — they're all up to date." }, { status: 400 });
   }
 
+  // Cooldown. Enforced here rather than only in the UI: the button is not
+  // the only way to reach this route, and a nudge that arrives five times
+  // running is one nobody reads.
+  const { data: recent } = await admin
+    .from("task_pokes")
+    .select("profile_id, poked_at")
+    .eq("task_id", task_id)
+    .in("profile_id", eligible);
+
+  const lastPoke = new Map(
+    (recent ?? []).map((r: { profile_id: string; poked_at: string }) => [r.profile_id, r.poked_at]),
+  );
+  const targets = eligible.filter((id) => pokeCooldownRemaining(lastPoke.get(id)) === 0);
+
+  if (targets.length === 0) {
+    // Report the SHORTEST wait, not an arbitrary one — that is when this
+    // button does something again.
+    const soonest = Math.min(...eligible.map((id) => pokeCooldownRemaining(lastPoke.get(id))));
+    return NextResponse.json(
+      {
+        error:
+          eligible.length === 1
+            ? `Already nudged. You can nudge them again in ${formatCooldown(soonest)}.`
+            : `All of them were nudged recently. You can nudge again in ${formatCooldown(soonest)}.`,
+      },
+      { status: 429 },
+    );
+  }
+
+  const pokedAt = new Date().toISOString();
+  const { error: pokeError } = await admin.from("task_pokes").upsert(
+    targets.map((id) => ({ task_id, profile_id: id, poked_by: user.id, poked_at: pokedAt })),
+    { onConflict: "task_id,profile_id" },
+  );
+  // Recording the nudge is what enforces the next cooldown, so a failure
+  // here must not send one anyway — that is how the limit gets bypassed.
+  if (pokeError) {
+    console.error("[tasks/poke] couldn't record the nudge:", pokeError);
+    return NextResponse.json({ error: "Couldn't send that nudge. Please try again." }, { status: 500 });
+  }
+
   await bellNotify(targets, user.id, "task_poke");
-  return NextResponse.json({ ok: true, poked: targets.length });
+  return NextResponse.json({ ok: true, poked: targets.length, skipped: eligible.length - targets.length });
 }

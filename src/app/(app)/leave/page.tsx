@@ -28,7 +28,7 @@ export default async function LeavePage() {
   // until the Team Leader clears it. The Team Leader never files here, so
   // they are never gated. The API enforces this too — hiding the form is
   // only the visible half (see /api/leave POST).
-  const blockingTaskCount = canFile ? await countBlockingTasks(profile.id) : 0;
+  const blockingTaskCount = canFile ? await countBlockingTasks(profile.id, "leave") : 0;
   // An expiring password locks filing the same way an outstanding task does.
   const credential = canFile ? await credentialBlock(profile.id) : { blocking: false, lastResetAt: null };
   const fileLocked = blockingTaskCount > 0 || credential.blocking;

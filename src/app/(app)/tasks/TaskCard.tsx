@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { todayInManila } from "@/lib/scheduleDates";
 import { taskAppliesTo } from "@/lib/taskAssignment";
+import { pokeCooldownRemaining, formatCooldown, POKE_COOLDOWN_HOURS } from "@/lib/pokeCooldown";
 
 
 const TAG_TONE: Record<string, string> = {
@@ -108,6 +109,8 @@ export interface TaskData {
   assign_to: string;
   /** Members excused from this task — not assigned, not blocked, not nudged. */
   excluded_ids?: string[] | null;
+  blocks_schedule?: boolean;
+  blocks_leave?: boolean;
   blocker_days_before: number;
   completionStatus: CompletionStatus;
   requires_approval?: boolean;
@@ -118,6 +121,9 @@ export interface TaskData {
   created_at: string;
   profiles?: { first_name: string; last_name: string } | null;
   completions?: CompletionEntry[];
+  /** When each member was last nudged about THIS task, so the button can
+      show the cooldown rather than looking live and then being refused. */
+  lastPokedAt?: Record<string, string>;
 }
 
 // One line of the Team Leader's roster table: an assignee and whatever they
@@ -163,6 +169,16 @@ export default function TaskCard({
   const [poking, setPoking] = useState<string | null>(null);
   const [poked, setPoked] = useState<Record<string, boolean>>({});
   const [pokeError, setPokeError] = useState<string | null>(null);
+  // One clock for the whole card, read after mount. Date.now() during SSR
+  // and again in the browser gives two different answers and a hydration
+  // mismatch; the cooldown is measured in hours, so a per-minute tick is
+  // more than precise enough.
+  const [nowMs, setNowMs] = useState(0);
+  useEffect(() => {
+    setNowMs(Date.now());
+    const id = setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const [submitError, setSubmitError] = useState<string | null>(null);
   // Photo-proof flow: the member picks a file, sees what they picked, and
   // then submits deliberately. Nothing is uploaded until they press Submit.
@@ -200,6 +216,18 @@ export default function TaskCard({
     setPhotoPreview(null);
   }
   const blocking = isTaskBlockingToday(task);
+  // What this task actually locks. "Blocking" alone said nothing about
+  // which, and now that it can be one, both, or neither, it has to.
+  const blocksSchedule = task.blocks_schedule !== false;
+  const blocksLeave = task.blocks_leave !== false;
+  const blockLabel =
+    blocksSchedule && blocksLeave
+      ? "Blocks schedule & leave"
+      : blocksSchedule
+        ? "Blocks schedule"
+        : blocksLeave
+          ? "Blocks leave"
+          : null;
   const isDone = task.completionStatus === "approved";
 
   // Every person this task is for, with their submission attached if they
@@ -249,6 +277,11 @@ export default function TaskCard({
   const owingIds = rosterRows
     .filter((r) => !r.completion || r.completion.status === "rejected")
     .map((r) => r.profileId);
+  // Nudges are once per member per task per cooldown window, so the bulk
+  // button offers only the people it can actually reach right now.
+  const cooldownFor = (profileId: string) =>
+    pokeCooldownRemaining(task.lastPokedAt?.[profileId], nowMs || Date.now());
+  const nudgeableIds = owingIds.filter((id) => cooldownFor(id) === 0);
 
   async function handleSubmit(photo?: File) {
     if (task.requires_completion_date && !completionDate) {
@@ -459,7 +492,7 @@ export default function TaskCard({
                 {assigneeName ?? "Individual"}
               </Tag>
             )}
-            {blocking && !isDone && (
+            {blocking && !isDone && blockLabel && (
               <Tag
                 tone="warn"
                 icon={
@@ -469,7 +502,7 @@ export default function TaskCard({
                   </TagIcon>
                 }
               >
-                Blocking
+                {blockLabel}
               </Tag>
             )}
             {task.requires_completion_date && (
@@ -723,20 +756,23 @@ export default function TaskCard({
                 {notSubmitted > 0 && (
                   <span className="text-[var(--muted)]">{notSubmitted} not submitted</span>
                 )}
-                {owingIds.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => poke(owingIds, "all")}
-                    disabled={poking === "all"}
-                    className="ml-auto px-2 py-0.5 rounded text-[10.5px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-50"
-                  >
-                    {poking === "all"
-                      ? "Nudging…"
-                      : poked.all
-                        ? `Nudged ${owingIds.length}`
-                        : `Nudge all ${owingIds.length}`}
-                  </button>
-                )}
+                {owingIds.length > 0 &&
+                  (nudgeableIds.length === 0 && !poked.all ? (
+                    <span className="ml-auto text-[10.5px] text-[var(--muted)]">All nudged recently</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => poke(nudgeableIds, "all")}
+                      disabled={poking === "all"}
+                      className="ml-auto px-2 py-0.5 rounded text-[10.5px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-50"
+                    >
+                      {poking === "all"
+                        ? "Nudging\u2026"
+                        : poked.all
+                          ? `Nudged ${nudgeableIds.length}`
+                          : `Nudge all ${nudgeableIds.length}`}
+                    </button>
+                  ))}
               </div>
 
               {pokeError && (
@@ -807,6 +843,13 @@ export default function TaskCard({
                             {!c || st === "rejected" ? (
                               poked[r.profileId] || poked.all ? (
                                 <span className="text-[10.5px] text-[var(--good)] font-bold">Nudged</span>
+                              ) : cooldownFor(r.profileId) > 0 ? (
+                                <span
+                                  className="text-[10.5px] text-[var(--muted)]"
+                                  title={`Nudged recently \u2014 ${POKE_COOLDOWN_HOURS}h between nudges`}
+                                >
+                                  Nudge in {formatCooldown(cooldownFor(r.profileId))}
+                                </span>
                               ) : (
                                 <button
                                   type="button"
