@@ -48,7 +48,11 @@ function StationLine({
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold leading-tight">{day}</div>
-      <div className={`text-[15px] leading-tight mt-0.5 ${station ? "font-semibold text-[var(--ink)]" : "text-[var(--muted)]"}`}>
+      <div
+        className={`font-serif text-[17px] sm:text-[18px] leading-tight mt-0.5 tracking-tight ${
+          station ? "text-[var(--ink)]" : "text-[var(--muted)] font-sans text-[14px]"
+        }`}
+      >
         {station ?? empty}
       </div>
       {meta && <div className="text-[11.5px] text-[var(--muted)] leading-snug mt-0.5">{meta}</div>}
@@ -316,13 +320,13 @@ export default async function DashboardPage() {
         </div>
       </PageHeader>
 
+      {/* The Station card occupies two columns, so a rotating member's row is
+          five grid units, not four. Left at four columns the last card fell
+          alone onto a second row with three empty slots beside it. */}
       <div
-        className={`grid grid-cols-1 min-[400px]:grid-cols-2 ${
-          // Six cards for a Team Leader, four or five for everyone else.
-          // Three columns divides the six evenly instead of leaving one
-          // stranded on a second row, which is what five did.
-          profile.role === "team_leader" ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4"
-        } gap-3 mb-4`}
+        className={`grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 mb-4 ${
+          isRotatingRole ? "lg:grid-cols-5" : "lg:grid-cols-4"
+        }`}
       >
         {/* Password countdown. Deliberately first and always present — rule 1
             on the floor is that nobody's password lapses, and a number you
@@ -371,44 +375,55 @@ export default async function DashboardPage() {
         </a>
         <Card label="Seats filled" value={`${stationsManned} / ${totalStations}`} sub={week ? "Today's coverage" : "No schedule published yet"} />
         {isRotatingRole && (
+          // Two columns wide, and the two days sit side by side inside it.
+          // Stacked in a one-column slot this card ran 75px taller than every
+          // stat beside it and dragged the whole row down with it — it is an
+          // itinerary with two entries, not a single number, so it gets the
+          // width an itinerary needs.
           <a
             href="/schedule"
-            className="border border-[var(--line)] rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] transition-colors block"
+            className="min-[400px]:col-span-2 border border-[var(--line)] rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] transition-colors block"
           >
             <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">Station</div>
 
             {/* Day is quiet metadata; the station name is the content. Window
                 and break share one muted line so a posting is three tight
                 lines instead of four competing ones. */}
-            {todayHoliday ? (
-              <StationLine day="Today" empty={`🎉 ${todayHoliday}`} />
-            ) : (
-              <StationLine
-                day="Today"
-                station={week ? myCurrentStationName : undefined}
-                empty={week ? "Not assigned" : "No schedule yet"}
-                windowLabel={myWindowLabel}
-                breakLabel={myBreakSlot ? BREAK_SLOT_LABEL[myBreakSlot] : undefined}
-                coverText={myCoverTodayText}
-              />
-            )}
+            <div className="flex flex-col sm:flex-row sm:items-stretch gap-2.5 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                {todayHoliday ? (
+                  <StationLine day="Today" empty={`🎉 ${todayHoliday}`} />
+                ) : (
+                  <StationLine
+                    day="Today"
+                    station={week ? myCurrentStationName : undefined}
+                    empty={week ? "Not assigned" : "No schedule yet"}
+                    windowLabel={myWindowLabel}
+                    breakLabel={myBreakSlot ? BREAK_SLOT_LABEL[myBreakSlot] : undefined}
+                    coverText={myCoverTodayText}
+                  />
+                )}
+              </div>
 
-            <div className="border-t border-[var(--line)]/60 my-2.5" />
+              <div className="border-t sm:border-t-0 sm:border-l border-[var(--line)]/60 sm:self-stretch" />
 
-            {blockingTaskCount > 0 ? (
-              <StationLine day={nextDayLabel} empty="Complete tasks to view" />
-            ) : !tomorrowRevealed ? (
-              <StationLine day={nextDayLabel} empty="Revealed at 12 PM" />
-            ) : (
-              <StationLine
-                day={nextDayLabel}
-                station={myTomorrowStationName}
-                empty="Not assigned"
-                windowLabel={myNextWindowLabel}
-                breakLabel={myNextBreakSlot ? BREAK_SLOT_LABEL[myNextBreakSlot] : undefined}
-                coverText={myCoverNextDayText}
-              />
-            )}
+              <div className="flex-1 min-w-0">
+                {blockingTaskCount > 0 ? (
+                  <StationLine day={nextDayLabel} empty="Complete tasks to view" />
+                ) : !tomorrowRevealed ? (
+                  <StationLine day={nextDayLabel} empty="Revealed at 12 PM" />
+                ) : (
+                  <StationLine
+                    day={nextDayLabel}
+                    station={myTomorrowStationName}
+                    empty="Not assigned"
+                    windowLabel={myNextWindowLabel}
+                    breakLabel={myNextBreakSlot ? BREAK_SLOT_LABEL[myNextBreakSlot] : undefined}
+                    coverText={myCoverNextDayText}
+                  />
+                )}
+              </div>
+            </div>
           </a>
         )}
         {isRotatingRole && blockingTaskCount > 0 && (

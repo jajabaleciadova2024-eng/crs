@@ -67,19 +67,19 @@ export default function PasswordCountdown({
     const [dd, hh, mm, ss] = formatCountdown(ms).split(":");
     return (
       <span
-        className="font-mono tabular-nums font-bold text-[19px] sm:text-[21px] leading-none whitespace-nowrap"
+        className="font-mono tabular-nums font-bold text-[22px] sm:text-[24px] leading-none whitespace-nowrap tracking-tight"
         style={{ color }}
         suppressHydrationWarning
         title={`Expires ${expiry.toLocaleString()}`}
       >
         {dd}
-        <span className="text-[13px] font-semibold opacity-70">d </span>
+        <span className="text-[13px] font-semibold opacity-60">d </span>
         {hh}
-        <span className="text-[13px] font-semibold opacity-70">h </span>
+        <span className="text-[13px] font-semibold opacity-60">h </span>
         {mm}
-        <span className="text-[13px] font-semibold opacity-70">m </span>
+        <span className="text-[13px] font-semibold opacity-60">m </span>
         {ss}
-        <span className="text-[13px] font-semibold opacity-70">s</span>
+        <span className="text-[13px] font-semibold opacity-60">s</span>
       </span>
     );
   }
