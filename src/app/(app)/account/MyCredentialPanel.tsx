@@ -77,17 +77,19 @@ export default function MyCredentialPanel({
   // History is newest-first, so the first entry is the current state of play.
   const lastRejected = !pending && history[0]?.status === "rejected" ? history[0] : null;
 
-  // Everything still standing between the member and a reportable reset,
-  // listed plainly. A disabled button with no explanation is the worst thing
-  // a form can do, and this one had three separate reasons to be disabled.
-  const blockers = [
-    !mfaProof
-      ? "Upload your MFA screenshot"
-      : !mfaVerified
-        ? "Your MFA screenshot is waiting on the Team Leader to verify it"
-        : null,
-    !proof ? "Attach your \"Last updated\" screenshot" : null,
-  ].filter(Boolean) as string[];
+  // What is stopping a member submitting, where it is not already obvious.
+  // The missing screenshot is deliberately NOT listed: the empty upload zone
+  // sits directly above the button and says so by existing. Nothing gates
+  // the Team Leader, so they get no list at all.
+  const blockers = isTeamLeader
+    ? []
+    : ([
+        !mfaProof
+          ? "Upload your MFA screenshot"
+          : !mfaVerified
+            ? "Your MFA screenshot is waiting on the Team Leader to verify it"
+            : null,
+      ].filter(Boolean) as string[]);
 
   function choose(f: File) {
     if (preview) URL.revokeObjectURL(preview);
@@ -277,12 +279,6 @@ export default function MyCredentialPanel({
               </div>
 
               <div>
-                <span className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">
-                  {isTeamLeader
-                    ? 'Proof — "Last updated" screenshot (optional)'
-                    : 'Proof — "Last updated" screenshot'}
-                </span>
-
                 {proof ? (
                   <div className="flex items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3 py-2.5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -335,10 +331,10 @@ export default function MyCredentialPanel({
                     </span>
                     <span className="min-w-0">
                       <span className="block text-[12.5px] font-semibold text-[var(--ink)]">
-                        Upload screenshot
+                        Upload screenshot{isTeamLeader ? " (optional)" : ""}
                       </span>
                       <span className="block text-[11px] text-[var(--muted)] leading-snug">
-                        Security info › Password › Last updated
+                        From Security info › Password › Last updated
                       </span>
                     </span>
                   </button>
