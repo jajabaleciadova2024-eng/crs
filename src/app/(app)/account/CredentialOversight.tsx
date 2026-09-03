@@ -21,6 +21,10 @@ export type OversightRow = {
   pendingResetId: string | null;
   pendingResetAt: string | null;
   pendingHasProof: boolean;
+  // Most recent reset carrying a screenshot, so a confirmed one stays
+  // reviewable rather than vanishing the moment it is confirmed.
+  lastProofResetId: string | null;
+  lastProofStatus: string | null;
 };
 
 const STATE_PILL: Record<string, { label: string; tone: "good" | "warn" | "bad" | "muted" }> = {
@@ -107,10 +111,10 @@ export default function CredentialOversight({
 
   const table = (
     <div className="overflow-x-auto scroll-shadow-x">
-      <table className="w-full text-[13px] border-collapse min-w-[640px]">
+      <table className="w-full text-[13px] border-collapse min-w-[760px]">
         <thead>
           <tr>
-            {["Member", "Status", "Time left", "Expires", "MFA", "Passkey", "Action"].map((h, i) => (
+            {["Member", "Status", "Time left", "Expires", "Reset proof", "MFA", "Passkey", "Action"].map((h, i) => (
               <th
                 key={h || i}
                 className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap"
@@ -150,6 +154,18 @@ export default function CredentialOversight({
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)] whitespace-nowrap">
                   {exp ? exp.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                </td>
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
+                  {r.lastProofResetId ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <ProofLink resetId={r.lastProofResetId} label="View" />
+                      {r.lastProofStatus === "pending" && (
+                        <span className="text-[10px] text-[var(--warn)] font-semibold">unconfirmed</span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-[var(--muted)]">—</span>
+                  )}
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                   <ProofVerify

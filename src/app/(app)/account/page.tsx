@@ -49,6 +49,10 @@ export default async function AccountPage() {
   const rows: OversightRow[] = !canManage ? [] : (members ?? []).map((m: any) => {
     const st = statusByProfile.get(m.id);
     const pending = (resets ?? []).find((r: any) => r.profile_id === m.id && r.status === "pending");
+    // The most recent reset that actually carries a screenshot, whatever its
+    // status. Without this the proof was reachable only while a claim sat
+    // pending, so a confirmed reset could never be looked at again.
+    const latestWithProof = (resets ?? []).find((r: any) => r.profile_id === m.id && r.proof_path);
     return {
       profileId: m.id,
       name: formatFullName(m.first_name, m.last_name),
@@ -61,6 +65,8 @@ export default async function AccountPage() {
       pendingResetId: pending?.id ?? null,
       pendingResetAt: pending?.reset_at ?? null,
       pendingHasProof: !!pending?.proof_path,
+      lastProofResetId: latestWithProof?.id ?? null,
+      lastProofStatus: (latestWithProof?.status as string | null) ?? null,
     };
   });
 
