@@ -13,14 +13,16 @@ export default function PasswordCountdown({
   lastResetAt,
   size = "md",
   // "segments" gives each unit its own tile with the label underneath, so
-  // the reading is self-describing. The inline form needed a separate
+  // the reading is self-describing. "compact" carries the units inline
+  // (68d 07h 17m 02s) for a stat card, where a separate DD:HH:MM:SS legend
+  // was an extra line no other card had. The inline form needed a separate
   // "DD : HH : MM : SS" legend line, which sat under the number looking
   // like a stray caption and had to be mentally lined up with it.
   variant = "inline",
 }: {
   lastResetAt: string | null;
   size?: "sm" | "md" | "lg";
-  variant?: "inline" | "segments";
+  variant?: "inline" | "segments" | "compact";
 }) {
   const expiry = expiryFrom(lastResetAt);
   const [now, setNow] = useState<number | null>(null);
@@ -37,6 +39,9 @@ export default function PasswordCountdown({
   const text = { sm: "text-[15px]", md: "text-[22px]", lg: "text-[30px]" }[size];
 
   if (!expiry) {
+    if (variant === "compact") {
+      return <span className="font-mono tabular-nums text-[var(--muted)] text-[20px] leading-none">--d --h --m</span>;
+    }
     if (variant === "segments") {
       return (
         <div className="flex items-start gap-1.5">
@@ -57,6 +62,27 @@ export default function PasswordCountdown({
       : state === "warning"
         ? "var(--warn)"
         : "var(--good)";
+
+  if (variant === "compact") {
+    const [dd, hh, mm, ss] = formatCountdown(ms).split(":");
+    return (
+      <span
+        className="font-mono tabular-nums font-bold text-[19px] sm:text-[21px] leading-none whitespace-nowrap"
+        style={{ color }}
+        suppressHydrationWarning
+        title={`Expires ${expiry.toLocaleString()}`}
+      >
+        {dd}
+        <span className="text-[13px] font-semibold opacity-70">d </span>
+        {hh}
+        <span className="text-[13px] font-semibold opacity-70">h </span>
+        {mm}
+        <span className="text-[13px] font-semibold opacity-70">m </span>
+        {ss}
+        <span className="text-[13px] font-semibold opacity-70">s</span>
+      </span>
+    );
+  }
 
   if (variant === "segments") {
     const [dd, hh, mm, ss] = formatCountdown(ms).split(":");

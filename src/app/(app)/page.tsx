@@ -47,8 +47,8 @@ function StationLine({
 
   return (
     <div>
-      <div className="text-[10.5px] uppercase tracking-wide text-[var(--muted)] font-semibold leading-tight">{day}</div>
-      <div className={`text-[13.5px] leading-snug ${station ? "font-semibold text-[var(--ink)]" : "text-[var(--muted)]"}`}>
+      <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold leading-tight">{day}</div>
+      <div className={`text-[15px] leading-tight mt-0.5 ${station ? "font-semibold text-[var(--ink)]" : "text-[var(--muted)]"}`}>
         {station ?? empty}
       </div>
       {meta && <div className="text-[11.5px] text-[var(--muted)] leading-snug mt-0.5">{meta}</div>}
@@ -329,7 +329,7 @@ export default async function DashboardPage() {
             have to go looking for is a number nobody looks at. */}
         <a
           href="/account"
-          className="border rounded-xl bg-[var(--paper-raised)] p-3.5 hover:border-[var(--accent)] transition-colors block"
+          className="border rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] transition-colors block"
           style={{
             borderColor:
               credState === "expired" || credState === "blocking" || credState === "unset"
@@ -339,15 +339,21 @@ export default async function DashboardPage() {
                   : "var(--line)",
           }}
         >
+          {/* Same three-part rhythm as Card: label, value, sub. The units are
+              inline on the value now — the old DD:HH:MM:SS legend was a
+              fourth line no other card had, which is what threw the row's
+              alignment out. */}
           <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">
             Password expires in
           </div>
-          <PasswordCountdown lastResetAt={credential.lastResetAt} size="md" />
-          <div className="text-[10px] text-[var(--muted)] mt-1 font-mono tracking-tight">DD:HH:MM:SS</div>
-          {/* Role-aware: the Team Leader IS the person who sets baselines and
-              is never schedule-blocked, so telling them to ask their TL, or
-              that their schedule is locked, is nonsense. */}
-          <div className="text-[11.5px] mt-1.5 leading-snug text-[var(--muted)]">
+          {/* Same box height as Card's serif value line, so the row's numbers
+              sit on one optical line — a mono inline span makes a shorter
+              line box than the serif numerals and floated 6px low without
+              this. */}
+          <div className="flex items-center h-[26px] sm:h-[28px]">
+            <PasswordCountdown lastResetAt={credential.lastResetAt} variant="compact" />
+          </div>
+          <div className="text-[11.5px] text-[var(--muted)] mt-1.5 leading-snug">
             {credState === "unset"
               ? profile.role === "team_leader"
                 ? "No baseline yet — set your own on Account Security"
@@ -367,7 +373,7 @@ export default async function DashboardPage() {
         {isRotatingRole && (
           <a
             href="/schedule"
-            className="border border-[var(--line)] rounded-xl bg-[var(--paper-raised)] p-3.5 hover:border-[var(--accent)] transition-colors block"
+            className="border border-[var(--line)] rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] transition-colors block"
           >
             <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">Station</div>
 
@@ -387,7 +393,7 @@ export default async function DashboardPage() {
               />
             )}
 
-            <div className="border-t border-[var(--line)] my-2" />
+            <div className="border-t border-[var(--line)]/60 my-2.5" />
 
             {blockingTaskCount > 0 ? (
               <StationLine day={nextDayLabel} empty="Complete tasks to view" />
