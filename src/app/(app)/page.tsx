@@ -19,6 +19,7 @@ import ProfilePhotoFrame from "@/components/ProfilePhotoFrame";
 import LeaveCalendar from "./leave/calendar/LeaveCalendar";
 import { getLeaveCalendarRequests } from "@/lib/leaveCalendarData";
 import { buildLeaveDayMap } from "@/lib/leaveCalendar";
+import { associatesOnLeave } from "@/lib/leaveOnDate";
 import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
 import SocialFeed from "@/components/feed/SocialFeed";
 import QuickPostButton from "@/components/feed/QuickPostButton";
@@ -171,7 +172,15 @@ export default async function DashboardPage() {
   // by station: assignments.length is already one row per seated person
   // for displayDate, and totalSeats sums each active station's fixed
   // headcount rather than just counting stations.
-  const stationsManned = assignments?.length ?? 0;
+  //
+  // Anyone on approved leave is subtracted. Approving leave does not vacate
+  // the assignment row, so counting rows alone reported a seat as covered
+  // when nobody is standing at it — the one thing this figure exists to
+  // tell you. The denominator does NOT change: the station still needs
+  // manning, that is the point of showing a shortfall.
+  const onLeaveIds = await associatesOnLeave(displayDate);
+  const seatedOnLeave = (assignments ?? []).filter((a) => onLeaveIds.has(a.associate_id)).length;
+  const stationsManned = (assignments?.length ?? 0) - seatedOnLeave;
   const totalStations = (activeWorkstations ?? []).reduce((sum, w) => sum + (w.headcount ?? 0), 0);
   const myCurrentAssignment = assignments?.find((a) => a.associate_id === profile.id);
   const myCurrentStationName = (myCurrentAssignment as any)?.workstations?.name as string | undefined;
@@ -380,7 +389,22 @@ export default async function DashboardPage() {
                     : "In good standing"}
           </div>
         </a>
-        <Card label="Seats filled" value={`${stationsManned} / ${totalStations}`} sub={week ? "Today's coverage" : "No schedule published yet"} extraClass="xl:flex-auto xl:min-w-0" />
+        <Card
+          label="Seats filled"
+          value={`${stationsManned} / ${totalStations}`}
+          sub={
+            !week
+              ? "No schedule published yet"
+              : seatedOnLeave > 0
+                ? `${seatedOnLeave} on leave today`
+                : "Today's coverage"
+          }
+          // Amber only for a gap that has a name — somebody on leave. An
+          // unfilled seat with no reason behind it is a normal state here
+          // and would leave this card permanently orange.
+          tone={seatedOnLeave > 0 ? "warn" : undefined}
+          extraClass="xl:flex-auto xl:min-w-0"
+        />
         {isRotatingRole && (
           // Two columns wide, and the two days sit side by side inside it.
           // Stacked in a one-column slot this card ran 75px taller than every
