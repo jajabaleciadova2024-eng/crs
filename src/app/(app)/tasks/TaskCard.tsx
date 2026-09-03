@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pill, Button } from "@/components/ui";
+import { Pill } from "@/components/ui";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 
 export type CompletionStatus = "none" | "pending" | "approved" | "rejected";
@@ -66,6 +66,16 @@ export default function TaskCard({
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoPanelRef = useRef<HTMLDivElement>(null);
+  // Briefly rings the attach panel when the checkbox sends you to it, so the
+  // click visibly lands somewhere instead of appearing to do nothing.
+  const [pulse, setPulse] = useState(false);
+
+  function focusPhotoPanel() {
+    photoPanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    setPulse(true);
+    window.setTimeout(() => setPulse(false), 900);
+  }
 
   function choosePhoto(file: File) {
     // Revoke the previous object URL before replacing it, or each re-pick
@@ -165,13 +175,26 @@ export default function TaskCard({
       }`}
     >
       <div className="flex items-start gap-3">
-        {/* Completion checkbox (associates only) */}
+        {/* Completion checkbox (associates only). Bigger than a bare 20px
+            square, with a hover ring and a press animation, so it reads as
+            something you click rather than a status dot. On a photo task it
+            stays live and jumps to the attach panel — a disabled grey box
+            just looks broken. */}
         {!canManage && (
           <button
             type="button"
-            onClick={canUndo ? handleUndo : () => handleSubmit()}
-            disabled={toggling || isDone || (needsPhoto && !canUndo)}
-            className="mt-0.5 shrink-0 w-5 h-5 rounded border-2 border-[var(--line)] flex items-center justify-center cursor-pointer hover:border-[var(--accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={canUndo ? handleUndo : needsPhoto ? focusPhotoPanel : () => handleSubmit()}
+            disabled={toggling || isDone}
+            aria-label={
+              isDone
+                ? "Completed and approved"
+                : canUndo
+                  ? "Undo submission"
+                  : needsPhoto
+                    ? "Attach the required photo to complete this task"
+                    : "Mark as complete"
+            }
+            className="mt-[1px] shrink-0 w-[22px] h-[22px] rounded-md border-2 border-[var(--line)] flex items-center justify-center cursor-pointer transition-all duration-150 hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]/50 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 disabled:cursor-default disabled:hover:bg-transparent"
             style={
               task.completionStatus === "pending"
                 ? { backgroundColor: "var(--warn)", borderColor: "var(--warn)" }
@@ -185,7 +208,7 @@ export default function TaskCard({
                 : task.completionStatus === "pending"
                   ? "Pending approval — click to undo"
                   : needsPhoto
-                    ? "Attach the required photo below to complete this task"
+                    ? "Attach the required photo below"
                     : task.completionStatus === "rejected"
                       ? "Rejected — click to re-submit"
                       : "Mark as complete"
@@ -237,12 +260,42 @@ export default function TaskCard({
             {task.requires_approval === false && <span>No approval needed</span>}
           </div>
 
-          {/* Photo proof. Deliberately a visible panel rather than a picker
-              that springs out of the checkbox: the member sees that a photo
-              is wanted, what they picked, and submits on purpose. Nothing
-              uploads until they press Submit. */}
+          {/* Says out loud what the checkbox does. A bare square carries no
+              label, which is fine on a to-do app people already know and
+              poor on a page someone opens twice a month. */}
+          {!canManage && !needsPhoto && task.completionStatus === "none" && (
+            <button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={toggling}
+              className="mt-2 text-[12px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
+            >
+              {toggling ? "Submitting…" : "Mark as complete"}
+            </button>
+          )}
+          {!canManage && canUndo && (
+            <button
+              type="button"
+              onClick={handleUndo}
+              disabled={toggling}
+              className="mt-2 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] hover:underline cursor-pointer disabled:opacity-50"
+            >
+              Undo submission
+            </button>
+          )}
+
+          {/* Photo proof. Compact and left-aligned — the previous version
+              stretched the full card width, which stranded the button on the
+              far right with a band of empty space between it and the text. */}
           {needsPhoto && (
-            <div className="mt-2.5 rounded-lg border border-dashed border-[var(--line)] bg-[var(--paper)]/60 px-3 py-2.5">
+            <div
+              ref={photoPanelRef}
+              className={`mt-2.5 w-fit max-w-full rounded-lg border px-3 py-2.5 transition-all duration-300 ${
+                pulse
+                  ? "border-[var(--accent)] bg-[var(--accent-soft)]/60"
+                  : "border-[var(--line)] bg-[var(--paper)]/70"
+              }`}
+            >
               <input
                 ref={fileInputRef}
                 type="file"
@@ -256,51 +309,63 @@ export default function TaskCard({
               />
 
               {!photo ? (
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="text-[12px] text-[var(--muted)] flex-1 min-w-[140px]">
-                    This task needs a photo as proof.
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[15px] leading-none shrink-0" aria-hidden="true">
+                    📷
                   </span>
-                  <Button type="button" onClick={() => fileInputRef.current?.click()}>
-                    📷 Choose photo
-                  </Button>
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-semibold text-[var(--ink)] leading-tight">
+                      Photo proof required
+                    </div>
+                    <div className="text-[11px] text-[var(--muted)] leading-tight mt-0.5">
+                      Attach an image, then submit.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+                  >
+                    Choose photo
+                  </button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2.5">
-                  <div className="flex items-center gap-2.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photoPreview ?? ""}
-                      alt=""
-                      className="w-12 h-12 rounded object-cover border border-[var(--line)] shrink-0"
-                    />
-                    <span className="text-[12px] text-[var(--ink)] truncate flex-1 min-w-0">{photo.name}</span>
-                    <button
-                      type="button"
-                      onClick={clearPhoto}
-                      disabled={toggling}
-                      className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer shrink-0 disabled:opacity-50"
-                    >
-                      Remove
-                    </button>
+                <div className="flex items-center gap-2.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photoPreview ?? ""}
+                    alt=""
+                    className="w-11 h-11 rounded-md object-cover border border-[var(--line)] shrink-0"
+                  />
+                  <div className="min-w-0 max-w-[180px]">
+                    <div className="text-[12px] text-[var(--ink)] truncate leading-tight">{photo.name}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={toggling}
+                        className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearPhoto}
+                        disabled={toggling}
+                        className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="primary"
-                      disabled={toggling}
-                      onClick={() => handleSubmit(photo)}
-                    >
-                      {toggling ? "Submitting…" : "Submit for approval"}
-                    </Button>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={toggling}
-                      className="text-[11.5px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
-                    >
-                      Choose a different photo
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSubmit(photo)}
+                    disabled={toggling}
+                    className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {toggling ? "Submitting…" : "Submit"}
+                  </button>
                 </div>
               )}
             </div>
