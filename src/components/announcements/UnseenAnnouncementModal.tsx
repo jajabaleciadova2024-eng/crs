@@ -11,11 +11,17 @@ type UnseenAnnouncement = {
   profiles: { first_name: string; last_name: string } | null;
 };
 
-// Shown once per unseen announcement on first visit after login.
-// Fetches the latest unseen announcement and displays it in a modal;
-// dismissing marks it as seen so it won't show again.
+// Pops the newest announcement the member has not finished being shown,
+// on the first visit after each login. It runs for three logins rather than
+// one: a single showing is easy to click past on the way to the schedule,
+// which is how announcements get missed.
+//
+// The showing is recorded when the modal APPEARS, not when it is dismissed.
+// Closing the tab without clicking "Got it" still counts — otherwise the
+// same notice would greet the member forever.
 export default function UnseenAnnouncementModal() {
   const [announcement, setAnnouncement] = useState<UnseenAnnouncement | null>(null);
+  const [showing, setShowing] = useState<{ n: number; total: number } | null>(null);
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -24,10 +30,17 @@ export default function UnseenAnnouncementModal() {
       try {
         const res = await fetch("/api/announcements/unseen", { cache: "no-store" });
         if (!res.ok) return;
-        const { announcement: ann } = await res.json();
+        const { announcement: ann, showing: n, totalShowings } = await res.json();
         if (ann && !cancelled) {
           setAnnouncement(ann);
+          setShowing({ n, total: totalShowings });
           setShow(true);
+          // Count it now, while it is on screen.
+          fetch("/api/announcements/seen", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ announcement_id: ann.id }),
+          }).catch(() => {});
         }
       } catch {
         // Silently ignore — not critical
@@ -38,15 +51,8 @@ export default function UnseenAnnouncementModal() {
     return () => { cancelled = true; clearTimeout(timer); };
   }, []);
 
-  async function dismiss() {
-    if (!announcement) return;
+  function dismiss() {
     setShow(false);
-    // Mark as seen in the background — don't block the UI
-    fetch("/api/announcements/seen", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ announcement_id: announcement.id }),
-    }).catch(() => {});
   }
 
   if (!show || !announcement) return null;
@@ -85,7 +91,16 @@ export default function UnseenAnnouncementModal() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[var(--line)] flex justify-end">
+        <div className="px-6 py-4 border-t border-[var(--line)] flex items-center justify-between gap-3">
+          {/* Says plainly that this is the same notice coming round again,
+              not a new one, and when it will stop. */}
+          <span className="text-[11.5px] text-[var(--muted)]">
+            {showing && showing.n >= showing.total
+              ? "Last reminder"
+              : showing
+                ? `Reminder ${showing.n} of ${showing.total}`
+                : ""}
+          </span>
           <button
             type="button"
             onClick={dismiss}

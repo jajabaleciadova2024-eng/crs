@@ -150,6 +150,10 @@ export interface AnnouncementSeen {
   announcement_id: string;
   profile_id: string;
   seen_at: string;
+  /** How many separate logins the modal has been shown on. Stops at 3. */
+  view_count: number;
+  /** auth.users.last_sign_in_at of the login the last showing was counted against. */
+  last_shown_login: string | null;
 }
 
 export type TicketStatus = "open" | "closed";
