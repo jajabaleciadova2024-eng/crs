@@ -6,6 +6,7 @@ import { Panel, Pill } from "@/components/ui";
 import PasswordCountdown from "@/components/PasswordCountdown";
 import { expiryState, expiryFrom, daysRemaining } from "@/lib/passwordExpiry";
 import ProofLink from "./ProofLink";
+import ProofImage from "./ProofImage";
 
 export type OversightRow = {
   profileId: string;
@@ -123,11 +124,19 @@ export default function CredentialOversight({
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)] whitespace-nowrap">
                   {exp ? exp.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
                 </td>
-                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
-                  {r.mfa ? <span className="text-[var(--good)]">✓</span> : <Pill tone="bad">Missing</Pill>}
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
+                  {r.mfa ? (
+                    <ProofImage kind="mfa" profileId={r.profileId} label="✓ View" />
+                  ) : (
+                    <Pill tone="bad">Missing</Pill>
+                  )}
                 </td>
-                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
-                  {r.passkey ? <span className="text-[var(--good)]">✓</span> : <Pill tone="bad">Missing</Pill>}
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
+                  {r.passkey ? (
+                    <ProofImage kind="passkey" profileId={r.profileId} label="✓ View" />
+                  ) : (
+                    <Pill tone="warn">None</Pill>
+                  )}
                 </td>
                 {!readOnly && (
                   <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
@@ -163,12 +172,20 @@ export default function CredentialOversight({
                           {r.pendingHasProof && <ProofLink resetId={r.pendingResetId} />}
                           <button
                             type="button"
-                            disabled={busy === r.pendingResetId}
+                            disabled={busy === r.pendingResetId || !r.mfa}
                             onClick={() => review(r.pendingResetId!, "approved")}
-                            className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 cursor-pointer disabled:opacity-50"
+                            title={
+                              r.mfa
+                                ? "Confirm the reset and restart their 60 days"
+                                : "No MFA screenshot on file — they must upload it first"
+                            }
+                            className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             Confirm
                           </button>
+                          {!r.mfa && (
+                            <span className="text-[10.5px] text-[var(--bad)] font-semibold">MFA missing</span>
+                          )}
                           <button
                             type="button"
                             onClick={() => { setRejecting(r.pendingResetId); setNote(""); }}
@@ -228,7 +245,7 @@ export default function CredentialOversight({
     <Panel
       title="Everyone's expiry"
       hint={`${atRisk} at risk · ${awaiting} awaiting confirmation`}
-      footnote="Confirming a reset restarts that member's 60 days from the date they reported, not from when you confirmed it. Members with no baseline are treated as blocking until you set one."
+      footnote="Confirming a reset restarts that member's 60 days from the date they reported, not from when you confirmed it. A reset cannot be confirmed until the member has an MFA screenshot on file; a missing passkey is flagged but never blocks. Members with no baseline are treated as blocking until you set one."
     >
       {error && (
         <p role="alert" className="text-[12.5px] text-[var(--bad)] mb-2">

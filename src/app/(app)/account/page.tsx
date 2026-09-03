@@ -40,8 +40,8 @@ export default async function AccountPage() {
       name: formatFullName(m.first_name, m.last_name),
       role: m.role,
       lastResetAt: st?.last_reset_at ?? null,
-      mfa: !!st?.mfa_configured,
-      passkey: !!st?.passkey_configured,
+      mfa: !!st?.mfa_proof_path,
+      passkey: !!st?.passkey_proof_path,
       pendingResetId: pending?.id ?? null,
       pendingResetAt: pending?.reset_at ?? null,
       pendingHasProof: !!pending?.proof_path,
@@ -57,8 +57,8 @@ export default async function AccountPage() {
 
       <MyCredentialPanel
         lastResetAt={mine?.last_reset_at ?? null}
-        mfa={!!mine?.mfa_configured}
-        passkey={!!mine?.passkey_configured}
+        mfaProof={!!mine?.mfa_proof_path}
+        passkeyProof={!!mine?.passkey_proof_path}
         pending={myPending ? { id: myPending.id, resetAt: myPending.reset_at } : null}
         history={myHistory.map((r: any) => ({
           id: r.id,

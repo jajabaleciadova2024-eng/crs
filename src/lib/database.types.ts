@@ -277,8 +277,12 @@ export interface CredentialStatus {
   last_reset_at: string | null;
   mfa_configured: boolean;
   mfa_confirmed_at: string | null;
+  // MFA proof is mandatory: no path here means no reset can be reported or
+  // confirmed. The passkey proof is wanted but never gates anything.
+  mfa_proof_path: string | null;
   passkey_configured: boolean;
   passkey_confirmed_at: string | null;
+  passkey_proof_path: string | null;
   updated_at: string;
 }
 

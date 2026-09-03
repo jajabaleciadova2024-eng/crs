@@ -41,6 +41,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That reset has already been reviewed." }, { status: 400 });
   }
 
+  // Confirming without MFA evidence would restart the clock on an account
+  // that is not compliant, which is the one thing this must never do. A
+  // missing PASSKEY is deliberately not a gate — wanted, but not required.
+  if (status === "approved") {
+    const { data: cred } = await admin
+      .from("credential_status")
+      .select("mfa_proof_path")
+      .eq("profile_id", reset.profile_id)
+      .maybeSingle();
+    if (!cred?.mfa_proof_path) {
+      return NextResponse.json(
+        { error: "This member has no MFA screenshot on file — it must be uploaded before you can confirm." },
+        { status: 400 },
+      );
+    }
+  }
+
   const { error } = await admin
     .from("password_resets")
     .update({ status, review_note, reviewed_by: user.id, reviewed_at: new Date().toISOString() })

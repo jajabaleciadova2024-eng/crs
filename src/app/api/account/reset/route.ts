@@ -42,6 +42,21 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
+  // MFA proof is a hard prerequisite. The button is hidden without it, but
+  // this is the half that actually holds: a reset reported by someone with
+  // no MFA on file would restart a 60-day clock on a non-compliant account.
+  const { data: cred } = await admin
+    .from("credential_status")
+    .select("mfa_proof_path")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  if (!cred?.mfa_proof_path) {
+    return NextResponse.json(
+      { error: "Upload your MFA screenshot before reporting a password reset." },
+      { status: 400 },
+    );
+  }
+
   // One open claim at a time — a second submission while the first is still
   // being reviewed just gives the Team Leader two of the same thing to judge.
   const { data: open } = await admin

@@ -6,6 +6,7 @@ import { Panel, Pill } from "@/components/ui";
 import PasswordCountdown from "@/components/PasswordCountdown";
 import { expiryState, expiryFrom, BLOCK_WITHIN_DAYS } from "@/lib/passwordExpiry";
 import ProofLink from "./ProofLink";
+import CredentialProofRow from "./CredentialProofRow";
 
 type Reset = { id: string; resetAt: string; status: string; reviewNote: string | null; hasProof: boolean };
 
@@ -22,14 +23,14 @@ const BANNER: Record<string, { text: string; tone: "good" | "warn" | "bad" }> = 
 
 export default function MyCredentialPanel({
   lastResetAt,
-  mfa,
-  passkey,
+  mfaProof,
+  passkeyProof,
   pending,
   history,
 }: {
   lastResetAt: string | null;
-  mfa: boolean;
-  passkey: boolean;
+  mfaProof: boolean;
+  passkeyProof: boolean;
   pending: { id: string; resetAt: string } | null;
   history: Reset[];
 }) {
@@ -53,6 +54,10 @@ export default function MyCredentialPanel({
   }
 
   async function submit() {
+    if (!mfaProof) {
+      setError("Upload your MFA screenshot first — it's required before you can report a reset.");
+      return;
+    }
     if (!proof) {
       setError("Attach a screenshot showing the reset.");
       return;
@@ -71,17 +76,6 @@ export default function MyCredentialPanel({
     if (preview) URL.revokeObjectURL(preview);
     setProof(null);
     setPreview(null);
-    router.refresh();
-  }
-
-  async function setFlag(which: "mfa_configured" | "passkey_configured", value: boolean) {
-    setBusy(true);
-    await fetch("/api/account/flags", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [which]: value }),
-    });
-    setBusy(false);
     router.refresh();
   }
 
@@ -127,28 +121,27 @@ export default function MyCredentialPanel({
           {banner.text}
         </div>
 
-        {/* MFA / passkey — both mandatory, MFA first. */}
-        <div className="flex flex-col gap-2">
-          <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">
+        {/* MFA / passkey. Uploading the screenshot is what marks it done —
+            a checkbox anyone can tick proves nothing, and MFA has to be
+            evidenced because it gates the whole reset flow below. */}
+        <div className="flex flex-col gap-1 border-t border-[var(--line)] pt-3.5">
+          <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">
             Required setup
           </div>
-          {[
-            { key: "mfa_configured" as const, label: "MFA configured", val: mfa, order: "1st priority" },
-            { key: "passkey_configured" as const, label: "Passkey configured", val: passkey, order: "2nd priority" },
-          ].map((f) => (
-            <label key={f.key} className="flex items-center gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={f.val}
-                disabled={busy}
-                onChange={(e) => setFlag(f.key, e.target.checked)}
-                className="w-4 h-4 shrink-0 accent-[var(--accent)] cursor-pointer"
-              />
-              <span className="text-[12.5px] text-[var(--ink)] font-medium">{f.label}</span>
-              <span className="text-[11px] text-[var(--muted)]">{f.order}</span>
-              {!f.val && <Pill tone="bad">Required</Pill>}
-            </label>
-          ))}
+          <CredentialProofRow
+            kind="mfa"
+            label="MFA"
+            priority="1st priority · required"
+            required
+            hasProof={mfaProof}
+          />
+          <CredentialProofRow
+            kind="passkey"
+            label="Passkey"
+            priority="2nd priority · recommended"
+            required={false}
+            hasProof={passkeyProof}
+          />
         </div>
 
         {/* Reset claim */}
@@ -167,6 +160,11 @@ export default function MyCredentialPanel({
               <div className="text-[12.5px] font-semibold text-[var(--ink)]">
                 Reset your password on the platform, then report it here
               </div>
+              {!mfaProof && (
+                <div className="text-[12px] text-[var(--bad)] font-semibold">
+                  MFA screenshot required before you can report a reset.
+                </div>
+              )}
               <input
                 ref={fileRef}
                 type="file"
@@ -215,7 +213,8 @@ export default function MyCredentialPanel({
                 <button
                   type="button"
                   onClick={submit}
-                  disabled={busy || !proof}
+                  disabled={busy || !proof || !mfaProof}
+                  title={mfaProof ? undefined : "Upload your MFA screenshot first"}
                   className="px-3 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {busy ? "Submitting…" : "Password Reset Complete"}
