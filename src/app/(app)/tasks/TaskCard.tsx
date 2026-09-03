@@ -61,19 +61,30 @@ export default function TaskCard({
   const [declining, setDeclining] = useState<string | null>(null);
   const [declineNote, setDeclineNote] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Photo-proof flow: the member picks a file, sees what they picked, and
+  // then submits deliberately. Nothing is uploaded until they press Submit.
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function choosePhoto(file: File) {
+    // Revoke the previous object URL before replacing it, or each re-pick
+    // leaks a blob for the lifetime of the page.
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhoto(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setSubmitError(null);
+  }
+
+  function clearPhoto() {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhoto(null);
+    setPhotoPreview(null);
+  }
   const blocking = isTaskBlockingToday(task);
   const isDone = task.completionStatus === "approved";
 
   async function handleSubmit(photo?: File) {
-    // A photo-required task can't be submitted from the checkbox alone —
-    // clicking it opens the file picker, and the real submit happens once a
-    // file comes back.
-    if (task.requires_photo && !photo) {
-      fileInputRef.current?.click();
-      return;
-    }
-
     setToggling(true);
     setSubmitError(null);
 
@@ -97,6 +108,7 @@ export default function TaskCard({
       return;
     }
     setToggling(false);
+    clearPhoto();
     router.refresh();
   }
 
@@ -139,6 +151,12 @@ export default function TaskCard({
 
   // For non-TL: checkbox behavior based on status
   const canUndo = !canManage && task.completionStatus === "pending";
+  // A photo is still outstanding: this task wants one, and the member hasn't
+  // submitted yet (a decline puts them back in this state).
+  const needsPhoto =
+    !canManage &&
+    !!task.requires_photo &&
+    (task.completionStatus === "none" || task.completionStatus === "rejected");
 
   return (
     <div
@@ -152,7 +170,7 @@ export default function TaskCard({
           <button
             type="button"
             onClick={canUndo ? handleUndo : () => handleSubmit()}
-            disabled={toggling || isDone}
+            disabled={toggling || isDone || (needsPhoto && !canUndo)}
             className="mt-0.5 shrink-0 w-5 h-5 rounded border-2 border-[var(--line)] flex items-center justify-center cursor-pointer hover:border-[var(--accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={
               task.completionStatus === "pending"
@@ -166,9 +184,11 @@ export default function TaskCard({
                 ? "Approved — complete"
                 : task.completionStatus === "pending"
                   ? "Pending approval — click to undo"
-                  : task.completionStatus === "rejected"
-                    ? "Rejected — click to re-submit"
-                    : "Mark as complete"
+                  : needsPhoto
+                    ? "Attach the required photo below to complete this task"
+                    : task.completionStatus === "rejected"
+                      ? "Rejected — click to re-submit"
+                      : "Mark as complete"
             }
           >
             {(task.completionStatus === "pending" || isDone) && (
@@ -190,6 +210,7 @@ export default function TaskCard({
               <Pill tone="muted">{assigneeName ?? "Individual"}</Pill>
             )}
             {blocking && !isDone && <Pill tone="warn">Blocking</Pill>}
+            {task.requires_photo && <Pill tone="muted">Photo required</Pill>}
             {STATUS_PILL[task.completionStatus] && (
               <Pill tone={STATUS_PILL[task.completionStatus]!.tone}>
                 {STATUS_PILL[task.completionStatus]!.label}
@@ -198,7 +219,9 @@ export default function TaskCard({
           </div>
 
           {task.description && (
-            <p className="text-[12.5px] text-[var(--muted)] mt-1 leading-relaxed">{task.description}</p>
+            <p className="text-[12.5px] text-[var(--muted)] mt-1 leading-relaxed whitespace-pre-wrap break-words">
+              {task.description}
+            </p>
           )}
 
           <div className="flex items-center gap-3 mt-1.5 text-[11px] text-[var(--muted)]">
@@ -211,24 +234,76 @@ export default function TaskCard({
             {!task.deadline && (
               <span>No deadline — blocks until done</span>
             )}
-            {task.requires_photo && <span>Photo required</span>}
             {task.requires_approval === false && <span>No approval needed</span>}
           </div>
 
-          {/* Photo-required submit. The checkbox opens this picker; picking a
-              file is what actually submits. */}
-          {!canManage && task.requires_photo && (
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (f) handleSubmit(f);
-              }}
-            />
+          {/* Photo proof. Deliberately a visible panel rather than a picker
+              that springs out of the checkbox: the member sees that a photo
+              is wanted, what they picked, and submits on purpose. Nothing
+              uploads until they press Submit. */}
+          {needsPhoto && (
+            <div className="mt-2.5 rounded-lg border border-dashed border-[var(--line)] bg-[var(--paper)]/60 px-3 py-2.5">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (f) choosePhoto(f);
+                }}
+              />
+
+              {!photo ? (
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="text-[12px] text-[var(--muted)] flex-1 min-w-[140px]">
+                    This task needs a photo as proof.
+                  </span>
+                  <Button type="button" onClick={() => fileInputRef.current?.click()}>
+                    📷 Choose photo
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  <div className="flex items-center gap-2.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photoPreview ?? ""}
+                      alt=""
+                      className="w-12 h-12 rounded object-cover border border-[var(--line)] shrink-0"
+                    />
+                    <span className="text-[12px] text-[var(--ink)] truncate flex-1 min-w-0">{photo.name}</span>
+                    <button
+                      type="button"
+                      onClick={clearPhoto}
+                      disabled={toggling}
+                      className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      disabled={toggling}
+                      onClick={() => handleSubmit(photo)}
+                    >
+                      {toggling ? "Submitting…" : "Submit for approval"}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={toggling}
+                      className="text-[11.5px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
+                    >
+                      Choose a different photo
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* The member's own view of a decline — the reason, and what to do
