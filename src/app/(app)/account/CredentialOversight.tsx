@@ -263,7 +263,7 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
     <Panel
       title="Everyone's expiry"
       hint={awaiting > 0 ? `${awaiting} awaiting your confirmation · ${atRisk} at risk` : `${atRisk} at risk`}
-      footnote="Confirming a reset restarts that member's 60 days from the date they reported, not from when you confirmed it. A reset cannot be confirmed until you have VERIFIED that member's MFA screenshot — uploading one is not enough, and replacing a verified screenshot sends it back for checking. A missing or unverified passkey is flagged but never blocks. Members with no baseline are treated as blocking until you set one."
+      footnote="Proof of a reset is a screenshot of the platform's Security info \u203a Password \u203a Last updated — check its date against the one the member entered before confirming. Confirming restarts that member's 60 days from the date they reported, not from when you confirmed it. A reset cannot be confirmed until you have VERIFIED that member's MFA screenshot — uploading one is not enough, and replacing a verified screenshot sends it back for checking. A missing or unverified passkey is flagged but never blocks. Members with no baseline are treated as blocking until you set one."
     >
       {error && (
         <p role="alert" className="text-[12.5px] text-[var(--bad)] mb-2">

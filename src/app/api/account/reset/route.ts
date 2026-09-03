@@ -6,8 +6,10 @@ import { bellNotify } from "@/lib/bellNotify";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
-// A member declaring "I have reset my password", attaching the platform's
-// confirmation email as proof.
+// A member declaring "I have reset my password", attaching a screenshot of
+// the platform's own Security info > Password > "Last updated" as proof —
+// that page is authoritative, carries the timestamp, and is always in the
+// same place, which a confirmation email is not.
 // This does NOT restart the countdown — only the Team Leader's confirmation
 // does (see ../review). A claim is a claim until somebody checks it.
 export async function POST(request: Request) {
@@ -22,7 +24,10 @@ export async function POST(request: Request) {
   const resetAtRaw = (form.get("reset_at") as string) || "";
 
   if (!(proof instanceof File) || proof.size === 0) {
-    return NextResponse.json({ error: "Attach the email confirmation of the reset." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Attach a screenshot of Security info > Password > Last updated." },
+      { status: 400 },
+    );
   }
   if (proof.size > MAX_BYTES) {
     return NextResponse.json({ error: "That file is too large (10MB max)." }, { status: 400 });

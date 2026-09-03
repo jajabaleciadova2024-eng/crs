@@ -85,7 +85,7 @@ export default function MyCredentialPanel({
       : !mfaVerified
         ? "Your MFA screenshot is waiting on the Team Leader to verify it"
         : null,
-    !proof ? "Attach the email confirmation of the reset" : null,
+    !proof ? "Attach your \"Last updated\" screenshot" : null,
   ].filter(Boolean) as string[];
 
   function choose(f: File) {
@@ -105,7 +105,7 @@ export default function MyCredentialPanel({
       return;
     }
     if (!proof) {
-      setError("Attach the email confirmation of the reset.");
+      setError("Attach a screenshot of Security info › Password › Last updated.");
       return;
     }
     setBusy(true);
@@ -228,7 +228,12 @@ export default function MyCredentialPanel({
                   Reset your password on the platform, then report it here
                 </div>
                 <p className="text-[11.5px] text-[var(--muted)] m-0 mt-0.5 leading-snug">
-                  Your countdown restarts once the Team Leader confirms it — not when you submit.
+                  For proof, screenshot{" "}
+                  <span className="text-[var(--ink)] font-semibold">
+                    Security info › Password › Last updated
+                  </span>{" "}
+                  showing the new date. Your countdown restarts once the Team Leader confirms it — not
+                  when you submit.
                 </p>
               </div>
 
@@ -263,11 +268,14 @@ export default function MyCredentialPanel({
                     onChange={(e) => setResetDate(e.target.value)}
                     className="px-2.5 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[12.5px] text-[var(--ink)]"
                   />
+                  <span className="block text-[10.5px] text-[var(--muted)] mt-1">
+                    Must match the screenshot
+                  </span>
                 </div>
 
                 <div className="min-w-0">
                   <span className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">
-                    Proof
+                    Proof — &quot;Last updated&quot; screenshot
                   </span>
                   {proof ? (
                     <span className="flex items-center gap-2">
@@ -303,7 +311,7 @@ export default function MyCredentialPanel({
                       onClick={() => fileRef.current?.click()}
                       className="px-2.5 py-1.5 rounded-md text-[12px] font-bold border border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      Email Confirmation
+                      Upload screenshot
                     </button>
                   )}
                 </div>
