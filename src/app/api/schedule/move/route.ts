@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bellNotify } from "@/lib/bellNotify";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
@@ -104,6 +105,13 @@ export async function POST(request: Request) {
 
     revalidatePath("/");
     revalidatePath("/schedule");
+
+    // The person who moved needs to know: turning up at the old window
+
+    // is exactly what happens otherwise.
+
+    if (current?.associate_id) await bellNotify([current.associate_id], user.id, "schedule_changed");
+
 
     return NextResponse.json({ ok: true });
   } catch (err) {

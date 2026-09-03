@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bellNotify } from "@/lib/bellNotify";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { canManageOperations } from "@/lib/auth";
@@ -129,6 +130,21 @@ export async function POST(request: Request) {
 
     revalidatePath("/");
     revalidatePath("/schedule");
+
+    // Everyone whose seat moved: the person leaving it, whoever was displaced
+
+    // and the person taking it. bellNotify dedupes and drops the actor.
+
+    await bellNotify(
+
+      [current?.associate_id, associate_id].filter(Boolean) as string[],
+
+      user.id,
+
+      "schedule_changed",
+
+    );
+
 
     return NextResponse.json({ ok: true });
   } catch (err) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { uploadLeaveDocument, getLeaveDocumentLinks } from "@/lib/documentStorage";
+import { bellNotify, approverIds } from "@/lib/bellNotify";
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
@@ -57,6 +58,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .from("leave_requests")
     .update({ document_path: path, document_uploaded_at: new Date().toISOString() })
     .eq("id", id);
+
+  // A pre-approved leave type cannot be approved without this document, so
+  // its arrival is the event the approvers are actually waiting on.
+  await bellNotify(await approverIds(), result.user.id, "leave_updated");
 
   return NextResponse.json({ ok: true });
 }

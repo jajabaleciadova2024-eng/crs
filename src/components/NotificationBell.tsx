@@ -13,7 +13,7 @@ type Notification = {
   type:
     | "post_reaction" | "post_comment" | "comment_mention" | "announcement"
     | "ticket_new" | "ticket_reply"
-    | "task_submitted" | "task_reviewed" | "task_assigned" | "task_poke" | "password_reset_submitted" | "password_reset_reviewed" | "password_expiring"
+    | "task_submitted" | "task_reviewed" | "task_assigned" | "task_poke" | "password_reset_submitted" | "password_reset_reviewed" | "password_expiring" | "schedule_changed" | "leave_updated" | "credential_proof_submitted"
     | "leave_submitted" | "leave_reviewed" | "schedule_published"
     | "post_new";
   post_id: string | null;
@@ -63,6 +63,9 @@ function describe(n: Notification): string {
   if (n.type === "password_reset_submitted") return `${name} reported a password reset`;
   if (n.type === "password_reset_reviewed") return `${name} reviewed your password reset`;
   if (n.type === "password_expiring") return `Your password is expiring soon`;
+  if (n.type === "schedule_changed") return `${name} changed your station assignment`;
+  if (n.type === "leave_updated") return `${name} updated a leave request`;
+  if (n.type === "credential_proof_submitted") return `${name} uploaded a security screenshot to verify`;
   if (n.type === "task_assigned") return `${name} assigned you a new task`;
   if (n.type === "leave_submitted") return `${name} filed a leave request`;
   if (n.type === "leave_reviewed") return `${name} reviewed your leave request`;
@@ -235,7 +238,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
               items.map((n) => (
                 <Link
                   key={n.id}
-                  href={n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" || n.type === "task_poke" ? "/tasks" : n.type === "password_reset_submitted" || n.type === "password_reset_reviewed" || n.type === "password_expiring" ? "/account" : n.type === "leave_submitted" || n.type === "leave_reviewed" ? "/leave" : n.type === "schedule_published" ? "/schedule" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
+                  href={n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" || n.type === "task_poke" ? "/tasks" : n.type === "password_reset_submitted" || n.type === "password_reset_reviewed" || n.type === "password_expiring" || n.type === "credential_proof_submitted" ? "/account" : n.type === "leave_submitted" || n.type === "leave_reviewed" || n.type === "leave_updated" ? "/leave" : n.type === "schedule_published" || n.type === "schedule_changed" ? "/schedule" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
                   onClick={() => {
                     if (!n.read) markOneRead(n.id);
                     setOpen(false);
@@ -244,17 +247,21 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     !n.read ? "bg-[var(--accent-soft)]/15" : ""
                   }`}
                 >
-                  {n.type === "schedule_published" ? (
+                  {n.type === "schedule_published" || n.type === "schedule_changed" ? (
                     <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-sm shrink-0">
                       🗓️
                     </span>
-                  ) : n.type === "leave_submitted" || n.type === "leave_reviewed" ? (
+                  ) : n.type === "leave_submitted" || n.type === "leave_reviewed" || n.type === "leave_updated" ? (
                     <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-sm shrink-0">
                       📝
                     </span>
                   ) : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" || n.type === "task_poke" ? (
                     <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-sm shrink-0">
                       ✅
+                    </span>
+                  ) : n.type === "password_expiring" ? (
+                    <span className="w-8 h-8 rounded-full bg-[var(--bad-soft)] text-[var(--bad)] flex items-center justify-center text-sm shrink-0">
+                      🔐
                     </span>
                   ) : n.type === "ticket_new" || n.type === "ticket_reply" ? (
                     <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-sm shrink-0">

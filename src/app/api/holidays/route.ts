@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireProfile, canManageOperations } from "@/lib/auth";
+import { bellNotify } from "@/lib/bellNotify";
 
 // GET — list holidays (optional ?year=YYYY filter)
 export async function GET(request: Request) {
@@ -38,9 +39,19 @@ export async function POST(request: Request) {
   // Clear any existing assignments and break assignments on this date —
   // a holiday overrides whatever was generated. Admin client bypasses RLS.
   const admin = createAdminClient();
+  // Who is about to lose a shift — read before deleting, or there is nobody
+  // left to tell. Their schedule for that day simply vanishes otherwise.
+  const { data: affected } = await admin
+    .from("assignments")
+    .select("associate_id")
+    .eq("assignment_date", date);
+
   // Delete breaks first (they reference assignments via window_id + date).
   await admin.from("break_assignments").delete().eq("assignment_date", date);
   await admin.from("assignments").delete().eq("assignment_date", date);
+
+  const cleared = [...new Set((affected ?? []).map((a: { associate_id: string }) => a.associate_id))];
+  if (cleared.length > 0) await bellNotify(cleared, profile.id, "schedule_changed");
 
   revalidatePath("/schedule");
   revalidatePath("/");

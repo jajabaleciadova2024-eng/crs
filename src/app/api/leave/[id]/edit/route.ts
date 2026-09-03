@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bellNotify, approverIds } from "@/lib/bellNotify";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasVacationConflict, recomputeVacationConflicts } from "@/lib/leaveConflict";
@@ -92,6 +93,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // edited, or newly create one for some OTHER pending request — recompute
   // everyone's flag, not just this one.
   await recomputeVacationConflicts();
+
+  // Dates or reason changed under a reviewer who may already be
+
+  // looking at the old version.
+
+  await bellNotify(await approverIds(), user.id, "leave_updated");
+
 
   return NextResponse.json({ ok: true, flagged_conflict: flaggedConflict });
 }

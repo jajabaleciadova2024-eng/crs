@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { uploadResetProof, getResetProofUrl, deleteResetProof } from "@/lib/credentialStorage";
+import { bellNotify } from "@/lib/bellNotify";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const KINDS = ["mfa", "passkey"] as const;
@@ -78,6 +79,24 @@ export async function POST(request: Request) {
     console.error("[credential-proof] upsert failed:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // A member's proof needs the Team Leader to verify it, and an unverified
+  // MFA proof blocks that member's next reset — so it is work with a
+  // deadline attached, not just a file appearing. Self-verified uploads by
+  // the Team Leader have nothing to announce.
+  if (!selfVerifies) {
+    const { data: leaders } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("role", "team_leader")
+      .eq("is_active", true);
+    await bellNotify(
+      (leaders ?? []).map((l: { id: string }) => l.id),
+      user.id,
+      "credential_proof_submitted",
+    );
+  }
+
   return NextResponse.json({ ok: true });
 }
 
