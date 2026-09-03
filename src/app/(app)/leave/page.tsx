@@ -7,6 +7,7 @@ import LeaveRequestForm from "./LeaveRequestForm";
 import LeaveQueueTable from "./LeaveQueueTable";
 import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
 import { countBlockingTasks } from "@/lib/taskBlockingServer";
+import { credentialBlock } from "@/lib/passwordBlockingServer";
 
 export default async function LeavePage() {
   const profile = await requireProfile();
@@ -28,6 +29,9 @@ export default async function LeavePage() {
   // they are never gated. The API enforces this too — hiding the form is
   // only the visible half (see /api/leave POST).
   const blockingTaskCount = canFile ? await countBlockingTasks(profile.id) : 0;
+  // An expiring password locks filing the same way an outstanding task does.
+  const credential = canFile ? await credentialBlock(profile.id) : { blocking: false, lastResetAt: null };
+  const fileLocked = blockingTaskCount > 0 || credential.blocking;
 
   // The Queue mirrors History in every way except its time window: pending
   // requests always show here, but decided (approved/rejected) ones only
@@ -105,24 +109,30 @@ export default async function LeavePage() {
       />
 
       <div className="grid grid-cols-1">
-        {canFile && blockingTaskCount > 0 && (
+        {canFile && fileLocked && (
           <Panel title="File a request">
             <div className="flex flex-col items-start gap-2 py-1">
               <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--ink)]">
                 <span>🔒</span>
                 <span>
-                  Filing is locked — {blockingTaskCount} task{blockingTaskCount !== 1 ? "s" : ""} pending
+                  {credential.blocking
+                    ? "Filing is locked — your password needs resetting"
+                    : `Filing is locked — ${blockingTaskCount} task${blockingTaskCount !== 1 ? "s" : ""} pending`}
                 </span>
               </div>
               <p className="text-[12.5px] text-[var(--muted)] m-0 leading-snug">
-                Complete your assigned task{blockingTaskCount !== 1 ? "s" : ""} and wait for the Team Leader to
-                approve them. Requests you have already filed are unaffected and still show in the Queue below.
+                {credential.blocking
+                  ? "Reset your password on the platform and report it on Account Security, then wait for the Team Leader to confirm it."
+                  : `Complete your assigned task${blockingTaskCount !== 1 ? "s" : ""} and wait for the Team Leader to approve them.`}{" "}
+                Requests you have already filed are unaffected and still show in the Queue below.
               </p>
-              <Button href="/tasks">Go to my tasks →</Button>
+              <Button href={credential.blocking ? "/account" : "/tasks"}>
+                {credential.blocking ? "Go to Account Security →" : "Go to my tasks →"}
+              </Button>
             </div>
           </Panel>
         )}
-        {canFile && blockingTaskCount === 0 && (
+        {canFile && !fileLocked && (
           <Panel title="File a request">
             <LeaveRequestForm leaveTypeConfigs={leaveTypeConfigs} requireReason={orgSettings?.require_leave_reason ?? true} />
           </Panel>

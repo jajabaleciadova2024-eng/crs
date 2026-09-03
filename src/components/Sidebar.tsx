@@ -137,6 +137,17 @@ const REQUESTS_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: "/account",
+    label: "Account Security",
+    icon: (
+      <Icon>
+        <rect x="4" y="10.5" width="16" height="10" rx="2" />
+        <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+        <circle cx="12" cy="15.5" r="1.2" />
+      </Icon>
+    ),
+  },
+  {
     href: "/concerns",
     label: "Concerns",
     icon: (

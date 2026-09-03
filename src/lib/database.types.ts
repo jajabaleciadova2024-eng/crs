@@ -271,6 +271,32 @@ export interface Holiday {
   created_at: string;
 }
 
+export interface CredentialStatus {
+  profile_id: string;
+  // Null until a reset is confirmed, or a baseline is seeded by the TL.
+  last_reset_at: string | null;
+  mfa_configured: boolean;
+  mfa_confirmed_at: string | null;
+  passkey_configured: boolean;
+  passkey_confirmed_at: string | null;
+  updated_at: string;
+}
+
+export type PasswordResetStatus = "pending" | "approved" | "rejected";
+
+export interface PasswordReset {
+  id: string;
+  profile_id: string;
+  submitted_at: string;
+  // When the member says the reset happened; the 60 days run from here.
+  reset_at: string;
+  proof_path: string | null;
+  status: PasswordResetStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+}
+
 export interface Database {
   public: {
     Tables: {

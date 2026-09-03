@@ -14,7 +14,10 @@ export type BellType =
   | "leave_reviewed"
   | "schedule_published"
   | "post_new"
-  | "task_poke";
+  | "task_poke"
+  | "password_reset_submitted"
+  | "password_reset_reviewed"
+  | "password_expiring";
 
 export async function bellNotify(
   recipientIds: string[],

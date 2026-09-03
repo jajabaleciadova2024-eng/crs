@@ -9,6 +9,9 @@ import { Panel, Pill, Card, PageHeader } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed, addDays, nextWorkday, weekdayLongLabel } from "@/lib/scheduleDates";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
+import { credentialBlock } from "@/lib/passwordBlockingServer";
+import PasswordCountdown from "@/components/PasswordCountdown";
+import { expiryState } from "@/lib/passwordExpiry";
 import { BREAK_SLOT_LABEL, type BreakSlot } from "@/lib/breakTime";
 import { holidayDateSet, holidaysInRange } from "@/lib/holidays";
 import { toTitleCase, formatFullName } from "@/lib/format";
@@ -195,6 +198,11 @@ export default async function DashboardPage() {
     ).length;
   }
 
+  // Password countdown — shown to everyone, Team Leader included: their own
+  // account expires exactly like anybody else's.
+  const credential = await credentialBlock(profile.id);
+  const credState = expiryState(credential.lastResetAt);
+
   const tomorrowRevealed = isTomorrowRevealed();
 
   // Break slots for both lines of the station card — today's, and the next
@@ -293,6 +301,38 @@ export default async function DashboardPage() {
           profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-4"
         } gap-3 mb-4`}
       >
+        {/* Password countdown. Deliberately first and always present — rule 1
+            on the floor is that nobody's password lapses, and a number you
+            have to go looking for is a number nobody looks at. */}
+        <a
+          href="/account"
+          className="border rounded-xl bg-[var(--paper-raised)] p-3.5 hover:border-[var(--accent)] transition-colors block"
+          style={{
+            borderColor:
+              credState === "expired" || credState === "blocking" || credState === "unset"
+                ? "var(--bad)"
+                : credState === "warning"
+                  ? "var(--warn)"
+                  : "var(--line)",
+          }}
+        >
+          <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">
+            Password expires in
+          </div>
+          <PasswordCountdown lastResetAt={credential.lastResetAt} size="md" />
+          <div className="text-[10px] text-[var(--muted)] mt-1 font-mono tracking-tight">DD:HH:MM:SS</div>
+          <div className="text-[11.5px] mt-1.5 leading-snug text-[var(--muted)]">
+            {credState === "unset"
+              ? "No baseline set — ask your TL"
+              : credState === "expired"
+                ? "Expired — reset it now"
+                : credState === "blocking"
+                  ? "Schedule locked until reset"
+                  : credState === "warning"
+                    ? "Reset it soon"
+                    : "In good standing"}
+          </div>
+        </a>
         <Card label="Seats filled" value={`${stationsManned} / ${totalStations}`} sub={week ? "Today's coverage" : "No schedule published yet"} />
         {isRotatingRole && (
           <a

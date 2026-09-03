@@ -6,6 +6,7 @@ import { bellNotify, approverIds } from "@/lib/bellNotify";
 import { hasVacationConflict, recomputeVacationConflicts } from "@/lib/leaveConflict";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
 import { countBlockingTasks } from "@/lib/taskBlockingServer";
+import { credentialBlock } from "@/lib/passwordBlockingServer";
 
 // Files a leave request as the signed-in associate (insert respects the
 // existing "leave_requests_insert_own" RLS policy — no admin client for the
@@ -30,6 +31,13 @@ export async function POST(request: Request) {
   // Leader never files through this route, so the check costs them nothing.
   const { data: filerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (filerProfile && filerProfile.role !== "team_leader") {
+    const cred = await credentialBlock(user.id);
+    if (cred.blocking) {
+      return NextResponse.json(
+        { error: "Reset your password and have it confirmed before filing a leave request." },
+        { status: 403 },
+      );
+    }
     const blocking = await countBlockingTasks(user.id);
     if (blocking > 0) {
       return NextResponse.json(

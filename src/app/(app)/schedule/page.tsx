@@ -8,6 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Panel, Pill, Card, PageHeader, Button } from "@/components/ui";
 import TaskBlockBanner from "./TaskBlockBanner";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
+import { credentialBlock } from "@/lib/passwordBlockingServer";
 import ScheduleCell from "./ScheduleCell";
 import GenerateButton from "./GenerateButton";
 import ClearScheduleButton from "./ClearScheduleButton";
@@ -255,6 +256,14 @@ export default async function SchedulePage() {
   // Populated by the daily-reveal branch, which can partially unlock next
   // week (Friday afternoon reveals Monday).
   let nextWeekBlockedDatesEarly: Set<string> | null = null;
+  // Inside the last 5 days before the password expires (or already expired,
+  // or never baselined) the upcoming schedule locks, exactly as an
+  // outstanding task locks it. Rule 1 on the floor is that nobody's password
+  // is allowed to lapse, so this is the enforcement behind it.
+  const credential = canManage
+    ? { lastResetAt: null, blocking: false }
+    : await credentialBlock(profile.id);
+
   if (!canManage) {
     const admin = createAdminClient();
     const [{ data: myTasks }, { data: myCompletions }] = await Promise.all([
@@ -280,7 +289,7 @@ export default async function SchedulePage() {
       (t: { deadline: string | null; blocker_days_before: number }) => isTaskBlockingToday(t),
     ).length;
 
-    if (blockingTaskCount > 0) {
+    if (blockingTaskCount > 0 || credential.blocking) {
       // Block future dates: tomorrow and beyond in current week
       const currentWorkDates = workDatesForWeek(thisWeekStart);
       for (const d of currentWorkDates) {
@@ -389,6 +398,20 @@ export default async function SchedulePage() {
         </div>
       )}
 
+      {!canManage && credential.blocking && (
+        <div className="mb-4 rounded-lg border border-[var(--bad)]/40 bg-[var(--bad-soft)] px-4 py-3">
+          <div className="text-[13px] font-bold text-[var(--bad)]">
+            Password expiry is locking your upcoming schedule
+          </div>
+          <p className="text-[12.5px] text-[var(--ink)] m-0 mt-1 leading-snug">
+            Reset your password on the platform and report it on{" "}
+            <a href="/account" className="font-bold text-[var(--accent-strong)] hover:underline">
+              Account Security
+            </a>
+            . Your schedule unlocks once the Team Leader confirms it.
+          </p>
+        </div>
+      )}
       {!canManage && blockingTaskCount > 0 && (
         <div className="mb-4">
           <TaskBlockBanner taskCount={blockingTaskCount} />
