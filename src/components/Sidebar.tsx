@@ -314,6 +314,17 @@ export default function Sidebar({
           <span className="block text-[9.5px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)] mt-0.5">
             Field Operations
           </span>
+          {/* Build credit. Opens in its own tab — this sits in the sidebar of
+              a tool people are mid-task in, and taking over the tab would
+              lose whatever they were doing. */}
+          <a
+            href="https://hirejps.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-[9.5px] text-[var(--muted)] mt-1 hover:text-[var(--accent-strong)] transition-colors"
+          >
+            Developer: <span className="font-semibold">HireJPS.com</span>
+          </a>
         </div>
       </div>
 
