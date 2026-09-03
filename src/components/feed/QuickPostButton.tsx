@@ -85,7 +85,7 @@ export default function QuickPostButton({ mentionable }: { mentionable: Mentiona
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Write a post"
-        className="flex items-center gap-2 flex-1 min-w-0 max-w-[320px] text-left px-4 py-2 rounded-full bg-[var(--paper-raised)] border border-[var(--line)] text-[var(--muted)] text-[13px] hover:border-[var(--accent)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+        className="flex items-center gap-2 flex-1 min-w-[180px] max-w-[320px] text-left px-4 py-2 rounded-full bg-[var(--paper-raised)] border border-[var(--line)] text-[var(--muted)] text-[13px] hover:border-[var(--accent)] hover:text-[var(--ink)] transition-colors cursor-pointer"
         style={{ boxShadow: "var(--shadow-xs)" }}
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">

@@ -2,22 +2,30 @@ import { describe, expect, it } from "vitest";
 import { addMonths, buildLeaveDayMap, monthGridDates } from "./leaveCalendar";
 
 describe("monthGridDates", () => {
-  it("returns 42 dates covering the full month plus Monday-start padding", () => {
-    // Feb 2026 starts on a Sunday.
+  it("returns 42 dates covering the full month plus Sunday-start padding", () => {
+    // Feb 2026 starts on a Sunday, so no leading padding is needed.
     const dates = monthGridDates(2026, 2);
     expect(dates).toHaveLength(42);
-    // Grid starts on the Monday before Feb 1 (i.e. Jan 26).
-    expect(dates[0]).toBe("2026-01-26");
-    // Feb 1 (a Sunday) is the 7th cell, ending that first padded week.
-    expect(dates[6]).toBe("2026-02-01");
+    expect(dates[0]).toBe("2026-02-01");
+    expect(dates[6]).toBe("2026-02-07");
     // Feb has 28 days in 2026 (not a leap year).
     expect(dates).toContain("2026-02-28");
   });
 
-  it("starts on the month's own Monday when the 1st already falls on one", () => {
-    // June 2026 starts on a Monday.
+  it("pads back to the preceding Sunday when the 1st falls mid-week", () => {
+    // June 2026 starts on a Monday, so the grid opens on Sunday 31 May.
     const dates = monthGridDates(2026, 6);
-    expect(dates[0]).toBe("2026-06-01");
+    expect(dates[0]).toBe("2026-05-31");
+    expect(dates[1]).toBe("2026-06-01");
+  });
+
+  it("starts every month's grid on a Sunday, on every device", () => {
+    // The whole point of the Sunday-start rule: no month may open on any
+    // other weekday, whatever the viewer's locale would otherwise pick.
+    for (let m = 1; m <= 12; m++) {
+      const first = monthGridDates(2026, m)[0];
+      expect(new Date(`${first}T00:00:00Z`).getUTCDay()).toBe(0);
+    }
   });
 });
 

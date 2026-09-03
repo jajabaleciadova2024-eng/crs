@@ -310,7 +310,11 @@ export default async function DashboardPage() {
             lastName={profile.last_name}
             avatarUrl={profile.avatar_url}
           />
-          <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          {/* Wraps rather than crushing the composer. Between 768 and ~1000px
+              the sidebar takes 220px off the row and the composer, as the only
+              flexible item beside a shrink-0 name block, was squeezed to a
+              34px stub with its label truncated to nothing. */}
+          <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-4">
             <div className="min-w-0 shrink-0">
               <h1 className="font-serif text-lg sm:text-2xl md:text-[28px] m-0 tracking-tight truncate">
                 Good day, {toTitleCase(profile.first_name)}

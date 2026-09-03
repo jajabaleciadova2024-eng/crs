@@ -63,11 +63,15 @@ export default function UnseenAnnouncementModal() {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4 z-[60] animate-fade-in"
+      // items-start + my-auto, not items-center: a centred flex child that
+      // overflows its scroll container puts its own top ABOVE the scrollable
+      // area, so the header was clipped with no way to scroll up to it. On a
+      // phone in landscape 12px of this modal's top was unreachable.
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center overflow-y-auto px-4 py-4 z-[60] animate-fade-in"
       onClick={dismiss}
     >
       <div
-        className="w-full max-w-lg bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-scale-in"
+        className="w-full max-w-lg my-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-scale-in"
         style={{ boxShadow: "var(--shadow-lg)" }}
         onClick={(e) => e.stopPropagation()}
       >
