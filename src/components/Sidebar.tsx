@@ -115,6 +115,8 @@ const REQUESTS_ITEMS: NavItem[] = [
     href: "/tasks",
     label: "Members Tasks",
     badgeKey: "pendingTasks",
+    // /tasks/report is its own nav row — without this both light up.
+    exact: true,
     icon: (
       <Icon>
         <path d="M9 11l3 3L22 4" />
@@ -182,6 +184,17 @@ const MANAGEMENT_ITEMS: NavItem[] = [
         <path d="M3 3v5h5" />
         <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
         <path d="M12 7v5l4 2" />
+      </Icon>
+    ),
+  },
+  {
+    href: "/tasks/report",
+    label: "Task Report",
+    roles: ["team_leader", "oic"],
+    icon: (
+      <Icon>
+        <path d="M9 11l3 3L22 4" />
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
       </Icon>
     ),
   },

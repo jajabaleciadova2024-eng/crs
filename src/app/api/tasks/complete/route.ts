@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { uploadTaskPhoto, deleteTaskPhoto } from "@/lib/taskPhotoStorage";
+import { todayInManila } from "@/lib/scheduleDates";
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024; // 10MB
 
@@ -18,17 +19,22 @@ export async function POST(request: Request) {
   let task_id: string | undefined;
   let undo = false;
   let photo: File | null = null;
+  // The date the member says the work was actually done — distinct from
+  // completed_at, which is when they pressed submit.
+  let completion_date: string | null = null;
 
   if (request.headers.get("content-type")?.includes("multipart/form-data")) {
     const form = await request.formData();
     task_id = (form.get("task_id") as string) || undefined;
     undo = form.get("undo") === "true";
+    completion_date = (form.get("completion_date") as string) || null;
     const f = form.get("photo");
     if (f instanceof File && f.size > 0) photo = f;
   } else {
     const body = await request.json();
     task_id = body.task_id;
     undo = body.undo === true;
+    completion_date = body.completion_date || null;
   }
 
   if (!task_id) return NextResponse.json({ error: "task_id is required." }, { status: 400 });
@@ -44,7 +50,7 @@ export async function POST(request: Request) {
   // Verify the task exists and is assigned to this user (or all)
   const { data: task } = await admin
     .from("member_tasks")
-    .select("id, assign_to, title, requires_approval, requires_photo")
+    .select("id, assign_to, title, requires_approval, requires_photo, requires_completion_date")
     .eq("id", task_id)
     .single();
 
@@ -78,6 +84,18 @@ export async function POST(request: Request) {
     if (task.requires_photo && !photo) {
       return NextResponse.json({ error: "This task requires a photo as proof." }, { status: 400 });
     }
+    if (task.requires_completion_date && !completion_date) {
+      return NextResponse.json({ error: "Please give the date you completed this." }, { status: 400 });
+    }
+    if (completion_date) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(completion_date)) {
+        return NextResponse.json({ error: "Completion date is not a valid date." }, { status: 400 });
+      }
+      // A date in the future is a typo, not a completion.
+      if (completion_date > todayInManila()) {
+        return NextResponse.json({ error: "Completion date can't be in the future." }, { status: 400 });
+      }
+    }
 
     let photo_path: string | null = null;
     if (photo) {
@@ -102,6 +120,7 @@ export async function POST(request: Request) {
         task_id,
         profile_id: user.id,
         photo_path,
+        completion_date,
         status: autoApprove ? "approved" : "pending",
         completed_at: new Date().toISOString(),
         review_note: null,

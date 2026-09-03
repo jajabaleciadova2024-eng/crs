@@ -12,6 +12,7 @@ interface TaskForm {
   blocker_days_before: string;
   requires_approval: boolean;
   requires_photo: boolean;
+  requires_completion_date: boolean;
 }
 
 const EMPTY: TaskForm = {
@@ -22,6 +23,7 @@ const EMPTY: TaskForm = {
   blocker_days_before: "0",
   requires_approval: true,
   requires_photo: false,
+  requires_completion_date: false,
 };
 
 export default function TaskModal({
@@ -39,6 +41,7 @@ export default function TaskModal({
     blocker_days_before: number;
     requires_approval?: boolean;
     requires_photo?: boolean;
+    requires_completion_date?: boolean;
   } | null;
   onClose: () => void;
 }) {
@@ -56,6 +59,7 @@ export default function TaskModal({
           // approval-required, no photo, so that is what they edit as.
           requires_approval: editTask.requires_approval ?? true,
           requires_photo: editTask.requires_photo ?? false,
+          requires_completion_date: editTask.requires_completion_date ?? false,
         }
       : EMPTY,
   );
@@ -79,6 +83,7 @@ export default function TaskModal({
       blocker_days_before: form.deadline ? Number(form.blocker_days_before) || 0 : 0,
       requires_approval: form.requires_approval,
       requires_photo: form.requires_photo,
+      requires_completion_date: form.requires_completion_date,
     };
 
     if (isEdit) payload.id = editTask!.id;
@@ -172,6 +177,21 @@ export default function TaskModal({
                 <span className="block text-[var(--muted)]">
                   Submissions wait for you to approve. Unchecked, the task clears the moment the member
                   marks it done.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.requires_completion_date}
+                onChange={(e) => update("requires_completion_date", e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 accent-[var(--accent)] cursor-pointer"
+              />
+              <span className="text-[12.5px] leading-snug">
+                <span className="font-semibold text-[var(--ink)]">Require a completion date</span>
+                <span className="block text-[var(--muted)]">
+                  The member picks the date they actually did it, which can be earlier than the day they
+                  submit.
                 </span>
               </span>
             </label>

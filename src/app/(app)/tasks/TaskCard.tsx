@@ -92,6 +92,7 @@ interface CompletionEntry {
   completed_at: string;
   photo_path: string | null;
   review_note: string | null;
+  completion_date: string | null;
   profiles: { first_name: string; last_name: string } | null;
 }
 
@@ -105,6 +106,7 @@ export interface TaskData {
   completionStatus: CompletionStatus;
   requires_approval?: boolean;
   requires_photo?: boolean;
+  requires_completion_date?: boolean;
   // The Team Leader's reason, when THIS viewer's submission was declined.
   myReviewNote?: string | null;
   created_at: string;
@@ -148,6 +150,8 @@ export default function TaskCard({
   // Briefly rings the attach panel when the checkbox sends you to it, so the
   // click visibly lands somewhere instead of appearing to do nothing.
   const [pulse, setPulse] = useState(false);
+  // "When did you actually do it?" — only asked when the task requires it.
+  const [completionDate, setCompletionDate] = useState("");
 
   function focusPhotoPanel() {
     photoPanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -173,6 +177,10 @@ export default function TaskCard({
   const isDone = task.completionStatus === "approved";
 
   async function handleSubmit(photo?: File) {
+    if (task.requires_completion_date && !completionDate) {
+      setSubmitError("Pick the date you completed this.");
+      return;
+    }
     setToggling(true);
     setSubmitError(null);
 
@@ -181,12 +189,13 @@ export default function TaskCard({
       const fd = new FormData();
       fd.append("task_id", task.id);
       fd.append("photo", photo);
+      if (completionDate) fd.append("completion_date", completionDate);
       res = await fetch("/api/tasks/complete", { method: "POST", body: fd });
     } else {
       res = await fetch("/api/tasks/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task_id: task.id }),
+        body: JSON.stringify({ task_id: task.id, completion_date: completionDate || null }),
       });
     }
 
@@ -244,6 +253,10 @@ export default function TaskCard({
   const needsPhoto =
     !canManage &&
     !!task.requires_photo &&
+    (task.completionStatus === "none" || task.completionStatus === "rejected");
+  const needsDate =
+    !canManage &&
+    !!task.requires_completion_date &&
     (task.completionStatus === "none" || task.completionStatus === "rejected");
 
   return (
@@ -344,6 +357,18 @@ export default function TaskCard({
                 Blocking
               </Tag>
             )}
+            {task.requires_completion_date && (
+              <Tag
+                icon={
+                  <TagIcon>
+                    <rect x="3.5" y="5" width="17" height="16" rx="2" />
+                    <path d="M3.5 9.5h17M8 3v4M16 3v4" />
+                  </TagIcon>
+                }
+              >
+                Date required
+              </Tag>
+            )}
             {task.requires_photo && (
               <Tag
                 icon={
@@ -433,6 +458,25 @@ export default function TaskCard({
             >
               Undo submission
             </button>
+          )}
+
+          {needsDate && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              <label
+                htmlFor={`cdate-${task.id}`}
+                className="text-[11.5px] font-semibold text-[var(--ink)]"
+              >
+                Completed on
+              </label>
+              <input
+                id={`cdate-${task.id}`}
+                type="date"
+                value={completionDate}
+                max={todayInManila()}
+                onChange={(e) => setCompletionDate(e.target.value)}
+                className="px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[12px] text-[var(--ink)]"
+              />
+            </div>
           )}
 
           {/* Photo proof. Compact and left-aligned — the previous version
@@ -555,6 +599,11 @@ export default function TaskCard({
                   <div key={c.id} className="flex flex-col gap-1 text-[11.5px]">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[var(--ink)] font-medium">{name}</span>
+                      {c.completion_date && (
+                        <span className="text-[10.5px] text-[var(--muted)]">
+                          done {formatDeadline(c.completion_date)}
+                        </span>
+                      )}
                       {c.photo_path && (
                         <button
                           type="button"

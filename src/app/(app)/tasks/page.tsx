@@ -4,6 +4,7 @@
 import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Panel, PageHeader } from "@/components/ui";
+import Link from "next/link";
 import TaskList from "./TaskList";
 
 export default async function TasksPage() {
@@ -68,6 +69,13 @@ export default async function TasksPage() {
       <PageHeader
         title="Members Tasks"
         subtitle="Required tasks that must be completed — pending tasks block viewing future schedules"
+        action={
+          canManage ? (
+            <Link href="/tasks/report" className="text-xs font-bold text-[var(--accent-strong)]">
+              Full report →
+            </Link>
+          ) : undefined
+        }
       />
 
       <Panel
