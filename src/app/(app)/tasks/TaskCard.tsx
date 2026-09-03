@@ -1,9 +1,87 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
+import { todayInManila } from "@/lib/scheduleDates";
+
+
+const TAG_TONE: Record<string, string> = {
+  neutral: "bg-[var(--paper)] text-[var(--muted)] border-[var(--line)]",
+  accent: "bg-[var(--accent-soft)] text-[var(--accent-strong)] border-transparent",
+  warn: "bg-[var(--warn-soft)] text-[var(--warn)] border-transparent",
+  bad: "bg-[var(--bad-soft)] text-[var(--bad)] border-transparent",
+  good: "bg-[var(--good-soft)] text-[var(--good)] border-transparent",
+};
+
+// A tag carries a small glyph rather than the generic Pill's dot, so
+// "Blocking" and "Photo required" are distinguishable at a glance instead of
+// reading as three identical chips with different words in them.
+function Tag({
+  tone = "neutral",
+  icon,
+  children,
+}: {
+  tone?: keyof typeof TAG_TONE;
+  icon?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-[3px] rounded-md border text-[10.5px] font-bold tracking-wide whitespace-nowrap leading-none ${TAG_TONE[tone]}`}
+    >
+      {icon}
+      {children}
+    </span>
+  );
+}
+
+function TagIcon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+    >
+      {children}
+    </svg>
+  );
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Whole days from today (Manila) to `dateStr`. Both are plain YYYY-MM-DD, so
+// this is calendar-day arithmetic — no time-of-day, no timezone drift.
+function daysUntil(dateStr: string): number {
+  const a = Date.UTC(...(todayInManila().split("-").map(Number) as [number, number, number]));
+  const b = Date.UTC(...(dateStr.split("-").map(Number) as [number, number, number]));
+  return Math.round((b - a) / 86400000);
+}
+
+// "Sep 3, 2026" — the raw ISO string a date input produces is precise and
+// unreadable at a glance.
+function formatDeadline(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return `${MONTHS[m - 1]} ${d}, ${y}`;
+}
+
+// How the deadline should read and feel: overdue is bad, the next few days
+// are a warning, anything further out is just information.
+function deadlineState(dateStr: string): { label: string; tone: "bad" | "warn" | "neutral" } {
+  const n = daysUntil(dateStr);
+  if (n < 0) return { label: n === -1 ? "Overdue by 1 day" : `Overdue by ${-n} days`, tone: "bad" };
+  if (n === 0) return { label: "Due today", tone: "bad" };
+  if (n === 1) return { label: "Due tomorrow", tone: "warn" };
+  if (n <= 3) return { label: `Due in ${n} days`, tone: "warn" };
+  return { label: `Due in ${n} days`, tone: "neutral" };
+}
 
 export type CompletionStatus = "none" | "pending" | "approved" | "rejected";
 
@@ -228,16 +306,60 @@ export default function TaskCard({
               {task.title}
             </span>
             {task.assign_to === "all" ? (
-              <Pill tone="accent">All members</Pill>
+              <Tag
+                tone="accent"
+                icon={
+                  <TagIcon>
+                    <circle cx="9" cy="8" r="3" />
+                    <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
+                    <circle cx="17" cy="8.5" r="2.2" />
+                    <path d="M15.7 12.2c2.5.3 4.4 2.2 4.7 4.8" />
+                  </TagIcon>
+                }
+              >
+                All members
+              </Tag>
             ) : (
-              <Pill tone="muted">{assigneeName ?? "Individual"}</Pill>
+              <Tag
+                icon={
+                  <TagIcon>
+                    <circle cx="12" cy="8" r="3.4" />
+                    <path d="M5 20a7 7 0 0 1 14 0" />
+                  </TagIcon>
+                }
+              >
+                {assigneeName ?? "Individual"}
+              </Tag>
             )}
-            {blocking && !isDone && <Pill tone="warn">Blocking</Pill>}
-            {task.requires_photo && <Pill tone="muted">Photo required</Pill>}
+            {blocking && !isDone && (
+              <Tag
+                tone="warn"
+                icon={
+                  <TagIcon>
+                    <path d="M12 3 2.5 20h19L12 3z" />
+                    <path d="M12 10v4M12 17.2v.1" />
+                  </TagIcon>
+                }
+              >
+                Blocking
+              </Tag>
+            )}
+            {task.requires_photo && (
+              <Tag
+                icon={
+                  <TagIcon>
+                    <path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2l1.4-2h7.8l1.4 2h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z" />
+                    <circle cx="12" cy="13" r="3.2" />
+                  </TagIcon>
+                }
+              >
+                Photo required
+              </Tag>
+            )}
             {STATUS_PILL[task.completionStatus] && (
-              <Pill tone={STATUS_PILL[task.completionStatus]!.tone}>
+              <Tag tone={STATUS_PILL[task.completionStatus]!.tone}>
                 {STATUS_PILL[task.completionStatus]!.label}
-              </Pill>
+              </Tag>
             )}
           </div>
 
@@ -247,16 +369,45 @@ export default function TaskCard({
             </p>
           )}
 
-          <div className="flex items-center gap-3 mt-1.5 text-[11px] text-[var(--muted)]">
-            {task.deadline && (
-              <span>Deadline: {task.deadline}</span>
-            )}
+          <div className="flex items-center gap-x-3 gap-y-1 mt-2 flex-wrap text-[11px] text-[var(--muted)]">
+            {task.deadline &&
+              (() => {
+                // Once it's approved the countdown is history — showing
+                // "Overdue by 4 days" on a finished task is just noise.
+                const state = isDone ? null : deadlineState(task.deadline);
+                const color =
+                  state?.tone === "bad"
+                    ? "var(--bad)"
+                    : state?.tone === "warn"
+                      ? "var(--warn)"
+                      : "var(--muted)";
+                return (
+                  <span className="inline-flex items-center gap-1.5" style={{ color }}>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="shrink-0"
+                    >
+                      <rect x="3.5" y="5" width="17" height="16" rx="2" />
+                      <path d="M3.5 9.5h17M8 3v4M16 3v4" />
+                    </svg>
+                    <span className="font-semibold">{formatDeadline(task.deadline)}</span>
+                    {state && (
+                      <span className={state.tone === "neutral" ? "" : "font-bold"}>· {state.label}</span>
+                    )}
+                  </span>
+                );
+              })()}
             {task.deadline && task.blocker_days_before > 0 && (
               <span>Blocks {task.blocker_days_before}d before</span>
             )}
-            {!task.deadline && (
-              <span>No deadline — blocks until done</span>
-            )}
+            {!task.deadline && <span>No deadline — blocks until done</span>}
             {task.requires_approval === false && <span>No approval needed</span>}
           </div>
 
