@@ -104,7 +104,7 @@ export default async function LeavePage() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1">
         {canFile && blockingTaskCount > 0 && (
           <Panel title="File a request">
             <div className="flex flex-col items-start gap-2 py-1">

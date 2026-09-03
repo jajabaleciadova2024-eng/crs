@@ -13,7 +13,8 @@ export type BellType =
   | "leave_submitted"
   | "leave_reviewed"
   | "schedule_published"
-  | "post_new";
+  | "post_new"
+  | "task_poke";
 
 export async function bellNotify(
   recipientIds: string[],

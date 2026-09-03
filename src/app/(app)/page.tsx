@@ -291,7 +291,7 @@ export default async function DashboardPage() {
       <div
         className={`grid grid-cols-1 min-[400px]:grid-cols-2 ${
           profile.role === "team_leader" ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-4"
-        } gap-3 mb-8`}
+        } gap-3 mb-4`}
       >
         <Card label="Seats filled" value={`${stationsManned} / ${totalStations}`} sub={week ? "Today's coverage" : "No schedule published yet"} />
         {isRotatingRole && (

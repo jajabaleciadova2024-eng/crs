@@ -44,6 +44,32 @@ type Filter = "all" | "followup" | "pending" | "approved";
 export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
   const [filter, setFilter] = useState<Filter>("followup");
   const [query, setQuery] = useState("");
+  // Keyed by `${taskId}::${profileId}` for a single row, or the task id for
+  // a whole-task nudge, so each button reports its own state.
+  const [poking, setPoking] = useState<string | null>(null);
+  const [poked, setPoked] = useState<Record<string, number>>({});
+  const [pokeError, setPokeError] = useState<string | null>(null);
+
+  // Only ever sent to people who actually owe the task; the API re-checks
+  // and drops anyone already approved or awaiting review.
+  async function poke(taskId: string, profileIds: string[], key: string) {
+    setPoking(key);
+    setPokeError(null);
+    const res = await fetch("/api/tasks/poke", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task_id: taskId, profile_ids: profileIds }),
+    });
+    setPoking(null);
+    if (!res.ok) {
+      setPokeError((await res.json().catch(() => ({}))).error ?? "Couldn't send that nudge.");
+      return;
+    }
+    const { poked: n } = await res.json();
+    setPoked((p) => ({ ...p, [key]: n }));
+  }
+
+  const isOutstanding = (st: ReportRow["status"]) => st === "none" || st === "rejected";
 
   const matches = (r: ReportRow) => {
     if (query && !r.name.toLowerCase().includes(query.toLowerCase())) return false;
@@ -96,6 +122,12 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
         />
       </div>
 
+      {pokeError && (
+        <p role="alert" className="text-[12.5px] text-[var(--bad)] mb-3">
+          {pokeError}
+        </p>
+      )}
+
       {visible.length === 0 ? (
         <Panel title="Nothing here">
           <p className="text-sm text-[var(--muted)] m-0">
@@ -107,7 +139,32 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
           <Panel
             key={t.id}
             title={t.title}
-            hint={`${t.rows.length} member${t.rows.length !== 1 ? "s" : ""}`}
+            action={
+              (() => {
+                const owing = t.rows.filter((r) => isOutstanding(r.status)).map((r) => r.profileId);
+                if (owing.length === 0) {
+                  return (
+                    <span className="text-[11px] sm:text-xs text-[var(--muted)] font-medium shrink-0">
+                      {t.rows.length} member{t.rows.length !== 1 ? "s" : ""}
+                    </span>
+                  );
+                }
+                return (
+                  <button
+                    type="button"
+                    onClick={() => poke(t.id, owing, t.id)}
+                    disabled={poking === t.id}
+                    className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {poking === t.id
+                      ? "Nudging…"
+                      : poked[t.id]
+                        ? `Nudged ${poked[t.id]}`
+                        : `Nudge all ${owing.length}`}
+                  </button>
+                );
+              })()
+            }
           >
             <div className="flex flex-wrap items-center gap-1.5 mb-3 text-[11px] text-[var(--muted)]">
               {t.blockingNow && <Pill tone="warn">Blocking now</Pill>}
@@ -122,9 +179,9 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
               <table className="w-full text-[13px] border-collapse min-w-[520px]">
                 <thead>
                   <tr>
-                    {["Member", "Status", "Completed on", "Submitted", "Note"].map((h) => (
+                    {["Member", "Status", "Completed on", "Submitted", "Note", ""].map((h) => (
                       <th
-                        key={h}
+                        key={h || "actions"}
                         className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap"
                       >
                         {h}
@@ -150,6 +207,25 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
                       </td>
                       <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
                         <span className="block max-w-[220px] break-words">{r.reviewNote ?? "—"}</span>
+                      </td>
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-right whitespace-nowrap">
+                        {isOutstanding(r.status) ? (
+                          poked[`${t.id}::${r.profileId}`] ? (
+                            <span className="text-[11px] text-[var(--good)] font-bold">Nudged</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => poke(t.id, [r.profileId], `${t.id}::${r.profileId}`)}
+                              disabled={poking === `${t.id}::${r.profileId}`}
+                              title={`Send ${r.name} a reminder about this task`}
+                              className="px-2 py-1 rounded-md text-[11px] font-bold text-[var(--accent-strong)] hover:bg-[var(--accent-soft)] transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              {poking === `${t.id}::${r.profileId}` ? "…" : "Nudge"}
+                            </button>
+                          )
+                        ) : (
+                          <span className="text-[var(--muted)]">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

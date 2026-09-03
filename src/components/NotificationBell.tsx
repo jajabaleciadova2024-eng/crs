@@ -13,7 +13,7 @@ type Notification = {
   type:
     | "post_reaction" | "post_comment" | "comment_mention" | "announcement"
     | "ticket_new" | "ticket_reply"
-    | "task_submitted" | "task_reviewed" | "task_assigned"
+    | "task_submitted" | "task_reviewed" | "task_assigned" | "task_poke"
     | "leave_submitted" | "leave_reviewed" | "schedule_published"
     | "post_new";
   post_id: string | null;
@@ -59,6 +59,7 @@ function describe(n: Notification): string {
   if (n.type === "ticket_reply") return "New reply on your concern";
   if (n.type === "task_submitted") return `${name} submitted a task for approval`;
   if (n.type === "task_reviewed") return `${name} reviewed your task completion`;
+  if (n.type === "task_poke") return `${name} is waiting on a task from you`;
   if (n.type === "task_assigned") return `${name} assigned you a new task`;
   if (n.type === "leave_submitted") return `${name} filed a leave request`;
   if (n.type === "leave_reviewed") return `${name} reviewed your leave request`;
@@ -216,7 +217,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
               items.map((n) => (
                 <Link
                   key={n.id}
-                  href={n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" ? "/tasks" : n.type === "leave_submitted" || n.type === "leave_reviewed" ? "/leave" : n.type === "schedule_published" ? "/schedule" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
+                  href={n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" || n.type === "task_poke" ? "/tasks" : n.type === "leave_submitted" || n.type === "leave_reviewed" ? "/leave" : n.type === "schedule_published" ? "/schedule" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
                   onClick={() => setOpen(false)}
                   className={`flex items-start gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0 hover:bg-[var(--accent-soft)]/30 transition-colors ${
                     !n.read ? "bg-[var(--accent-soft)]/15" : ""
@@ -230,7 +231,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-sm shrink-0">
                       📝
                     </span>
-                  ) : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" ? (
+                  ) : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" || n.type === "task_poke" ? (
                     <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-sm shrink-0">
                       ✅
                     </span>
