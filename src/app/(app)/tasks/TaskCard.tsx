@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
@@ -152,6 +153,9 @@ export default function TaskCard({
   const [pulse, setPulse] = useState(false);
   // "When did you actually do it?" — only asked when the task requires it.
   const [completionDate, setCompletionDate] = useState("");
+  const [photoView, setPhotoView] = useState<
+    { state: "closed" } | { state: "loading" } | { state: "ready"; url: string } | { state: "error"; message: string }
+  >({ state: "closed" });
 
   function focusPhotoPanel() {
     photoPanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -237,13 +241,28 @@ export default function TaskCard({
     router.refresh();
   }
 
-  // Opens the proof photo in a new tab. The URL is signed and short-lived,
-  // so it's fetched on click rather than rendered into the page up front.
+  // Opens the proof photo in a viewer on this page. The signed URL is
+  // short-lived, so it is fetched on click rather than baked into the page.
+  //
+  // Deliberately NOT window.open: that ran after an await, which loses the
+  // user-gesture context, so popup blockers swallowed it and the click did
+  // nothing at all. Every failure was invisible for the same reason — the
+  // old code returned silently on !res.ok — so a viewer plus a real error
+  // message is the fix for both.
   async function openPhoto(completionId: string) {
-    const res = await fetch(`/api/tasks/photo/${completionId}`);
-    if (!res.ok) return;
-    const { url } = await res.json();
-    window.open(url, "_blank", "noopener");
+    setPhotoView({ state: "loading" });
+    try {
+      const res = await fetch(`/api/tasks/photo/${completionId}`);
+      if (!res.ok) {
+        const msg = (await res.json().catch(() => ({}))).error ?? "Couldn't open the photo.";
+        setPhotoView({ state: "error", message: msg });
+        return;
+      }
+      const { url } = await res.json();
+      setPhotoView({ state: "ready", url });
+    } catch {
+      setPhotoView({ state: "error", message: "Couldn't reach the server." });
+    }
   }
 
   // For non-TL: checkbox behavior based on status
@@ -604,7 +623,7 @@ export default function TaskCard({
                           done {formatDeadline(c.completion_date)}
                         </span>
                       )}
-                      {c.photo_path && (
+                      {c.photo_path ? (
                         <button
                           type="button"
                           onClick={() => openPhoto(c.id)}
@@ -612,6 +631,13 @@ export default function TaskCard({
                         >
                           View photo
                         </button>
+                      ) : (
+                        task.requires_photo && (
+                          // Submitted before the photo requirement was turned
+                          // on, so there is nothing to show. Say so rather
+                          // than leaving a gap that reads as a broken link.
+                          <span className="text-[10.5px] text-[var(--muted)] italic">No photo attached</span>
+                        )
                       )}
                       {c.status === "pending" ? (
                         <div className="flex items-center gap-1">
@@ -691,6 +717,54 @@ export default function TaskCard({
             </p>
           )}
         </div>
+
+        {/* Proof-photo viewer. Portaled to <body> so the card's own
+            overflow-hidden and stacking context can't clip it. */}
+        {photoView.state !== "closed" &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div
+              className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
+              onClick={() => setPhotoView({ state: "closed" })}
+            >
+              {photoView.state === "loading" && (
+                <span className="text-white text-[13px]">Opening photo…</span>
+              )}
+              {photoView.state === "error" && (
+                <div
+                  className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl px-4 py-3 max-w-sm cursor-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <p className="text-[13px] text-[var(--bad)] m-0 font-semibold">{photoView.message}</p>
+                  <button
+                    type="button"
+                    onClick={() => setPhotoView({ state: "closed" })}
+                    className="mt-2 text-[12px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+              {photoView.state === "ready" && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photoView.url}
+                  alt="Task proof"
+                  className="max-w-full max-h-full rounded-lg object-contain"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => setPhotoView({ state: "closed" })}
+                aria-label="Close photo"
+                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[20px] cursor-pointer"
+              >
+                ×
+              </button>
+            </div>,
+            document.body,
+          )}
 
         {/* TL edit/delete actions */}
         {canManage && (
