@@ -131,7 +131,9 @@ export default function AnnouncementComposer({
             </label>
 
             <div>
-              <span className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold">
+              {/* block, not inline: an inline label sat on the same line as
+                  the button below it, unlike every other field here. */}
+              <span className="block text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">
                 Images (optional)
               </span>
               <input
@@ -172,7 +174,9 @@ export default function AnnouncementComposer({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={submitting || images.length >= MAX_IMAGES}
-                className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                  previews.length > 0 ? "mt-2" : ""
+                }`}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" />

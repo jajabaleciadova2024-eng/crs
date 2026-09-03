@@ -43,9 +43,17 @@ export default async function TasksPage() {
             .select("id, task_id, profile_id, status, completed_at, completion_date, photo_path, review_note, profiles!member_task_completions_profile_id_fkey(first_name, last_name)")
             .order("completed_at", { ascending: false })
         : Promise.resolve({ data: [], error: null }),
-      canManage
-        ? admin.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name")
-        : admin.from("profiles").select("id, first_name, last_name").eq("is_active", true).order("first_name"),
+      // Who tasks can be FOR. Team Leaders are excluded: they set the tasks,
+      // they are not the ones doing them, so listing them as an assignee, an
+      // exclusion chip, or a row to chase in the roster table is noise at
+      // best and a task assigned to the wrong person at worst. Same rule the
+      // Task Report already applies.
+      admin
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .eq("is_active", true)
+        .neq("role", "team_leader")
+        .order("first_name"),
       // Last nudge per (task, member), so a button on cooldown can say so
       // instead of looking available and then failing.
       canManage

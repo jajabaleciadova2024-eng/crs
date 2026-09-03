@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { bellNotify, allActiveMemberIds } from "@/lib/bellNotify";
+import { bellNotify, taskAssignableMemberIds } from "@/lib/bellNotify";
 import { taskAppliesTo } from "@/lib/taskAssignment";
 
 export async function GET(request: Request) {
@@ -119,7 +119,15 @@ export async function POST(request: Request) {
 
   // Validate assign_to if not 'all'
   if (assign_to !== "all") {
-    const { data: target } = await admin.from("profiles").select("id").eq("id", assign_to).single();
+    // A Team Leader is not a valid assignee — they set tasks, they do not
+    // carry them. The dropdown no longer offers them; this is the half that
+    // holds if the request comes from anywhere else.
+    const { data: target } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", assign_to)
+      .neq("role", "team_leader")
+      .maybeSingle();
     if (!target) return NextResponse.json({ error: "Assigned member not found." }, { status: 400 });
   }
 
@@ -150,9 +158,9 @@ export async function POST(request: Request) {
   }
 
   // Notify whoever the task landed on — everyone, or the one assignee.
-  const recipients = (assign_to === "all" ? await allActiveMemberIds() : [assign_to]).filter(
-    (id) => !excluded_ids.includes(id),
-  );
+  const recipients = (
+    assign_to === "all" ? await taskAssignableMemberIds() : [assign_to]
+  ).filter((id) => !excluded_ids.includes(id));
   await bellNotify(recipients, user.id, "task_assigned");
 
   return NextResponse.json({ ok: true, id: inserted.id });
@@ -190,7 +198,12 @@ export async function PATCH(request: Request) {
   if (body.deadline !== undefined) updates.deadline = body.deadline || null;
   if (body.assign_to !== undefined) {
     if (body.assign_to !== "all") {
-      const { data: target } = await admin.from("profiles").select("id").eq("id", body.assign_to).single();
+      const { data: target } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("id", body.assign_to)
+        .neq("role", "team_leader")
+        .maybeSingle();
       if (!target) return NextResponse.json({ error: "Assigned member not found." }, { status: 400 });
     }
     updates.assign_to = body.assign_to;
