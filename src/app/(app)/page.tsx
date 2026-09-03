@@ -320,11 +320,18 @@ export default async function DashboardPage() {
         </div>
       </PageHeader>
 
-      {/* The Station card occupies two columns, so a rotating member's row is
-          five grid units, not four. Left at four columns the last card fell
-          alone onto a second row with three empty slots beside it. */}
+      {/* One line from xl up, whatever the role's card count is.
+          Equal grid columns can't do that: a rotating member with a blocking
+          task has six grid units (the Station card spans two), and six equal
+          columns squeeze the countdown until it clips. So at xl the row
+          becomes a nowrap flex where each card takes flex-auto — width in
+          proportion to its content, so "14 / 15" stays narrow and the
+          DD:HH:MM:SS countdown keeps the room it needs. Measured one line,
+          no clipping, equal heights at 1280 / 1440 / 1600 / 1920.
+          Below xl it stays a grid and wraps, which is the right call when
+          there isn't room for six cards side by side. */}
       <div
-        className={`grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 mb-4 ${
+        className={`grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 mb-4 xl:flex xl:flex-nowrap ${
           isRotatingRole ? "lg:grid-cols-5" : "lg:grid-cols-4"
         }`}
       >
@@ -333,7 +340,7 @@ export default async function DashboardPage() {
             have to go looking for is a number nobody looks at. */}
         <a
           href="/account"
-          className="border rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] transition-colors block"
+          className="border rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] transition-colors block xl:flex-auto xl:min-w-0"
           style={{
             borderColor:
               credState === "expired" || credState === "blocking" || credState === "unset"
@@ -373,7 +380,7 @@ export default async function DashboardPage() {
                     : "In good standing"}
           </div>
         </a>
-        <Card label="Seats filled" value={`${stationsManned} / ${totalStations}`} sub={week ? "Today's coverage" : "No schedule published yet"} />
+        <Card label="Seats filled" value={`${stationsManned} / ${totalStations}`} sub={week ? "Today's coverage" : "No schedule published yet"} extraClass="xl:flex-auto xl:min-w-0" />
         {isRotatingRole && (
           // Two columns wide, and the two days sit side by side inside it.
           // Stacked in a one-column slot this card ran 75px taller than every
@@ -382,7 +389,7 @@ export default async function DashboardPage() {
           // width an itinerary needs.
           <a
             href="/schedule"
-            className="min-[400px]:col-span-2 border border-[var(--line)] rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] transition-colors block"
+            className="min-[400px]:col-span-2 xl:flex-[2_1_auto] xl:min-w-0 border border-[var(--line)] rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] transition-colors block"
           >
             <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">Station</div>
 
@@ -428,6 +435,7 @@ export default async function DashboardPage() {
         )}
         {isRotatingRole && blockingTaskCount > 0 && (
           <Card
+            extraClass="xl:flex-auto xl:min-w-0"
             label="Pending Tasks"
             href="/tasks"
             value={String(blockingTaskCount)}
@@ -435,9 +443,10 @@ export default async function DashboardPage() {
             tone="warn"
           />
         )}
-        <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} />
+        <Card label="Pending approvals" value={String(pendingCount ?? 0)} sub="Awaiting review" tone={(pendingCount ?? 0) > 0 ? "warn" : undefined} extraClass="xl:flex-auto xl:min-w-0" />
         {profile.role === "team_leader" && (
           <Card
+            extraClass="xl:flex-auto xl:min-w-0"
             label="Password resets"
             href="/account"
             value={String(pendingResetCount ?? 0)}
@@ -445,9 +454,10 @@ export default async function DashboardPage() {
             tone={(pendingResetCount ?? 0) > 0 ? "warn" : undefined}
           />
         )}
-        {profile.role === "team_leader" && <Card label="Immune this cycle" value={String(immuneCount ?? 0)} sub="Excluded from shuffle" />}
+        {profile.role === "team_leader" && <Card label="Immune this cycle" value={String(immuneCount ?? 0)} sub="Excluded from shuffle" extraClass="xl:flex-auto xl:min-w-0" />}
         {profile.role === "team_leader" && (
           <Card
+            extraClass="xl:flex-auto xl:min-w-0"
             label="Access requests"
             value={String(pendingAccessCount ?? 0)}
             sub="Awaiting review"

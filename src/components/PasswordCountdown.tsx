@@ -67,7 +67,11 @@ export default function PasswordCountdown({
     const [dd, hh, mm, ss] = formatCountdown(ms).split(":");
     return (
       <span
-        className="font-mono tabular-nums font-bold text-[22px] sm:text-[24px] leading-none whitespace-nowrap tracking-tight"
+        // Steps back down between lg and xl: that is the one band where the
+        // stat row is a four-column grid, and at 24px the countdown ran 7px
+        // wider than its column and clipped. From xl the row is a flex line
+        // that gives this card the width it asks for, so it goes back up.
+        className="font-mono tabular-nums font-bold text-[22px] sm:text-[24px] lg:text-[20px] xl:text-[24px] leading-none whitespace-nowrap tracking-tight"
         style={{ color }}
         suppressHydrationWarning
         title={`Expires ${expiry.toLocaleString()}`}

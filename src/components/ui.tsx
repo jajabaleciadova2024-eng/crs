@@ -157,6 +157,7 @@ export function Card({
   sub,
   tone,
   href,
+  extraClass,
 }: {
   label: string;
   value: string;
@@ -165,9 +166,12 @@ export function Card({
   // When set, the whole card becomes a link (e.g. "Next Week's Station"
   // pointing at Weekly Schedule) instead of a plain stat display.
   href?: string;
+  /** Extra layout classes from the caller — e.g. flex sizing in a stat row. */
+  extraClass?: string;
 }) {
   const className =
-    "group block bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl px-4 py-4 hover:border-[var(--accent)] hover:-translate-y-[1px] transition-all duration-200";
+    "group block bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl px-4 py-4 hover:border-[var(--accent)] hover:-translate-y-[1px] transition-all duration-200" +
+    (extraClass ? ` ${extraClass}` : "");
   const content = (
     <>
       <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5 group-hover:text-[var(--accent-strong)] transition-colors">
