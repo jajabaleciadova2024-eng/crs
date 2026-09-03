@@ -49,6 +49,9 @@ export default function TaskModal({
     excluded_ids?: string[] | null;
     blocks_schedule?: boolean;
     blocks_leave?: boolean;
+    /** Used only to keep people who have already acted out of the exclusion
+        list — excusing them from work they have done means nothing. */
+    completions?: { profile_id: string; status: string }[];
   } | null;
   onClose: () => void;
 }) {
@@ -90,6 +93,19 @@ export default function TaskModal({
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Anyone who has already submitted — approved, or waiting on review.
+  // Excusing them is a no-op at best and confusing at worst: the point of
+  // the list is people who still owe the work.
+  const settled = new Set(
+    (editTask?.completions ?? [])
+      .filter((c) => c.status === "approved" || c.status === "pending")
+      .map((c) => c.profile_id),
+  );
+  // Somebody already excluded stays listed even once settled, or there
+  // would be no way to put them back.
+  const excludable = members.filter((m) => !settled.has(m.id) || excluded.has(m.id));
+  const hiddenCount = members.length - excludable.length;
 
   function update<K extends keyof TaskForm>(key: K, value: TaskForm[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -182,7 +198,7 @@ export default function TaskModal({
               finished work, or delete the task and lose every other
               submission with it. Excused members are not assigned it, not
               blocked by it, and cannot be nudged about it. */}
-          {form.assign_to === "all" && members.length > 0 && (
+          {form.assign_to === "all" && excludable.length > 0 && (
             <div>
               <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                 Exclude members (optional)
@@ -192,9 +208,15 @@ export default function TaskModal({
                 {excluded.size > 0 && (
                   <span className="text-[var(--ink)] font-semibold"> {excluded.size} excluded.</span>
                 )}
+                {hiddenCount > 0 && (
+                  <span className="block mt-0.5">
+                    {hiddenCount} {hiddenCount === 1 ? "person has" : "people have"} already submitted and{" "}
+                    {hiddenCount === 1 ? "is" : "are"} not listed.
+                  </span>
+                )}
               </p>
               <div className="flex flex-wrap gap-1.5 max-h-[132px] overflow-y-auto p-1 -m-1">
-                {members.map((m) => {
+                {excludable.map((m) => {
                   const off = excluded.has(m.id);
                   return (
                     <button
