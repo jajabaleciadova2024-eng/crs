@@ -256,7 +256,8 @@ export default async function SchedulePage() {
   // Populated by the daily-reveal branch, which can partially unlock next
   // week (Friday afternoon reveals Monday).
   let nextWeekBlockedDatesEarly: Set<string> | null = null;
-  // Inside the last 5 days before the password expires (or already expired,
+  // Inside the blocking window before the password expires (BLOCK_WITHIN_DAYS,
+  // currently day 60 of a 70-day cycle) — or already expired,
   // or never baselined) the upcoming schedule locks, exactly as an
   // outstanding task locks it. Rule 1 on the floor is that nobody's password
   // is allowed to lapse, so this is the enforcement behind it.

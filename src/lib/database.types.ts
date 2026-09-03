@@ -302,7 +302,7 @@ export interface PasswordReset {
   id: string;
   profile_id: string;
   submitted_at: string;
-  // When the member says the reset happened; the 60 days run from here.
+  // When the member says the reset happened; the expiry clock runs from here.
   reset_at: string;
   proof_path: string | null;
   status: PasswordResetStatus;

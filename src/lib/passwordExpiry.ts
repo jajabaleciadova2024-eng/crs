@@ -1,12 +1,17 @@
-// Password lifetime on the external platform: 60 days from the moment the
+// Password lifetime on the external platform: 70 days from the moment the
 // password is reset. Rule 1 is that it never actually lapses, so everything
 // here is oriented around the warning window rather than the expiry itself.
 
-export const PASSWORD_VALID_DAYS = 60;
+export const PASSWORD_VALID_DAYS = 70;
 // Blocking starts this many days before expiry — the point at which "you
 // should get to this" becomes "you cannot see next week's schedule until
-// you do".
-export const BLOCK_WITHIN_DAYS = 5;
+// you do". 10 days out of 70 puts the block on day 60, leaving a full
+// working fortnight to act before anything locks.
+export const BLOCK_WITHIN_DAYS = 10;
+// Amber starts here. Kept proportional to the block: warning at 20 gives
+// ten amber days before the lock rather than the four a 14-day warning
+// would have left once the block moved from day 55 to day 60.
+export const WARN_WITHIN_DAYS = 20;
 
 const DAY_MS = 86_400_000;
 
@@ -40,7 +45,7 @@ export function expiryState(lastResetAt: string | null, now: number = Date.now()
   if (ms === null) return "unset";
   if (ms <= 0) return "expired";
   if (ms <= BLOCK_WITHIN_DAYS * DAY_MS) return "blocking";
-  if (ms <= 14 * DAY_MS) return "warning";
+  if (ms <= WARN_WITHIN_DAYS * DAY_MS) return "warning";
   return "ok";
 }
 

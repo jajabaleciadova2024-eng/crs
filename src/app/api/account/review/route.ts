@@ -4,7 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { bellNotify } from "@/lib/bellNotify";
 
 // The Team Leader confirming (or rejecting) a member's claimed reset.
-// Confirming is the ONLY thing that restarts the 60-day countdown.
+// Confirming is the ONLY thing that restarts the countdown (see
+// PASSWORD_VALID_DAYS in src/lib/passwordExpiry.ts for the length).
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {

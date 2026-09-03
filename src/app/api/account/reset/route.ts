@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Proof must be an image." }, { status: 400 });
   }
 
-  // The reset date drives the whole 60-day clock, so a future one would hand
+  // The reset date drives the whole expiry clock, so a future one would hand
   // the member free time they haven't earned.
   const resetAt = resetAtRaw ? new Date(resetAtRaw) : new Date();
   if (Number.isNaN(resetAt.getTime())) {
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
   // MFA proof is a hard prerequisite for a MEMBER. The button is hidden
   // without it, but this is the half that actually holds: a reset reported
-  // by someone with no verified MFA would restart a 60-day clock on a
+  // by someone with no verified MFA would restart the clock on a
   // non-compliant account.
   const { data: cred } = await admin
     .from("credential_status")
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Confirmed on the spot, so start the 60 days now — there is no second
+  // Confirmed on the spot, so start the clock now — there is no second
   // step coming that would otherwise do it.
   if (selfConfirms) {
     await admin.from("credential_status").upsert(

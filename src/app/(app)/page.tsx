@@ -11,7 +11,7 @@ import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed, addDays,
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { credentialBlock } from "@/lib/passwordBlockingServer";
 import PasswordCountdown from "@/components/PasswordCountdown";
-import { expiryState } from "@/lib/passwordExpiry";
+import { expiryState, BLOCK_WITHIN_DAYS } from "@/lib/passwordExpiry";
 import { BREAK_SLOT_LABEL, type BreakSlot } from "@/lib/breakTime";
 import { holidayDateSet, holidaysInRange } from "@/lib/holidays";
 import { toTitleCase, formatFullName } from "@/lib/format";
@@ -343,7 +343,7 @@ export default async function DashboardPage() {
                 ? "Expired — reset it now"
                 : credState === "blocking"
                   ? profile.role === "team_leader"
-                    ? "Expiring within 5 days — reset it now"
+                    ? `Expiring within ${BLOCK_WITHIN_DAYS} days — reset it now`
                     : "Schedule locked until reset"
                   : credState === "warning"
                     ? "Reset it soon"

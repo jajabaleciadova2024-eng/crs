@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Panel, Pill } from "@/components/ui";
 import PasswordCountdown from "@/components/PasswordCountdown";
-import { expiryState, expiryFrom, BLOCK_WITHIN_DAYS } from "@/lib/passwordExpiry";
+import { expiryState, expiryFrom, BLOCK_WITHIN_DAYS, PASSWORD_VALID_DAYS } from "@/lib/passwordExpiry";
 import ProofLink from "./ProofLink";
 import ProofExample from "./ProofExample";
 import CredentialProofRow from "./CredentialProofRow";
@@ -129,7 +129,7 @@ export default function MyCredentialPanel({
   }
 
   return (
-    <Panel title="My account" hint="Password expires 60 days after each reset">
+    <Panel title="My account" hint={`Password expires ${PASSWORD_VALID_DAYS} days after each reset`}>
       <div className="flex flex-col gap-4">
         {/* Countdown — the thing this page exists for. Each unit is its own
             tile with its label underneath, so the row reads without a

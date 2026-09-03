@@ -5,6 +5,7 @@ import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader, Panel } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
+import { PASSWORD_VALID_DAYS, BLOCK_WITHIN_DAYS } from "@/lib/passwordExpiry";
 import MyCredentialPanel from "./MyCredentialPanel";
 import CredentialOversight, { type OversightRow } from "./CredentialOversight";
 
@@ -75,8 +76,8 @@ export default async function AccountPage() {
       <PageHeader
         title="Account Security"
         subtitle={canManage
-          ? "Passwords expire 60 days after each reset — keep yours alive, and oversee everyone else's"
-          : "Your password expires 60 days after each reset — keep it alive, and get MFA and your passkey configured"}
+          ? `Passwords expire ${PASSWORD_VALID_DAYS} days after each reset — keep yours alive, and oversee everyone else's`
+          : `Your password expires ${PASSWORD_VALID_DAYS} days after each reset, and locks your schedule ${BLOCK_WITHIN_DAYS} days before that`}
       />
 
       <MyCredentialPanel
