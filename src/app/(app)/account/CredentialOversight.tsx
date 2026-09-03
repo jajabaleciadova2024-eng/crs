@@ -38,6 +38,15 @@ const STATE_PILL: Record<string, { label: string; tone: "good" | "warn" | "bad" 
 // Team Leader only — the page never renders this for anyone else, and the
 // member-facing variant it used to support is gone deliberately: credential
 // state is not a shared board.
+// "3 Sep 2026" — short enough to sit inside a table cell, unambiguous
+// about the month, which a numeric date is not across devices.
+function shortDate(iso: string | null): string {
+  if (!iso) return "\u2014";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "\u2014";
+  return d.toLocaleDateString("en-PH", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default function CredentialOversight({
   rows,
   viewerId,
@@ -147,8 +156,15 @@ export default function CredentialOversight({
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                   <PasswordCountdown lastResetAt={r.lastResetAt} size="sm" />
                   {r.pendingResetId && (
-                    <div className="text-[10px] text-[var(--warn)] font-semibold mt-0.5">
-                      restarts on confirm
+                    // The date the MEMBER reported, and the expiry it buys
+                    // them. Confirming dates the cycle from their reset, not
+                    // from this click, so this is the number being agreed to
+                    // — showing only "restarts on confirm" left the Team
+                    // Leader approving a date they could not see.
+                    <div className="text-[10px] text-[var(--warn)] font-semibold mt-0.5 leading-tight">
+                      {r.pendingResetAt
+                        ? `restarts from ${shortDate(r.pendingResetAt)} \u2192 expires ${shortDate(expiryFrom(r.pendingResetAt)?.toISOString() ?? null)}`
+                        : "restarts on confirm"}
                     </div>
                   )}
                 </td>
@@ -216,6 +232,14 @@ export default function CredentialOversight({
                       ) : (
                         <span className="flex flex-wrap items-center gap-1.5">
                           <Pill tone="warn">Claimed</Pill>
+                          {/* Check this against the screenshot's own "Last
+                              updated" line before confirming — they are two
+                              separate claims and only one is verifiable. */}
+                          {r.pendingResetAt && (
+                            <span className="text-[10.5px] text-[var(--ink)] font-semibold">
+                              reset {shortDate(r.pendingResetAt)}
+                            </span>
+                          )}
                           {r.pendingHasProof && <ProofLink resetId={r.pendingResetId} />}
                           <button
                             type="button"
