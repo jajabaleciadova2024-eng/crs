@@ -7,6 +7,7 @@ import PasswordCountdown from "@/components/PasswordCountdown";
 import { expiryState, expiryFrom, daysRemaining } from "@/lib/passwordExpiry";
 import ProofLink from "./ProofLink";
 import ProofImage from "./ProofImage";
+import ProofRemove from "./ProofRemove";
 
 export type OversightRow = {
   profileId: string;
@@ -123,14 +124,20 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                   {r.mfa ? (
-                    <ProofImage kind="mfa" profileId={r.profileId} label="✓ View" />
+                    <span className="inline-flex items-center gap-1.5">
+                      <ProofImage kind="mfa" profileId={r.profileId} label="✓ View" />
+                      <ProofRemove kind="mfa" profileId={r.profileId} />
+                    </span>
                   ) : (
                     <Pill tone="bad">Missing</Pill>
                   )}
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                   {r.passkey ? (
-                    <ProofImage kind="passkey" profileId={r.profileId} label="✓ View" />
+                    <span className="inline-flex items-center gap-1.5">
+                      <ProofImage kind="passkey" profileId={r.profileId} label="✓ View" />
+                      <ProofRemove kind="passkey" profileId={r.profileId} />
+                    </span>
                   ) : (
                     <Pill tone="warn">None</Pill>
                   )}
@@ -144,8 +151,8 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
                             autoFocus
-                            placeholder="Why reject?"
-                            className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px] w-[150px]"
+                            placeholder="What must they resubmit? The member sees this."
+                            className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px] w-[220px]"
                           />
                           <button
                             type="button"
@@ -153,7 +160,7 @@ export default function CredentialOversight({ rows }: { rows: OversightRow[] }) 
                             onClick={() => review(r.pendingResetId!, "rejected", note.trim())}
                             className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white cursor-pointer disabled:opacity-40"
                           >
-                            Confirm reject
+                            Send rejection
                           </button>
                           <button
                             type="button"

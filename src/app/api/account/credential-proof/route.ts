@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { uploadResetProof, getResetProofUrl } from "@/lib/credentialStorage";
+import { uploadResetProof, getResetProofUrl, deleteResetProof } from "@/lib/credentialStorage";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const KINDS = ["mfa", "passkey"] as const;
@@ -90,4 +90,54 @@ export async function GET(request: Request) {
   const signed = await getResetProofUrl(path);
   if (!signed) return NextResponse.json({ error: "Couldn't open the screenshot." }, { status: 500 });
   return NextResponse.json({ url: signed });
+}
+
+// DELETE — take a proof back off. A wrong screenshot has to be removable,
+// not merely replaceable: the passkey one is optional, so "replace it with
+// nothing" is a real thing a member needs to do.
+//
+// Removing the MFA proof also clears its configured flag, which re-blocks
+// reporting a reset. That is correct rather than unfortunate — no evidence
+// means no compliance, and the gate reads the same field either way.
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  const url = new URL(request.url);
+  const profileId = url.searchParams.get("profile_id") ?? user.id;
+  const kind = url.searchParams.get("kind") as Kind;
+  if (!KINDS.includes(kind)) {
+    return NextResponse.json({ error: "kind must be 'mfa' or 'passkey'." }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+  const { data: caller } = await admin.from("profiles").select("role").eq("id", user.id).single();
+  if (caller?.role !== "team_leader" && profileId !== user.id) {
+    return NextResponse.json({ error: "You can only remove your own." }, { status: 403 });
+  }
+
+  const { data: status } = await admin
+    .from("credential_status")
+    .select("mfa_proof_path, passkey_proof_path")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  const path = kind === "mfa" ? status?.mfa_proof_path : status?.passkey_proof_path;
+  if (path) await deleteResetProof(path);
+
+  const patch =
+    kind === "mfa"
+      ? { mfa_proof_path: null, mfa_configured: false, mfa_confirmed_at: null }
+      : { passkey_proof_path: null, passkey_configured: false, passkey_confirmed_at: null };
+
+  const { error } = await admin
+    .from("credential_status")
+    .upsert({ profile_id: profileId, updated_at: new Date().toISOString(), ...patch }, { onConflict: "profile_id" });
+  if (error) {
+    console.error("[credential-proof] delete failed:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true });
 }

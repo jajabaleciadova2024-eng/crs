@@ -27,3 +27,9 @@ export async function getResetProofUrl(path: string) {
   if (error || !data) return null;
   return data.signedUrl;
 }
+
+export async function deleteResetProof(path: string) {
+  const admin = createAdminClient();
+  const { error } = await admin.storage.from(BUCKET).remove([path]);
+  if (error) console.error("[credentialStorage] delete failed:", error);
+}

@@ -65,6 +65,8 @@ export default function MyCredentialPanel({
   const state = expiryState(lastResetAt);
   const note = banner(state, isTeamLeader);
   const expiry = expiryFrom(lastResetAt);
+  // History is newest-first, so the first entry is the current state of play.
+  const lastRejected = !pending && history[0]?.status === "rejected" ? history[0] : null;
 
   function choose(f: File) {
     if (preview) URL.revokeObjectURL(preview);
@@ -79,7 +81,7 @@ export default function MyCredentialPanel({
       return;
     }
     if (!proof) {
-      setError("Attach a screenshot showing the reset.");
+      setError("Attach the email confirmation of the reset.");
       return;
     }
     setBusy(true);
@@ -164,6 +166,23 @@ export default function MyCredentialPanel({
           />
         </div>
 
+        {/* A rejected report, said plainly with the Team Leader's instruction
+            attached — buried in the history list it just looks like an old
+            row, and the member never learns what to fix. */}
+        {lastRejected && (
+          <div className="rounded-lg border border-[var(--bad)]/40 bg-[var(--bad-soft)] px-3 py-2.5">
+            <div className="text-[11px] font-bold text-[var(--bad)] uppercase tracking-wider">
+              Your last report was rejected
+            </div>
+            {lastRejected.reviewNote && (
+              <p className="text-[12.5px] text-[var(--ink)] m-0 mt-1 leading-snug">{lastRejected.reviewNote}</p>
+            )}
+            <p className="text-[11.5px] text-[var(--muted)] m-0 mt-1">
+              Fix what&apos;s noted above and report it again below.
+            </p>
+          </div>
+        )}
+
         {/* Reset claim */}
         <div className="border-t border-[var(--line)] pt-3.5">
           {pending ? (
@@ -220,6 +239,17 @@ export default function MyCredentialPanel({
                     >
                       Change
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (preview) URL.revokeObjectURL(preview);
+                        setProof(null);
+                        setPreview(null);
+                      }}
+                      className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer"
+                    >
+                      Remove
+                    </button>
                   </span>
                 ) : (
                   <button
@@ -227,7 +257,7 @@ export default function MyCredentialPanel({
                     onClick={() => fileRef.current?.click()}
                     className="px-2.5 py-1.5 rounded-md text-[11.5px] font-bold border border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] transition-colors cursor-pointer"
                   >
-                    📷 Attach screenshot
+                    ✉️ Email Confirmation of the reset
                   </button>
                 )}
                 <button

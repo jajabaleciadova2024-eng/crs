@@ -6,7 +6,8 @@ import { bellNotify } from "@/lib/bellNotify";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
-// A member declaring "I have reset my password", with a screenshot as proof.
+// A member declaring "I have reset my password", attaching the platform's
+// confirmation email as proof.
 // This does NOT restart the countdown — only the Team Leader's confirmation
 // does (see ../review). A claim is a claim until somebody checks it.
 export async function POST(request: Request) {
@@ -21,10 +22,10 @@ export async function POST(request: Request) {
   const resetAtRaw = (form.get("reset_at") as string) || "";
 
   if (!(proof instanceof File) || proof.size === 0) {
-    return NextResponse.json({ error: "Attach a screenshot as proof." }, { status: 400 });
+    return NextResponse.json({ error: "Attach the email confirmation of the reset." }, { status: 400 });
   }
   if (proof.size > MAX_BYTES) {
-    return NextResponse.json({ error: "Screenshot is too large (10MB max)." }, { status: 400 });
+    return NextResponse.json({ error: "That file is too large (10MB max)." }, { status: 400 });
   }
   if (!proof.type.startsWith("image/")) {
     return NextResponse.json({ error: "Proof must be an image." }, { status: 400 });

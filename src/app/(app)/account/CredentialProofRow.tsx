@@ -26,6 +26,18 @@ export default function CredentialProofRow({
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  async function remove() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/account/credential-proof?kind=${kind}`, { method: "DELETE" });
+    setBusy(false);
+    if (!res.ok) {
+      setError((await res.json().catch(() => ({}))).error ?? "Couldn't remove it.");
+      return;
+    }
+    router.refresh();
+  }
+
   async function upload(file: File) {
     setBusy(true);
     setError(null);
@@ -67,6 +79,19 @@ export default function CredentialProofRow({
             className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
           >
             Replace
+          </button>
+          <button
+            type="button"
+            onClick={remove}
+            disabled={busy}
+            title={
+              required
+                ? "Removing this will block you from reporting a reset until you upload a new one"
+                : "Remove this screenshot"
+            }
+            className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer disabled:opacity-50"
+          >
+            Remove
           </button>
         </>
       ) : (
