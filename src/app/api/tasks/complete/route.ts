@@ -111,6 +111,21 @@ export async function POST(request: Request) {
     // 'pending' and waits, which is how every task behaved before 0030.
     const autoApprove = task.requires_approval === false;
 
+    // Was this member ALREADY waiting on review for this task? The upsert
+    // below cannot tell you afterwards — it reports success either way —
+    // so it has to be read first. Without it, every re-submit against an
+    // already-pending row fired a second "submitted a task for approval"
+    // at the Team Leader for the same piece of work: a double-click, a
+    // retry after a flaky connection, or a second tab all produced two
+    // identical notifications with nothing extra to review.
+    const { data: alreadyPending } = await admin
+      .from("member_task_completions")
+      .select("id")
+      .eq("task_id", task_id)
+      .eq("profile_id", user.id)
+      .eq("status", "pending")
+      .maybeSingle();
+
     // Upsert, not insert: a rejected completion is re-submitted against the
     // same (task_id, profile_id) unique row, and a plain insert would just
     // hit the duplicate and silently leave the old rejection — along with
@@ -137,6 +152,11 @@ export async function POST(request: Request) {
 
     // Nothing to review, so nobody to notify.
     if (autoApprove) return NextResponse.json({ ok: true, status: "approved" });
+
+    // Already in the review queue — the row was refreshed, but no new
+    // approval is being asked for. Telling the Team Leader twice about one
+    // submission is noise that makes them distrust the count.
+    if (alreadyPending) return NextResponse.json({ ok: true, status: "pending" });
 
     // Notify all Team Leaders about the submission
     const { data: leaders } = await admin

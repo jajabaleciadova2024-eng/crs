@@ -31,19 +31,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Reason must be under 1000 characters." }, { status: 400 });
   }
 
-  // Fetch the completion to get the associate's profile_id
-  const { data: completion } = await admin
-    .from("member_task_completions")
-    .select("id, profile_id, status")
-    .eq("id", completion_id)
-    .single();
-
-  if (!completion) return NextResponse.json({ error: "Completion not found." }, { status: 404 });
-  if (completion.status !== "pending") {
-    return NextResponse.json({ error: "This completion has already been reviewed." }, { status: 400 });
-  }
-
-  const { error } = await admin
+  // The pending check is part of the UPDATE, not a read before it. Read,
+  // check, then write is a race: two requests for the same completion —
+  // a double-click, a retry, two open tabs — both read "pending" before
+  // either write lands, so both proceed and the member gets two
+  // "reviewed your task completion" notifications. Filtering on
+  // status = 'pending' inside the update makes the transition atomic:
+  // exactly one request gets a row back, and only that one notifies.
+  const { data: updated, error } = await admin
     .from("member_task_completions")
     .update({
       status,
@@ -51,16 +46,33 @@ export async function POST(request: Request) {
       reviewed_by: user.id,
       reviewed_at: new Date().toISOString(),
     })
-    .eq("id", completion_id);
+    .eq("id", completion_id)
+    .eq("status", "pending")
+    .select("id, profile_id");
 
   if (error) {
     console.error("[tasks/approve] POST error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Notify the associate about the review decision
+  if (!updated || updated.length === 0) {
+    // Either it never existed or somebody (or the same click, twice) got
+    // here first. Both are "nothing left to review" from the caller's side.
+    const { data: exists } = await admin
+      .from("member_task_completions")
+      .select("id")
+      .eq("id", completion_id)
+      .maybeSingle();
+    return NextResponse.json(
+      { error: exists ? "This completion has already been reviewed." : "Completion not found." },
+      { status: exists ? 400 : 404 },
+    );
+  }
+
+  // Notify the associate about the review decision. Reached only by the
+  // request that actually moved the row out of 'pending'.
   await admin.from("notifications").insert({
-    recipient_id: completion.profile_id,
+    recipient_id: updated[0].profile_id,
     actor_id: user.id,
     type: "task_reviewed" as const,
     post_id: null,
