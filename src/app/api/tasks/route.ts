@@ -102,8 +102,18 @@ export async function POST(request: Request) {
   const assign_to = body.assign_to || "all";
   // Members excused from this task. Ids only, deduped — a bad id here would
   // silently exempt nobody, which is the wrong way for this to fail.
+  // Excusing somebody only means something if they could otherwise be
+  // assigned. A Team Leader is excluded by role, so storing their id here
+  // says nothing and later shows as a count with no name behind it.
+  const assignable = new Set(await taskAssignableMemberIds());
   const excluded_ids: string[] = Array.isArray(body.excluded_ids)
-    ? [...new Set((body.excluded_ids as unknown[]).filter((id): id is string => typeof id === "string" && !!id))]
+    ? [
+        ...new Set(
+          (body.excluded_ids as unknown[]).filter(
+            (id): id is string => typeof id === "string" && assignable.has(id),
+          ),
+        ),
+      ]
     : [];
   const blocker_days_before = Number(body.blocker_days_before) || 0;
   // Both default to the pre-0030 behavior when a caller omits them:
@@ -212,9 +222,12 @@ export async function PATCH(request: Request) {
     if (!Array.isArray(body.excluded_ids)) {
       return NextResponse.json({ error: "excluded_ids must be a list." }, { status: 400 });
     }
+    const assignable = new Set(await taskAssignableMemberIds());
     updates.excluded_ids = [
       ...new Set(
-        (body.excluded_ids as unknown[]).filter((id): id is string => typeof id === "string" && !!id),
+        (body.excluded_ids as unknown[]).filter(
+          (id): id is string => typeof id === "string" && assignable.has(id),
+        ),
       ),
     ];
   }

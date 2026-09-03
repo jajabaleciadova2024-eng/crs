@@ -78,7 +78,15 @@ export default function TaskModal({
   // set, not a form field, and the whole point is toggling one name at a
   // time without disturbing the rest.
   const [excluded, setExcluded] = useState<Set<string>>(
-    () => new Set(editTask?.excluded_ids ?? []),
+    () =>
+      new Set(
+        // Only ids that are still on the roster. A Team Leader excluded
+        // before they stopped being assignable leaves an id here that
+        // matches no chip — so the count read "1 excluded" with nothing
+        // struck through, describing somebody who is excluded by role
+        // anyway. Dropping it here also cleans the stored value on save.
+        (editTask?.excluded_ids ?? []).filter((id) => members.some((m) => m.id === id)),
+      ),
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
