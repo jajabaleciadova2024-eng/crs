@@ -6,6 +6,7 @@ import { Panel, Pill } from "@/components/ui";
 import PasswordCountdown from "@/components/PasswordCountdown";
 import { expiryState, expiryFrom, BLOCK_WITHIN_DAYS } from "@/lib/passwordExpiry";
 import ProofLink from "./ProofLink";
+import ProofExample from "./ProofExample";
 import CredentialProofRow from "./CredentialProofRow";
 
 type Reset = { id: string; resetAt: string; status: string; reviewNote: string | null; hasProof: boolean };
@@ -228,12 +229,7 @@ export default function MyCredentialPanel({
                   Reset your password on the platform, then report it here
                 </div>
                 <p className="text-[11.5px] text-[var(--muted)] m-0 mt-0.5 leading-snug">
-                  For proof, screenshot{" "}
-                  <span className="text-[var(--ink)] font-semibold">
-                    Security info › Password › Last updated
-                  </span>{" "}
-                  showing the new date. Your countdown restarts once the Team Leader confirms it — not
-                  when you submit.
+                  Your countdown restarts once the Team Leader confirms it — not when you submit.
                 </p>
               </div>
 
@@ -252,69 +248,95 @@ export default function MyCredentialPanel({
               {/* Labelled fields on their own lines rather than one long
                   unlabelled row: the date and the attachment are separate
                   inputs and were reading as a single toolbar. */}
-              <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
-                <div>
-                  <label
-                    htmlFor="reset-date"
-                    className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1"
-                  >
-                    Date you reset it
-                  </label>
-                  <input
-                    id="reset-date"
-                    type="date"
-                    value={resetDate}
-                    max={new Date().toISOString().slice(0, 10)}
-                    onChange={(e) => setResetDate(e.target.value)}
-                    className="px-2.5 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[12.5px] text-[var(--ink)]"
-                  />
-                  <span className="block text-[10.5px] text-[var(--muted)] mt-1">
-                    Must match the screenshot
-                  </span>
-                </div>
+              {/* Date on its own line; the upload gets the full width below
+                  it. As a small outlined pill wedged beside the date picker
+                  it read as a minor toggle rather than the main thing being
+                  asked for. */}
+              <div>
+                <label
+                  htmlFor="reset-date"
+                  className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1"
+                >
+                  Date you reset it
+                </label>
+                <input
+                  id="reset-date"
+                  type="date"
+                  value={resetDate}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setResetDate(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[12.5px] text-[var(--ink)]"
+                />
+                <span className="block text-[10.5px] text-[var(--muted)] mt-1">Must match the screenshot</span>
+              </div>
 
-                <div className="min-w-0">
-                  <span className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">
-                    Proof — &quot;Last updated&quot; screenshot
-                  </span>
-                  {proof ? (
-                    <span className="flex items-center gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={preview ?? ""}
-                        alt=""
-                        className="w-8 h-8 rounded object-cover border border-[var(--line)] shrink-0"
-                      />
-                      <span className="text-[12px] text-[var(--ink)] max-w-[140px] truncate">{proof.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => fileRef.current?.click()}
-                        className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
-                      >
-                        Change
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (preview) URL.revokeObjectURL(preview);
-                          setProof(null);
-                          setPreview(null);
-                        }}
-                        className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    </span>
-                  ) : (
+              <div>
+                <span className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1">
+                  Proof — &quot;Last updated&quot; screenshot
+                </span>
+
+                {proof ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3 py-2.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={preview ?? ""}
+                      alt=""
+                      className="w-12 h-12 rounded object-cover border border-[var(--line)] shrink-0"
+                    />
+                    <span className="text-[12.5px] text-[var(--ink)] truncate flex-1 min-w-0">{proof.name}</span>
                     <button
                       type="button"
                       onClick={() => fileRef.current?.click()}
-                      className="px-2.5 py-1.5 rounded-md text-[12px] font-bold border border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] transition-colors cursor-pointer whitespace-nowrap"
+                      className="text-[11.5px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer shrink-0"
                     >
-                      Upload screenshot
+                      Change
                     </button>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (preview) URL.revokeObjectURL(preview);
+                        setProof(null);
+                        setPreview(null);
+                      }}
+                      className="text-[11.5px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer shrink-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="w-full flex items-center gap-3 rounded-lg border border-dashed border-[var(--line)] bg-[var(--paper)]/60 px-3 py-3 text-left hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]/20 transition-colors cursor-pointer"
+                  >
+                    <span className="w-8 h-8 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center shrink-0">
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 17V5" />
+                        <path d="m6 11 6-6 6 6" />
+                        <path d="M4 19h16" />
+                      </svg>
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[12.5px] font-semibold text-[var(--ink)]">
+                        Upload screenshot
+                      </span>
+                      <span className="block text-[11px] text-[var(--muted)] leading-snug">
+                        Security info › Password › Last updated
+                      </span>
+                    </span>
+                  </button>
+                )}
+
+                <ProofExample />
               </div>
 
               {/* What is still outstanding, so a disabled button is never a
