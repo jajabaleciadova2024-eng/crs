@@ -20,12 +20,12 @@ export default async function TasksPage() {
         .order("created_at", { ascending: false }),
       admin
         .from("member_task_completions")
-        .select("task_id, status")
+        .select("task_id, status, review_note")
         .eq("profile_id", profile.id),
       canManage
         ? admin
             .from("member_task_completions")
-            .select("id, task_id, profile_id, status, completed_at, profiles(first_name, last_name)")
+            .select("id, task_id, profile_id, status, completed_at, photo_path, review_note, profiles(first_name, last_name)")
             .order("completed_at", { ascending: false })
         : Promise.resolve({ data: [] }),
       canManage
@@ -43,6 +43,11 @@ export default async function TasksPage() {
   const myStatusMap = new Map(
     (myCompletions ?? []).map((c: { task_id: string; status: string }) => [c.task_id, c.status]),
   );
+  // The decline reason for THIS viewer's own submission, shown back on their
+  // card the way a rejected leave request shows its review_note.
+  const myNoteMap = new Map(
+    (myCompletions ?? []).map((c: { task_id: string; review_note: string | null }) => [c.task_id, c.review_note]),
+  );
 
   // Filter tasks: associates/OIC only see tasks assigned to 'all' or to them
   const filtered = (tasks ?? []).filter(
@@ -52,6 +57,7 @@ export default async function TasksPage() {
   const enriched = filtered.map((t: any) => ({
     ...t,
     completionStatus: (myStatusMap.get(t.id) as string | undefined) ?? "none",
+    myReviewNote: (myNoteMap.get(t.id) as string | null | undefined) ?? null,
     completions: canManage
       ? (allCompletions ?? []).filter((c: any) => c.task_id === t.id)
       : undefined,

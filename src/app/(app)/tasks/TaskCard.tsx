@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pill, Button } from "@/components/ui";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
@@ -12,6 +12,8 @@ interface CompletionEntry {
   profile_id: string;
   status: string;
   completed_at: string;
+  photo_path: string | null;
+  review_note: string | null;
   profiles: { first_name: string; last_name: string } | null;
 }
 
@@ -23,6 +25,10 @@ export interface TaskData {
   assign_to: string;
   blocker_days_before: number;
   completionStatus: CompletionStatus;
+  requires_approval?: boolean;
+  requires_photo?: boolean;
+  // The Team Leader's reason, when THIS viewer's submission was declined.
+  myReviewNote?: string | null;
   created_at: string;
   profiles?: { first_name: string; last_name: string } | null;
   completions?: CompletionEntry[];
@@ -51,16 +57,45 @@ export default function TaskCard({
   const router = useRouter();
   const [toggling, setToggling] = useState(false);
   const [reviewing, setReviewing] = useState<string | null>(null);
+  // Which completion is mid-decline, and the reason being typed for it.
+  const [declining, setDeclining] = useState<string | null>(null);
+  const [declineNote, setDeclineNote] = useState("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const blocking = isTaskBlockingToday(task);
   const isDone = task.completionStatus === "approved";
 
-  async function handleSubmit() {
+  async function handleSubmit(photo?: File) {
+    // A photo-required task can't be submitted from the checkbox alone —
+    // clicking it opens the file picker, and the real submit happens once a
+    // file comes back.
+    if (task.requires_photo && !photo) {
+      fileInputRef.current?.click();
+      return;
+    }
+
     setToggling(true);
-    await fetch("/api/tasks/complete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ task_id: task.id }),
-    });
+    setSubmitError(null);
+
+    let res: Response;
+    if (photo) {
+      const fd = new FormData();
+      fd.append("task_id", task.id);
+      fd.append("photo", photo);
+      res = await fetch("/api/tasks/complete", { method: "POST", body: fd });
+    } else {
+      res = await fetch("/api/tasks/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_id: task.id }),
+      });
+    }
+
+    if (!res.ok) {
+      setSubmitError((await res.json().catch(() => ({}))).error ?? "Couldn't submit.");
+      setToggling(false);
+      return;
+    }
     setToggling(false);
     router.refresh();
   }
@@ -76,19 +111,33 @@ export default function TaskCard({
     router.refresh();
   }
 
-  async function handleReview(completionId: string, status: "approved" | "rejected") {
+  async function handleReview(completionId: string, status: "approved" | "rejected", note?: string) {
     setReviewing(completionId);
-    await fetch("/api/tasks/approve", {
+    const res = await fetch("/api/tasks/approve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completion_id: completionId, status }),
+      body: JSON.stringify({ completion_id: completionId, status, review_note: note ?? null }),
     });
     setReviewing(null);
+    if (!res.ok) {
+      setSubmitError((await res.json().catch(() => ({}))).error ?? "Couldn't save that review.");
+      return;
+    }
+    setDeclining(null);
+    setDeclineNote("");
     router.refresh();
   }
 
+  // Opens the proof photo in a new tab. The URL is signed and short-lived,
+  // so it's fetched on click rather than rendered into the page up front.
+  async function openPhoto(completionId: string) {
+    const res = await fetch(`/api/tasks/photo/${completionId}`);
+    if (!res.ok) return;
+    const { url } = await res.json();
+    window.open(url, "_blank", "noopener");
+  }
+
   // For non-TL: checkbox behavior based on status
-  const canCheck = !canManage && (task.completionStatus === "none" || task.completionStatus === "rejected");
   const canUndo = !canManage && task.completionStatus === "pending";
 
   return (
@@ -102,7 +151,7 @@ export default function TaskCard({
         {!canManage && (
           <button
             type="button"
-            onClick={canUndo ? handleUndo : handleSubmit}
+            onClick={canUndo ? handleUndo : () => handleSubmit()}
             disabled={toggling || isDone}
             className="mt-0.5 shrink-0 w-5 h-5 rounded border-2 border-[var(--line)] flex items-center justify-center cursor-pointer hover:border-[var(--accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={
@@ -162,7 +211,49 @@ export default function TaskCard({
             {!task.deadline && (
               <span>No deadline — blocks until done</span>
             )}
+            {task.requires_photo && <span>Photo required</span>}
+            {task.requires_approval === false && <span>No approval needed</span>}
           </div>
+
+          {/* Photo-required submit. The checkbox opens this picker; picking a
+              file is what actually submits. */}
+          {!canManage && task.requires_photo && (
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) handleSubmit(f);
+              }}
+            />
+          )}
+
+          {/* The member's own view of a decline — the reason, and what to do
+              about it. Mirrors a rejected leave request's review_note. */}
+          {!canManage && task.completionStatus === "rejected" && (
+            <div className="mt-2 rounded-lg border border-[var(--bad)]/40 bg-[var(--bad-soft)] px-3 py-2">
+              <div className="text-[11px] font-bold text-[var(--bad)] uppercase tracking-wider">
+                Declined by your Team Leader
+              </div>
+              {task.myReviewNote && (
+                <p className="text-[12.5px] text-[var(--ink)] m-0 mt-1 leading-snug">{task.myReviewNote}</p>
+              )}
+              <p className="text-[11.5px] text-[var(--muted)] m-0 mt-1">
+                {task.requires_photo
+                  ? "Tick the box to attach a new photo and re-submit."
+                  : "Tick the box to re-submit."}
+              </p>
+            </div>
+          )}
+
+          {!canManage && submitError && (
+            <p role="alert" className="text-[12px] text-[var(--bad)] m-0 mt-2">
+              {submitError}
+            </p>
+          )}
 
           {/* TL: show completions with approve/reject */}
           {canManage && task.completions && task.completions.length > 0 && (
@@ -170,37 +261,94 @@ export default function TaskCard({
               {task.completions.map((c) => {
                 const name = c.profiles ? `${c.profiles.first_name} ${c.profiles.last_name}` : c.profile_id;
                 return (
-                  <div key={c.id} className="flex items-center gap-2 text-[11.5px]">
-                    <span className="text-[var(--ink)] font-medium">{name}</span>
-                    {c.status === "pending" ? (
-                      <div className="flex items-center gap-1">
-                        <Pill tone="warn">Pending</Pill>
+                  <div key={c.id} className="flex flex-col gap-1 text-[11.5px]">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[var(--ink)] font-medium">{name}</span>
+                      {c.photo_path && (
                         <button
                           type="button"
-                          onClick={() => handleReview(c.id, "approved")}
-                          disabled={reviewing === c.id}
-                          className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                          onClick={() => openPhoto(c.id)}
+                          className="text-[10.5px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
                         >
-                          Approve
+                          View photo
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleReview(c.id, "rejected")}
-                          disabled={reviewing === c.id}
-                          className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
-                        >
-                          Reject
-                        </button>
+                      )}
+                      {c.status === "pending" ? (
+                        <div className="flex items-center gap-1">
+                          <Pill tone="warn">Pending</Pill>
+                          <button
+                            type="button"
+                            onClick={() => handleReview(c.id, "approved")}
+                            disabled={reviewing === c.id}
+                            className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeclining(declining === c.id ? null : c.id);
+                              setDeclineNote("");
+                            }}
+                            disabled={reviewing === c.id}
+                            className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      ) : (
+                        <Pill tone={c.status === "approved" ? "good" : "bad"}>
+                          {c.status === "approved" ? "Approved" : "Declined"}
+                        </Pill>
+                      )}
+                    </div>
+
+                    {/* A decline needs a reason — the member only sees this
+                        note, so "Declined" with nothing attached leaves them
+                        guessing. The API rejects an empty one too. */}
+                    {declining === c.id && (
+                      <div className="flex flex-col gap-1.5 pl-1 pt-1">
+                        <textarea
+                          value={declineNote}
+                          onChange={(e) => setDeclineNote(e.target.value)}
+                          rows={2}
+                          autoFocus
+                          placeholder="Why are you declining? The member will see this."
+                          className="w-full max-w-[380px] px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper)] text-[12px]"
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleReview(c.id, "rejected", declineNote.trim())}
+                            disabled={reviewing === c.id || !declineNote.trim()}
+                            className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Confirm decline
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeclining(null)}
+                            className="px-2 py-0.5 rounded text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                    ) : (
-                      <Pill tone={c.status === "approved" ? "good" : "bad"}>
-                        {c.status === "approved" ? "Approved" : "Rejected"}
-                      </Pill>
+                    )}
+
+                    {c.status === "rejected" && c.review_note && (
+                      <span className="text-[11px] text-[var(--muted)] pl-1">Reason: {c.review_note}</span>
                     )}
                   </div>
                 );
               })}
             </div>
+          )}
+
+          {canManage && submitError && (
+            <p role="alert" className="text-[12px] text-[var(--bad)] m-0 mt-2">
+              {submitError}
+            </p>
           )}
         </div>
 

@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   // Fetch completions for the current user (with status)
   const { data: myCompletions } = await admin
     .from("member_task_completions")
-    .select("task_id, status")
+    .select("task_id, status, review_note, photo_path")
     .eq("profile_id", user.id);
 
   // Only approved completions count as "done"
@@ -36,6 +36,11 @@ export async function GET(request: Request) {
   // Build a status map for per-task completionStatus
   const myStatusMap = new Map(
     (myCompletions ?? []).map((c: { task_id: string; status: string }) => [c.task_id, c.status]),
+  );
+  // The Team Leader's reason for declining, surfaced back to the member on
+  // their own card — same as a rejected leave request shows its review_note.
+  const myNoteMap = new Map(
+    (myCompletions ?? []).map((c: { task_id: string; review_note: string | null }) => [c.task_id, c.review_note]),
   );
 
   // Fetch all completions (for TL to see progress)
@@ -49,7 +54,7 @@ export async function GET(request: Request) {
   if (profile?.role === "team_leader") {
     const { data } = await admin
       .from("member_task_completions")
-      .select("id, task_id, profile_id, status, completed_at, profiles(first_name, last_name)")
+      .select("id, task_id, profile_id, status, completed_at, photo_path, review_note, profiles(first_name, last_name)")
       .order("completed_at", { ascending: false });
     allCompletions = (data ?? []) as unknown as typeof allCompletions;
   }
@@ -64,6 +69,7 @@ export async function GET(request: Request) {
     ...t,
     completed: approvedIds.has(t.id),
     completionStatus: (myStatusMap.get(t.id) as string | undefined) ?? "none",
+    myReviewNote: (myNoteMap.get(t.id) as string | null | undefined) ?? null,
     completions: profile?.role === "team_leader"
       ? allCompletions.filter((c) => c.task_id === t.id)
       : undefined,
@@ -94,6 +100,10 @@ export async function POST(request: Request) {
   const deadline = body.deadline || null;
   const assign_to = body.assign_to || "all";
   const blocker_days_before = Number(body.blocker_days_before) || 0;
+  // Both default to the pre-0030 behavior when a caller omits them:
+  // approval required, no photo.
+  const requires_approval = body.requires_approval !== false;
+  const requires_photo = body.requires_photo === true;
 
   if (!title) return NextResponse.json({ error: "Title is required." }, { status: 400 });
   if (title.length > 200) return NextResponse.json({ error: "Title must be under 200 characters." }, { status: 400 });
@@ -114,6 +124,8 @@ export async function POST(request: Request) {
       deadline,
       assign_to,
       blocker_days_before: deadline ? blocker_days_before : 0,
+      requires_approval,
+      requires_photo,
       created_by: user.id,
     })
     .select("id")
@@ -168,6 +180,8 @@ export async function PATCH(request: Request) {
     }
     updates.assign_to = body.assign_to;
   }
+  if (body.requires_approval !== undefined) updates.requires_approval = body.requires_approval === true;
+  if (body.requires_photo !== undefined) updates.requires_photo = body.requires_photo === true;
   if (body.blocker_days_before !== undefined) {
     const days = Number(body.blocker_days_before);
     if (days < 0) return NextResponse.json({ error: "Blocker days must be 0 or more." }, { status: 400 });

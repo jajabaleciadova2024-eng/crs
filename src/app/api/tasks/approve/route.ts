@@ -17,9 +17,18 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const { completion_id, status } = body;
+  const review_note = (body.review_note ?? "").trim() || null;
   if (!completion_id) return NextResponse.json({ error: "completion_id is required." }, { status: 400 });
   if (status !== "approved" && status !== "rejected") {
     return NextResponse.json({ error: "status must be 'approved' or 'rejected'." }, { status: 400 });
+  }
+  // A decline without a reason leaves the member with nothing to act on —
+  // same rule the leave queue applies to a rejection.
+  if (status === "rejected" && !review_note) {
+    return NextResponse.json({ error: "Please give a reason for declining." }, { status: 400 });
+  }
+  if (review_note && review_note.length > 1000) {
+    return NextResponse.json({ error: "Reason must be under 1000 characters." }, { status: 400 });
   }
 
   // Fetch the completion to get the associate's profile_id
@@ -38,6 +47,7 @@ export async function POST(request: Request) {
     .from("member_task_completions")
     .update({
       status,
+      review_note,
       reviewed_by: user.id,
       reviewed_at: new Date().toISOString(),
     })

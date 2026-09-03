@@ -194,6 +194,8 @@ export interface MemberTask {
   created_by: string;
   created_at: string;
   updated_at: string;
+  requires_approval: boolean;
+  requires_photo: boolean;
 }
 
 export type TaskCompletionStatus = "pending" | "approved" | "rejected";
@@ -206,6 +208,8 @@ export interface MemberTaskCompletion {
   reviewed_by: string | null;
   reviewed_at: string | null;
   completed_at: string;
+  photo_path: string | null;
+  review_note: string | null;
 }
 
 // A physically numbered service window belonging to a station (see

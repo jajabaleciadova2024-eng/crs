@@ -10,6 +10,8 @@ interface TaskForm {
   deadline: string;
   assign_to: string;
   blocker_days_before: string;
+  requires_approval: boolean;
+  requires_photo: boolean;
 }
 
 const EMPTY: TaskForm = {
@@ -18,6 +20,8 @@ const EMPTY: TaskForm = {
   deadline: "",
   assign_to: "all",
   blocker_days_before: "0",
+  requires_approval: true,
+  requires_photo: false,
 };
 
 export default function TaskModal({
@@ -33,6 +37,8 @@ export default function TaskModal({
     deadline: string | null;
     assign_to: string;
     blocker_days_before: number;
+    requires_approval?: boolean;
+    requires_photo?: boolean;
   } | null;
   onClose: () => void;
 }) {
@@ -46,6 +52,10 @@ export default function TaskModal({
           deadline: editTask.deadline ?? "",
           assign_to: editTask.assign_to,
           blocker_days_before: String(editTask.blocker_days_before),
+          // Tasks created before 0030 have no stored value; they behaved as
+          // approval-required, no photo, so that is what they edit as.
+          requires_approval: editTask.requires_approval ?? true,
+          requires_photo: editTask.requires_photo ?? false,
         }
       : EMPTY,
   );
@@ -67,6 +77,8 @@ export default function TaskModal({
       deadline: form.deadline || null,
       assign_to: form.assign_to,
       blocker_days_before: form.deadline ? Number(form.blocker_days_before) || 0 : 0,
+      requires_approval: form.requires_approval,
+      requires_photo: form.requires_photo,
     };
 
     if (isEdit) payload.id = editTask!.id;
@@ -146,6 +158,38 @@ export default function TaskModal({
               type="number"
             />
           )}
+
+          <div className="flex flex-col gap-2 pt-1">
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.requires_approval}
+                onChange={(e) => update("requires_approval", e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 accent-[var(--accent)] cursor-pointer"
+              />
+              <span className="text-[12.5px] leading-snug">
+                <span className="font-semibold text-[var(--ink)]">Require my approval</span>
+                <span className="block text-[var(--muted)]">
+                  Submissions wait for you to approve. Unchecked, the task clears the moment the member
+                  marks it done.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.requires_photo}
+                onChange={(e) => update("requires_photo", e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 accent-[var(--accent)] cursor-pointer"
+              />
+              <span className="text-[12.5px] leading-snug">
+                <span className="font-semibold text-[var(--ink)]">Require a photo as proof</span>
+                <span className="block text-[var(--muted)]">
+                  The member must attach an image before they can submit.
+                </span>
+              </span>
+            </label>
+          </div>
 
           {error && (
             <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
