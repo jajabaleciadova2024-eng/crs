@@ -131,7 +131,7 @@ export default function TaskModal({
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 overflow-y-auto" onClick={onClose}>
       <div
-        className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl w-full max-w-md p-5 animate-scale-in my-auto"
+        className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl w-full max-w-xl p-5 sm:p-6 animate-scale-in my-auto"
         style={{ boxShadow: "var(--shadow-lg, 0 10px 25px rgba(0,0,0,.1))" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -149,6 +149,7 @@ export default function TaskModal({
               className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-y"
             />
           </div>
+          <Section title="Who it's for">
           <div>
             <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
               Assign to
@@ -213,37 +214,40 @@ export default function TaskModal({
               </div>
             </div>
           )}
+          </Section>
 
-          <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-              Deadline (optional)
-            </label>
-            <input
-              type="date"
-              value={form.deadline}
-              onChange={(e) => update("deadline", e.target.value)}
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
-            />
-          </div>
-          {form.deadline && (
-            <Field
-              label="Start blocking X days before deadline"
-              value={form.blocker_days_before}
-              onChange={(v) => update("blocker_days_before", v)}
-              type="number"
-            />
-          )}
+          {/* Deadline, when blocking starts, and what it locks are one
+              subject and now read as one. Loose in the form, the lock
+              checkboxes sat directly above the submission ones with nothing
+              between them, so "Require my approval" looked like a third
+              thing this task locks. */}
+          <Section title="Deadline & blocking">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+                  Deadline (optional)
+                </label>
+                <input
+                  type="date"
+                  value={form.deadline}
+                  onChange={(e) => update("deadline", e.target.value)}
+                  className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+                />
+              </div>
+              {form.deadline && (
+                <Field
+                  label="Start blocking (days before)"
+                  value={form.blocker_days_before}
+                  onChange={(v) => update("blocker_days_before", v)}
+                  type="number"
+                />
+              )}
+            </div>
 
-          {/* WHAT this task blocks, as opposed to WHEN (the field above).
-              Every blocking task used to lock both of these, so a task that
-              only needed to gate one had to gate the other as well. Turning
-              both off leaves a task that is tracked and chased but locks
-              nothing — which is a real thing to want. */}
-          <div>
-            <span className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-              While blocking, lock
-            </span>
             <div className="flex flex-col gap-2">
+              <span className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                While blocking, lock
+              </span>
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
@@ -277,9 +281,10 @@ export default function TaskModal({
                 </p>
               )}
             </div>
-          </div>
+          </Section>
 
-          <div className="flex flex-col gap-2 pt-1">
+          <Section title="What the member must do">
+            <div className="flex flex-col gap-2.5">
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
@@ -324,7 +329,8 @@ export default function TaskModal({
                 </span>
               </span>
             </label>
-          </div>
+            </div>
+          </Section>
 
           {error && (
             <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
@@ -343,6 +349,21 @@ export default function TaskModal({
         </form>
       </div>
     </div>
+  );
+}
+
+// A titled, boxed group. The form is a long column of controls with no
+// hierarchy otherwise, and two runs of checkboxes back to back read as one
+// list — which is how "Require my approval" ended up looking like something
+// the task locks.
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="rounded-lg border border-[var(--line)] bg-[var(--paper)]/40 px-3.5 py-3 m-0 flex flex-col gap-3">
+      <legend className="px-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--accent-strong)]">
+        {title}
+      </legend>
+      {children}
+    </fieldset>
   );
 }
 
