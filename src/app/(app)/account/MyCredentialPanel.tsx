@@ -84,9 +84,7 @@ export default function MyCredentialPanel({
     !mfaProof
       ? "Upload your MFA screenshot"
       : !mfaVerified
-        ? isTeamLeader
-          ? "Verify your own MFA screenshot in the table below"
-          : "Your MFA screenshot is waiting on the Team Leader to verify it"
+        ? "Your MFA screenshot is waiting on the Team Leader to verify it"
         : null,
     !proof ? "Attach your \"Last updated\" screenshot" : null,
   ].filter(Boolean) as string[];
@@ -102,9 +100,7 @@ export default function MyCredentialPanel({
     if (!mfaVerified) {
       setError(
         mfaProof
-          ? isTeamLeader
-            ? "Verify your own MFA screenshot before reporting a reset."
-            : "Your MFA screenshot is still waiting on the Team Leader to verify it."
+          ? "Your MFA screenshot is still waiting on the Team Leader to verify it."
           : "Upload your MFA screenshot first — it must be verified before you can report a reset.",
       );
       return;
@@ -186,7 +182,6 @@ export default function MyCredentialPanel({
             hasProof={mfaProof}
             verified={mfaVerified}
             reviewNote={mfaNote}
-            isTeamLeader={isTeamLeader}
           />
           <CredentialProofRow
             kind="passkey"
@@ -196,7 +191,6 @@ export default function MyCredentialPanel({
             hasProof={passkeyProof}
             verified={passkeyVerified}
             reviewNote={passkeyNote}
-            isTeamLeader={isTeamLeader}
           />
         </div>
 
@@ -238,7 +232,7 @@ export default function MyCredentialPanel({
                 </div>
                 <p className="text-[11.5px] text-[var(--muted)] m-0 mt-0.5 leading-snug">
                   {isTeamLeader
-                    ? "Your countdown restarts once the reset is confirmed in the table below — not when you submit."
+                    ? "Your countdown restarts as soon as you submit — your own reports are recorded as confirmed."
                     : "Your countdown restarts once the Team Leader confirms it — not when you submit."}
                 </p>
               </div>

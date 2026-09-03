@@ -51,6 +51,14 @@ export async function POST(request: Request) {
   // MFA proof is a hard prerequisite. The button is hidden without it, but
   // this is the half that actually holds: a reset reported by someone with
   // no MFA on file would restart a 60-day clock on a non-compliant account.
+  // Same reasoning as a self-verified upload: the Team Leader confirms
+  // resets, so making them file a claim and then confirm their own is a
+  // round trip that checks nothing. Theirs is recorded as confirmed on
+  // submission, reviewed by themselves, and still keeps the proof and the
+  // history entry.
+  const { data: submitter } = await admin.from("profiles").select("role").eq("id", user.id).single();
+  const selfConfirms = submitter?.role === "team_leader";
+
   const { data: cred } = await admin
     .from("credential_status")
     .select("mfa_proof_path, mfa_verified")
@@ -89,15 +97,28 @@ export async function POST(request: Request) {
   const uploaded = await uploadResetProof(path, proof.type || "image/png", buffer);
   if (!uploaded.ok) return NextResponse.json({ error: uploaded.error }, { status: 400 });
 
+  const now = new Date().toISOString();
   const { error } = await admin.from("password_resets").insert({
     profile_id: user.id,
     reset_at: resetAt.toISOString(),
     proof_path: path,
-    status: "pending",
+    status: selfConfirms ? "approved" : "pending",
+    reviewed_by: selfConfirms ? user.id : null,
+    reviewed_at: selfConfirms ? now : null,
   });
   if (error) {
     console.error("[account/reset] insert failed:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Confirmed on the spot, so start the 60 days now — there is no second
+  // step coming that would otherwise do it.
+  if (selfConfirms) {
+    await admin.from("credential_status").upsert(
+      { profile_id: user.id, last_reset_at: resetAt.toISOString(), updated_at: now },
+      { onConflict: "profile_id" },
+    );
+    return NextResponse.json({ ok: true, status: "approved" });
   }
 
   const { data: leaders } = await admin

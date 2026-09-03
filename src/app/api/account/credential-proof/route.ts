@@ -34,6 +34,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Proof must be an image." }, { status: 400 });
   }
 
+  // The Team Leader IS the verifier, so asking them to check their own
+  // upload is theatre: it proves nothing and adds a step. Their uploads land
+  // verified, stamped as verified by themselves so the audit trail still
+  // says who signed it off.
+  const admin = createAdminClient();
+  const { data: uploader } = await admin.from("profiles").select("role").eq("id", user.id).single();
+  const selfVerifies = uploader?.role === "team_leader";
+
   const buffer = Buffer.from(await file.arrayBuffer());
   const path = `${user.id}/${kind}-${Date.now()}-${file.name}`;
   const uploaded = await uploadResetProof(path, file.type || "image/png", buffer);
@@ -48,22 +56,21 @@ export async function POST(request: Request) {
           mfa_proof_path: path,
           mfa_configured: true,
           mfa_confirmed_at: now,
-          mfa_verified: false,
-          mfa_verified_by: null,
-          mfa_verified_at: null,
+          mfa_verified: selfVerifies,
+          mfa_verified_by: selfVerifies ? user.id : null,
+          mfa_verified_at: selfVerifies ? now : null,
           mfa_review_note: null,
         }
       : {
           passkey_proof_path: path,
           passkey_configured: true,
           passkey_confirmed_at: now,
-          passkey_verified: false,
-          passkey_verified_by: null,
-          passkey_verified_at: null,
+          passkey_verified: selfVerifies,
+          passkey_verified_by: selfVerifies ? user.id : null,
+          passkey_verified_at: selfVerifies ? now : null,
           passkey_review_note: null,
         };
 
-  const admin = createAdminClient();
   const { error } = await admin
     .from("credential_status")
     .upsert({ profile_id: user.id, updated_at: now, ...patch }, { onConflict: "profile_id" });
