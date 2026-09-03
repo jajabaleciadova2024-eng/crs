@@ -155,23 +155,33 @@ export default function NotificationBell({ userId }: { userId: string }) {
     };
   }, [open]);
 
+  // Explicit, from the header button. Merely OPENING the panel used to do
+  // this, which meant glancing at the bell wiped the record of what you had
+  // not dealt with yet — and left a "Mark all as read" button with nothing
+  // to do. Clearing is now the user's decision.
   async function markAllRead() {
-    // No `unread === 0` early-return guard: this now runs right after a
-    // fresh fetchAll() resolves (see handleOpen), and reading `unread`
-    // here would close over its value from before that fetch — stale by
-    // definition. Unconditionally marking read is harmless when there's
-    // nothing to mark.
+    if (unread === 0) return;
     setUnread(0);
     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
     await fetch("/api/notifications/read-all", { method: "POST" });
   }
 
+  // Following a notification clears just that one, so an item you have
+  // actually acted on stops counting without taking the others with it.
+  async function markOneRead(id: string) {
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setUnread((u) => Math.max(0, u - 1));
+    await fetch("/api/notifications/read-all", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+  }
+
   function handleOpen() {
     setOpen((prev) => {
       const next = !prev;
-      if (next) {
-        fetchAll().then(() => markAllRead());
-      }
+      if (next) fetchAll();
       return next;
     });
   }
@@ -203,9 +213,14 @@ export default function NotificationBell({ userId }: { userId: string }) {
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
             <span className="font-bold text-[13px] text-[var(--ink)]">Notifications</span>
-            <Link href="/feed" onClick={() => setOpen(false)} className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--accent-strong)]">
-              Go to feed
-            </Link>
+            <button
+              type="button"
+              onClick={markAllRead}
+              disabled={unread === 0}
+              className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--accent-strong)] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            >
+              Mark all as read
+            </button>
           </div>
 
           <div className="max-h-[400px] overflow-y-auto">
@@ -221,7 +236,10 @@ export default function NotificationBell({ userId }: { userId: string }) {
                 <Link
                   key={n.id}
                   href={n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" || n.type === "task_poke" ? "/tasks" : n.type === "password_reset_submitted" || n.type === "password_reset_reviewed" || n.type === "password_expiring" ? "/account" : n.type === "leave_submitted" || n.type === "leave_reviewed" ? "/leave" : n.type === "schedule_published" ? "/schedule" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    if (!n.read) markOneRead(n.id);
+                    setOpen(false);
+                  }}
                   className={`flex items-start gap-3 px-4 py-2.5 border-b border-[var(--line)] last:border-b-0 hover:bg-[var(--accent-soft)]/30 transition-colors ${
                     !n.read ? "bg-[var(--accent-soft)]/15" : ""
                   }`}

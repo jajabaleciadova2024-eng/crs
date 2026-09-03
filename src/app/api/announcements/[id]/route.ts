@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // PATCH — edit announcement (TL only, enforced by RLS)
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -9,6 +10,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  const admin = createAdminClient();
+  const { data: caller } = await admin.from("profiles").select("role").eq("id", user.id).single();
+  if (caller?.role !== "team_leader") {
+    return NextResponse.json({ error: "Only the Team Leader can change an announcement." }, { status: 403 });
+  }
+
 
   const body = await request.json();
   const title = (body.title ?? "").trim();
@@ -33,6 +41,13 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  const admin = createAdminClient();
+  const { data: caller } = await admin.from("profiles").select("role").eq("id", user.id).single();
+  if (caller?.role !== "team_leader") {
+    return NextResponse.json({ error: "Only the Team Leader can change an announcement." }, { status: 403 });
+  }
+
 
   const { error } = await supabase.from("announcements").delete().eq("id", id);
   if (error) {
