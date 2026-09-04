@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import ProofImage from "./ProofImage";
+import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 // One "upload your screenshot" row. MFA is required and gates the reset
 // flow; the passkey is wanted but never blocks anything, so the two differ
@@ -50,13 +51,28 @@ export default function CredentialProofRow({
   async function upload(file: File) {
     setBusy(true);
     setError(null);
+    // A screenshot straight off a phone can be larger than one request is
+    // allowed to carry, and that rejection never reaches our route — it came
+    // back as a bare "Couldn't upload." Shrink it to fit first.
+    const { file: ready, error: tooBig } = await shrinkOneForUpload(file);
+    if (tooBig) {
+      setError(tooBig);
+      setBusy(false);
+      return;
+    }
     const fd = new FormData();
     fd.append("kind", kind);
-    fd.append("proof", file);
-    const res = await fetch("/api/account/credential-proof", { method: "POST", body: fd });
-    setBusy(false);
-    if (!res.ok) {
-      setError((await res.json().catch(() => ({}))).error ?? "Couldn't upload.");
+    fd.append("proof", ready);
+    try {
+      const res = await fetch("/api/account/credential-proof", { method: "POST", body: fd });
+      setBusy(false);
+      if (!res.ok) {
+        setError(await readUploadError(res, "Couldn't upload."));
+        return;
+      }
+    } catch {
+      setBusy(false);
+      setError(NETWORK_ERROR_MESSAGE);
       return;
     }
     router.refresh();

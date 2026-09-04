@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
+import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 export default function DocumentUpload({
   requestId,
@@ -30,14 +31,30 @@ export default function DocumentUpload({
     setError(null);
     setUploading(true);
 
+    // A photographed medical certificate is camera-sized; shrink it so the
+    // request fits. Anything that isn't an image (a PDF, most often) is
+    // passed through untouched.
+    const { file: ready, error: tooBig } = await shrinkOneForUpload(file);
+    if (tooBig) {
+      setError(tooBig);
+      setUploading(false);
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("file", file);
-    const res = await fetch(`/api/leave/${requestId}/document`, { method: "POST", body: formData });
+    formData.append("file", ready);
+    let res: Response;
+    try {
+      res = await fetch(`/api/leave/${requestId}/document`, { method: "POST", body: formData });
+    } catch {
+      setUploading(false);
+      setError(NETWORK_ERROR_MESSAGE);
+      return;
+    }
     setUploading(false);
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Upload failed.");
+      setError(await readUploadError(res, "Upload failed."));
       return;
     }
 

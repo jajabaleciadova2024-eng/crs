@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import AnnouncementCard from "./AnnouncementCard";
 import AnnouncementComposer from "./AnnouncementComposer";
+import { readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 import type { Mentionable } from "@/components/feed/mentions";
 
 export type ReactionType = "like" | "heart" | "angry" | "poop" | "roll_eyes";
@@ -138,29 +139,37 @@ export default function AnnouncementsFeed({
     };
   }, []);
 
-  async function handleNewAnnouncement(title: string, body: string, images: File[]) {
+  // Returns the message to show, or null when it posted. A failure used to
+  // return silently here: the composer closed, the announcement was gone,
+  // and nothing said why.
+  async function handleNewAnnouncement(title: string, body: string, images: File[]): Promise<string | null> {
     // Multipart only when there is actually something to upload — a plain
     // text announcement stays a plain JSON post.
     let res: Response;
-    if (images.length > 0) {
-      const fd = new FormData();
-      fd.append("title", title);
-      fd.append("body", body);
-      for (const f of images) fd.append("images", f);
-      res = await fetch("/api/announcements", { method: "POST", body: fd });
-    } else {
-      res = await fetch("/api/announcements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body }),
-      });
+    try {
+      if (images.length > 0) {
+        const fd = new FormData();
+        fd.append("title", title);
+        fd.append("body", body);
+        for (const f of images) fd.append("images", f);
+        res = await fetch("/api/announcements", { method: "POST", body: fd });
+      } else {
+        res = await fetch("/api/announcements", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, body }),
+        });
+      }
+    } catch {
+      return NETWORK_ERROR_MESSAGE;
     }
-    if (!res.ok) return;
+    if (!res.ok) return readUploadError(res, "Couldn't post that announcement.");
     const { announcement } = await res.json();
     setItems((prev) => {
       if (prev.some((a) => a.id === announcement.id)) return prev;
       return [announcement, ...prev];
     });
+    return null;
   }
 
   async function handleDelete(id: string) {
