@@ -169,6 +169,12 @@ export default function TaskCard({
   const [poking, setPoking] = useState<string | null>(null);
   const [poked, setPoked] = useState<Record<string, boolean>>({});
   const [pokeError, setPokeError] = useState<string | null>(null);
+  // Collapsed by default. A task's description is a set of instructions —
+  // several lines of them here — and with a handful of tasks open at once
+  // the page became a wall of text you had to scroll past to find the one
+  // you wanted. The header carries enough to choose from: title, what it
+  // blocks, the deadline, and how many people are waiting on you.
+  const [expanded, setExpanded] = useState(false);
   // One clock for the whole card, read after mount. Date.now() during SSR
   // and again in the browser gives two different answers and a hydration
   // mismatch; the cooldown is measured in hours, so a per-minute tick is
@@ -196,7 +202,13 @@ export default function TaskCard({
   >({ state: "closed" });
 
   function focusPhotoPanel() {
-    photoPanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    // The panel lives in the collapsed half of the card, so open it first —
+    // otherwise the checkbox appears to do nothing at all. One frame is
+    // enough for the panel to exist before scrolling to it.
+    setExpanded(true);
+    requestAnimationFrame(() => {
+      photoPanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
     setPulse(true);
     window.setTimeout(() => setPulse(false), 900);
   }
@@ -422,7 +434,13 @@ export default function TaskCard({
             // behind it — the member believed it was sent, the Team Leader
             // had nothing to approve, and neither could see why. Withdrawing
             // is still possible, but only through the labelled button below.
-            onClick={canUndo ? undefined : needsPhoto ? focusPhotoPanel : () => handleSubmit()}
+            onClick={
+              canUndo
+                ? undefined
+                : needsPhoto || (needsDate && !completionDate)
+                  ? focusPhotoPanel
+                  : () => handleSubmit()
+            }
             disabled={toggling || isDone || canUndo}
             aria-label={
               isDone
@@ -462,7 +480,37 @@ export default function TaskCard({
         )}
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* The whole header toggles. A dedicated chevron alone is a small
+              target on a phone, and the title is the obvious thing to press. */}
+          <div
+            role="button"
+            tabIndex={0}
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setExpanded((v) => !v);
+              }
+            }}
+            className="flex items-center gap-2 flex-wrap cursor-pointer select-none"
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className={`shrink-0 text-[var(--muted)] transition-transform duration-150 ${
+                expanded ? "rotate-90" : ""
+              }`}
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
             <span className={`text-[13px] font-semibold ${isDone ? "line-through text-[var(--muted)]" : "text-[var(--ink)]"}`}>
               {task.title}
             </span>
@@ -536,7 +584,7 @@ export default function TaskCard({
             )}
           </div>
 
-          {task.description && (
+          {expanded && task.description && (
             <p className="text-[12.5px] text-[var(--muted)] mt-1 leading-relaxed whitespace-pre-wrap break-words">
               {task.description}
             </p>
@@ -582,374 +630,387 @@ export default function TaskCard({
             )}
             {!task.deadline && <span>No deadline — blocks until done</span>}
             {task.requires_approval === false && <span>No approval needed</span>}
+            {/* Collapsed, this line is the whole card — it has to say
+                whether anything here needs the Team Leader. */}
+            {canManage && awaitingReview > 0 && (
+              <span className="text-[var(--warn)] font-bold">{awaitingReview} awaiting review</span>
+            )}
+            {canManage && notSubmitted > 0 && <span>{notSubmitted} not submitted</span>}
           </div>
 
-          {/* Says out loud what the checkbox does. A bare square carries no
-              label, which is fine on a to-do app people already know and
-              poor on a page someone opens twice a month. */}
-          {!canManage && !needsPhoto && task.completionStatus === "none" && (
-            <button
-              type="button"
-              onClick={() => handleSubmit()}
-              disabled={toggling}
-              className="mt-2 text-[12px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
-            >
-              {toggling ? "Submitting…" : "Mark as complete"}
-            </button>
-          )}
-          {!canManage && canUndo && (
-            <button
-              type="button"
-              onClick={handleUndo}
-              disabled={toggling}
-              className="mt-2 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] hover:underline cursor-pointer disabled:opacity-50"
-            >
-              Undo submission
-            </button>
-          )}
-
-          {needsDate && (
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              <label
-                htmlFor={`cdate-${task.id}`}
-                className="text-[11.5px] font-semibold text-[var(--ink)]"
+          {/* Everything below the header is the detail: the description,
+              the member's own submit controls, and the Team Leader's
+              roster table. Hidden until the card is opened. */}
+          {expanded && (
+            <>
+            {/* Says out loud what the checkbox does. A bare square carries no
+                label, which is fine on a to-do app people already know and
+                poor on a page someone opens twice a month. */}
+            {!canManage && !needsPhoto && task.completionStatus === "none" && (
+              <button
+                type="button"
+                onClick={() => handleSubmit()}
+                disabled={toggling}
+                className="mt-2 text-[12px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
               >
-                Completed on
-              </label>
-              <input
-                id={`cdate-${task.id}`}
-                type="date"
-                value={completionDate}
-                max={todayInManila()}
-                onChange={(e) => setCompletionDate(e.target.value)}
-                className="px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[12px] text-[var(--ink)]"
-              />
-            </div>
-          )}
+                {toggling ? "Submitting…" : "Mark as complete"}
+              </button>
+            )}
+            {!canManage && canUndo && (
+              <button
+                type="button"
+                onClick={handleUndo}
+                disabled={toggling}
+                className="mt-2 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] hover:underline cursor-pointer disabled:opacity-50"
+              >
+                Undo submission
+              </button>
+            )}
 
-          {/* Photo proof. Compact and left-aligned — the previous version
-              stretched the full card width, which stranded the button on the
-              far right with a band of empty space between it and the text. */}
-          {needsPhoto && (
-            <div
-              ref={photoPanelRef}
-              className={`mt-2.5 w-fit max-w-full rounded-lg border px-3 py-2.5 transition-all duration-300 ${
-                pulse
-                  ? "border-[var(--accent)] bg-[var(--accent-soft)]/60"
-                  : "border-[var(--line)] bg-[var(--paper)]/70"
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  e.target.value = "";
-                  if (f) choosePhoto(f);
-                }}
-              />
-
-              {!photo ? (
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[15px] leading-none shrink-0" aria-hidden="true">
-                    📷
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-[12px] font-semibold text-[var(--ink)] leading-tight">
-                      Photo proof required
-                    </div>
-                    <div className="text-[11px] text-[var(--muted)] leading-tight mt-0.5">
-                      Attach an image, then submit.
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer"
-                  >
-                    Choose photo
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photoPreview ?? ""}
-                    alt=""
-                    className="w-11 h-11 rounded-md object-cover border border-[var(--line)] shrink-0"
-                  />
-                  <div className="min-w-0 max-w-[180px]">
-                    <div className="text-[12px] text-[var(--ink)] truncate leading-tight">{photo.name}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={toggling}
-                        className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
-                      >
-                        Change
-                      </button>
-                      <button
-                        type="button"
-                        onClick={clearPhoto}
-                        disabled={toggling}
-                        className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleSubmit(photo)}
-                    disabled={toggling}
-                    className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {toggling ? "Submitting…" : "Submit"}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* The member's own view of a decline — the reason, and what to do
-              about it. Mirrors a rejected leave request's review_note. */}
-          {!canManage && task.completionStatus === "rejected" && (
-            <div className="mt-2 rounded-lg border border-[var(--bad)]/40 bg-[var(--bad-soft)] px-3 py-2">
-              <div className="text-[11px] font-bold text-[var(--bad)] uppercase tracking-wider">
-                Declined by your Team Leader
+            {needsDate && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <label
+                  htmlFor={`cdate-${task.id}`}
+                  className="text-[11.5px] font-semibold text-[var(--ink)]"
+                >
+                  Completed on
+                </label>
+                <input
+                  id={`cdate-${task.id}`}
+                  type="date"
+                  value={completionDate}
+                  max={todayInManila()}
+                  onChange={(e) => setCompletionDate(e.target.value)}
+                  className="px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[12px] text-[var(--ink)]"
+                />
               </div>
-              {task.myReviewNote && (
-                <p className="text-[12.5px] text-[var(--ink)] m-0 mt-1 leading-snug">{task.myReviewNote}</p>
-              )}
-              <p className="text-[11.5px] text-[var(--muted)] m-0 mt-1">
-                {task.requires_photo
-                  ? "Tick the box to attach a new photo and re-submit."
-                  : "Tick the box to re-submit."}
-              </p>
-            </div>
-          )}
+            )}
 
-          {!canManage && submitError && (
-            <p role="alert" className="text-[12px] text-[var(--bad)] m-0 mt-2">
-              {submitError}
-            </p>
-          )}
+            {/* Photo proof. Compact and left-aligned — the previous version
+                stretched the full card width, which stranded the button on the
+                far right with a band of empty space between it and the text. */}
+            {needsPhoto && (
+              <div
+                ref={photoPanelRef}
+                className={`mt-2.5 w-fit max-w-full rounded-lg border px-3 py-2.5 transition-all duration-300 ${
+                  pulse
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)]/60"
+                    : "border-[var(--line)] bg-[var(--paper)]/70"
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) choosePhoto(f);
+                  }}
+                />
 
-          {/* TL: every assignee in a row, with what they owe or submitted.
-              Columns, not a run-on line: name, when they sent it, the date
-              they say they did the work, their proof, where it stands, and
-              the decision. Those were six different things crammed onto one
-              wrapping line before, which is why a Pending row read the same
-              as an Approved one at a glance. */}
-          {canManage && rosterRows.length > 0 && (
-            <div className="mt-3">
-              <div className="flex items-center gap-2 mb-1.5 text-[11px]">
-                <span className="uppercase tracking-wider text-[var(--muted)] font-semibold">
-                  Members ({rosterRows.length})
-                </span>
-                {awaitingReview > 0 && (
-                  <span className="text-[var(--warn)] font-bold">{awaitingReview} awaiting your review</span>
-                )}
-                {notSubmitted > 0 && (
-                  <span className="text-[var(--muted)]">{notSubmitted} not submitted</span>
-                )}
-                {owingIds.length > 0 &&
-                  (nudgeableIds.length === 0 && !poked.all ? (
-                    <span className="ml-auto text-[10.5px] text-[var(--muted)]">All nudged recently</span>
-                  ) : (
+                {!photo ? (
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[15px] leading-none shrink-0" aria-hidden="true">
+                      📷
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-semibold text-[var(--ink)] leading-tight">
+                        Photo proof required
+                      </div>
+                      <div className="text-[11px] text-[var(--muted)] leading-tight mt-0.5">
+                        Attach an image, then submit.
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => poke(nudgeableIds, "all")}
-                      disabled={poking === "all"}
-                      className="ml-auto px-2 py-0.5 rounded text-[10.5px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-50"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer"
                     >
-                      {poking === "all"
-                        ? "Nudging\u2026"
-                        : poked.all
-                          ? `Nudged ${nudgeableIds.length}`
-                          : `Nudge all ${nudgeableIds.length}`}
+                      Choose photo
                     </button>
-                  ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photoPreview ?? ""}
+                      alt=""
+                      className="w-11 h-11 rounded-md object-cover border border-[var(--line)] shrink-0"
+                    />
+                    <div className="min-w-0 max-w-[180px]">
+                      <div className="text-[12px] text-[var(--ink)] truncate leading-tight">{photo.name}</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={toggling}
+                          className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
+                        >
+                          Change
+                        </button>
+                        <button
+                          type="button"
+                          onClick={clearPhoto}
+                          disabled={toggling}
+                          className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit(photo)}
+                      disabled={toggling}
+                      className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {toggling ? "Submitting…" : "Submit"}
+                    </button>
+                  </div>
+                )}
               </div>
+            )}
 
-              {pokeError && (
-                <p role="alert" className="text-[11.5px] text-[var(--bad)] m-0 mb-1.5">
-                  {pokeError}
+            {/* The member's own view of a decline — the reason, and what to do
+                about it. Mirrors a rejected leave request's review_note. */}
+            {!canManage && task.completionStatus === "rejected" && (
+              <div className="mt-2 rounded-lg border border-[var(--bad)]/40 bg-[var(--bad-soft)] px-3 py-2">
+                <div className="text-[11px] font-bold text-[var(--bad)] uppercase tracking-wider">
+                  Declined by your Team Leader
+                </div>
+                {task.myReviewNote && (
+                  <p className="text-[12.5px] text-[var(--ink)] m-0 mt-1 leading-snug">{task.myReviewNote}</p>
+                )}
+                <p className="text-[11.5px] text-[var(--muted)] m-0 mt-1">
+                  {task.requires_photo
+                    ? "Tick the box to attach a new photo and re-submit."
+                    : "Tick the box to re-submit."}
                 </p>
-              )}
+              </div>
+            )}
 
-              <div className="overflow-x-auto scroll-shadow-x -mx-1 px-1">
-                <table className="w-full text-[12px] border-collapse min-w-[560px]">
-                  <thead>
-                    <tr>
-                      {["Member", "Submitted", "Date done", "Proof", "Status", "Action"].map((h) => (
-                        <th
-                          key={h}
-                          className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 py-1.5 border-b border-[var(--line)] whitespace-nowrap"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rosterRows.map((r) => {
-                      const c = r.completion;
-                      const st = c?.status ?? "none";
-                      return (
-                        <tr
-                          key={r.profileId}
-                          className={st === "pending" ? "bg-[var(--warn-soft)]/25" : undefined}
-                        >
-                          <td className="px-2 py-2 border-b border-[var(--line)]/60 text-[var(--ink)] font-medium whitespace-nowrap">
-                            {r.name}
-                          </td>
-                          <td className="px-2 py-2 border-b border-[var(--line)]/60 text-[var(--muted)] whitespace-nowrap">
-                            {c?.completed_at ? formatDeadline(c.completed_at.slice(0, 10)) : "\u2014"}
-                          </td>
-                          <td className="px-2 py-2 border-b border-[var(--line)]/60 text-[var(--muted)] whitespace-nowrap">
-                            {c?.completion_date ? formatDeadline(c.completion_date) : "\u2014"}
-                          </td>
-                          <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
-                            {c?.photo_path ? (
-                              <button
-                                type="button"
-                                onClick={() => openPhoto(c.id)}
-                                className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
-                              >
-                                View
-                              </button>
-                            ) : task.requires_photo && c ? (
-                              <span className="text-[10.5px] text-[var(--muted)] italic">none</span>
-                            ) : (
-                              <span className="text-[var(--muted)]">{"\u2014"}</span>
-                            )}
-                          </td>
-                          <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
-                            {st === "pending" ? (
-                              <Pill tone="warn">Awaiting review</Pill>
-                            ) : st === "approved" ? (
-                              <Pill tone="good">Approved</Pill>
-                            ) : st === "rejected" ? (
-                              <Pill tone="bad">Declined</Pill>
-                            ) : (
-                              <span className="text-[11px] text-[var(--muted)]">Not submitted</span>
-                            )}
-                          </td>
-                          <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
-                            {!c || st === "rejected" ? (
-                              poked[r.profileId] || poked.all ? (
-                                <span className="text-[10.5px] text-[var(--good)] font-bold">Nudged</span>
-                              ) : cooldownFor(r.profileId) > 0 ? (
-                                <span
-                                  className="text-[10.5px] text-[var(--muted)]"
-                                  title={`Nudged recently \u2014 ${POKE_COOLDOWN_HOURS}h between nudges`}
-                                >
-                                  Nudge in {formatCooldown(cooldownFor(r.profileId))}
-                                </span>
-                              ) : (
+            {!canManage && submitError && (
+              <p role="alert" className="text-[12px] text-[var(--bad)] m-0 mt-2">
+                {submitError}
+              </p>
+            )}
+
+            {/* TL: every assignee in a row, with what they owe or submitted.
+                Columns, not a run-on line: name, when they sent it, the date
+                they say they did the work, their proof, where it stands, and
+                the decision. Those were six different things crammed onto one
+                wrapping line before, which is why a Pending row read the same
+                as an Approved one at a glance. */}
+            {canManage && rosterRows.length > 0 && (
+              <div className="mt-3">
+                <div className="flex items-center gap-2 mb-1.5 text-[11px]">
+                  <span className="uppercase tracking-wider text-[var(--muted)] font-semibold">
+                    Members ({rosterRows.length})
+                  </span>
+                  {awaitingReview > 0 && (
+                    <span className="text-[var(--warn)] font-bold">{awaitingReview} awaiting your review</span>
+                  )}
+                  {notSubmitted > 0 && (
+                    <span className="text-[var(--muted)]">{notSubmitted} not submitted</span>
+                  )}
+                  {owingIds.length > 0 &&
+                    (nudgeableIds.length === 0 && !poked.all ? (
+                      <span className="ml-auto text-[10.5px] text-[var(--muted)]">All nudged recently</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => poke(nudgeableIds, "all")}
+                        disabled={poking === "all"}
+                        className="ml-auto px-2 py-0.5 rounded text-[10.5px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-50"
+                      >
+                        {poking === "all"
+                          ? "Nudging\u2026"
+                          : poked.all
+                            ? `Nudged ${nudgeableIds.length}`
+                            : `Nudge all ${nudgeableIds.length}`}
+                      </button>
+                    ))}
+                </div>
+
+                {pokeError && (
+                  <p role="alert" className="text-[11.5px] text-[var(--bad)] m-0 mb-1.5">
+                    {pokeError}
+                  </p>
+                )}
+
+                <div className="overflow-x-auto scroll-shadow-x -mx-1 px-1">
+                  <table className="w-full text-[12px] border-collapse min-w-[560px]">
+                    <thead>
+                      <tr>
+                        {["Member", "Submitted", "Date done", "Proof", "Status", "Action"].map((h) => (
+                          <th
+                            key={h}
+                            className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 py-1.5 border-b border-[var(--line)] whitespace-nowrap"
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rosterRows.map((r) => {
+                        const c = r.completion;
+                        const st = c?.status ?? "none";
+                        return (
+                          <tr
+                            key={r.profileId}
+                            className={st === "pending" ? "bg-[var(--warn-soft)]/25" : undefined}
+                          >
+                            <td className="px-2 py-2 border-b border-[var(--line)]/60 text-[var(--ink)] font-medium whitespace-nowrap">
+                              {r.name}
+                            </td>
+                            <td className="px-2 py-2 border-b border-[var(--line)]/60 text-[var(--muted)] whitespace-nowrap">
+                              {c?.completed_at ? formatDeadline(c.completed_at.slice(0, 10)) : "\u2014"}
+                            </td>
+                            <td className="px-2 py-2 border-b border-[var(--line)]/60 text-[var(--muted)] whitespace-nowrap">
+                              {c?.completion_date ? formatDeadline(c.completion_date) : "\u2014"}
+                            </td>
+                            <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
+                              {c?.photo_path ? (
                                 <button
                                   type="button"
-                                  onClick={() => poke([r.profileId], r.profileId)}
-                                  disabled={poking === r.profileId}
-                                  className="px-2 py-0.5 rounded text-[10.5px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-50"
+                                  onClick={() => openPhoto(c.id)}
+                                  className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
                                 >
-                                  {poking === r.profileId ? "\u2026" : "Nudge"}
+                                  View
                                 </button>
-                              )
-                            ) : c && st === "pending" ? (
-                              declining === c.id ? (
-                                <span className="text-[10.5px] text-[var(--muted)]">deciding\u2026</span>
+                              ) : task.requires_photo && c ? (
+                                <span className="text-[10.5px] text-[var(--muted)] italic">none</span>
                               ) : (
-                                <span className="flex items-center gap-1">
+                                <span className="text-[var(--muted)]">{"\u2014"}</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
+                              {st === "pending" ? (
+                                <Pill tone="warn">Awaiting review</Pill>
+                              ) : st === "approved" ? (
+                                <Pill tone="good">Approved</Pill>
+                              ) : st === "rejected" ? (
+                                <Pill tone="bad">Declined</Pill>
+                              ) : (
+                                <span className="text-[11px] text-[var(--muted)]">Not submitted</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
+                              {!c || st === "rejected" ? (
+                                poked[r.profileId] || poked.all ? (
+                                  <span className="text-[10.5px] text-[var(--good)] font-bold">Nudged</span>
+                                ) : cooldownFor(r.profileId) > 0 ? (
+                                  <span
+                                    className="text-[10.5px] text-[var(--muted)]"
+                                    title={`Nudged recently \u2014 ${POKE_COOLDOWN_HOURS}h between nudges`}
+                                  >
+                                    Nudge in {formatCooldown(cooldownFor(r.profileId))}
+                                  </span>
+                                ) : (
                                   <button
                                     type="button"
-                                    onClick={() => handleReview(c.id, "approved")}
-                                    disabled={reviewing === c.id}
-                                    className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                                    onClick={() => poke([r.profileId], r.profileId)}
+                                    disabled={poking === r.profileId}
+                                    className="px-2 py-0.5 rounded text-[10.5px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-50"
                                   >
-                                    Approve
+                                    {poking === r.profileId ? "\u2026" : "Nudge"}
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setDeclining(c.id);
-                                      setDeclineNote("");
-                                    }}
-                                    disabled={reviewing === c.id}
-                                    className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
-                                  >
-                                    Decline
-                                  </button>
-                                </span>
-                              )
-                            ) : (
-                              <span className="text-[var(--muted)]">{"\u2014"}</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                )
+                              ) : c && st === "pending" ? (
+                                declining === c.id ? (
+                                  <span className="text-[10.5px] text-[var(--muted)]">deciding\u2026</span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleReview(c.id, "approved")}
+                                      disabled={reviewing === c.id}
+                                      className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setDeclining(c.id);
+                                        setDeclineNote("");
+                                      }}
+                                      disabled={reviewing === c.id}
+                                      className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                                    >
+                                      Decline
+                                    </button>
+                                  </span>
+                                )
+                              ) : (
+                                <span className="text-[var(--muted)]">{"\u2014"}</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
-              {/* A decline needs a reason \u2014 the member only sees this note,
-                  so "Declined" with nothing attached leaves them guessing.
-                  The API rejects an empty one too. */}
-              {rosterRows.map((r) =>
-                r.completion && declining === r.completion.id ? (
-                  <div key={r.completion.id} className="flex flex-col gap-1.5 mt-2">
-                    <span className="text-[11.5px] text-[var(--ink)] font-semibold">
-                      Declining {r.name}&apos;s submission
-                    </span>
-                    <textarea
-                      value={declineNote}
-                      onChange={(e) => setDeclineNote(e.target.value)}
-                      rows={2}
-                      autoFocus
-                      placeholder="Why are you declining? The member will see this."
-                      className="w-full max-w-[380px] px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper)] text-[12px]"
-                    />
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleReview(r.completion!.id, "rejected", declineNote.trim())}
-                        disabled={reviewing === r.completion.id || !declineNote.trim()}
-                        className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        Confirm decline
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeclining(null)}
-                        className="px-2 py-0.5 rounded text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
-                      >
-                        Cancel
-                      </button>
+                {/* A decline needs a reason \u2014 the member only sees this note,
+                    so "Declined" with nothing attached leaves them guessing.
+                    The API rejects an empty one too. */}
+                {rosterRows.map((r) =>
+                  r.completion && declining === r.completion.id ? (
+                    <div key={r.completion.id} className="flex flex-col gap-1.5 mt-2">
+                      <span className="text-[11.5px] text-[var(--ink)] font-semibold">
+                        Declining {r.name}&apos;s submission
+                      </span>
+                      <textarea
+                        value={declineNote}
+                        onChange={(e) => setDeclineNote(e.target.value)}
+                        rows={2}
+                        autoFocus
+                        placeholder="Why are you declining? The member will see this."
+                        className="w-full max-w-[380px] px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper)] text-[12px]"
+                      />
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleReview(r.completion!.id, "rejected", declineNote.trim())}
+                          disabled={reviewing === r.completion.id || !declineNote.trim()}
+                          className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Confirm decline
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeclining(null)}
+                          className="px-2 py-0.5 rounded text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : null,
-              )}
+                  ) : null,
+                )}
 
-              {rosterRows
-                .filter((r) => r.completion?.status === "rejected" && r.completion.review_note)
-                .map((r) => (
-                  <div key={r.profileId} className="text-[11px] text-[var(--muted)] mt-1.5">
-                    <span className="font-semibold text-[var(--ink)]">{r.name}</span> declined:{" "}
-                    {r.completion!.review_note}
-                  </div>
-                ))}
-            </div>
-          )}
+                {rosterRows
+                  .filter((r) => r.completion?.status === "rejected" && r.completion.review_note)
+                  .map((r) => (
+                    <div key={r.profileId} className="text-[11px] text-[var(--muted)] mt-1.5">
+                      <span className="font-semibold text-[var(--ink)]">{r.name}</span> declined:{" "}
+                      {r.completion!.review_note}
+                    </div>
+                  ))}
+              </div>
+            )}
 
-          {canManage && submitError && (
-            <p role="alert" className="text-[12px] text-[var(--bad)] m-0 mt-2">
-              {submitError}
-            </p>
+            {canManage && submitError && (
+              <p role="alert" className="text-[12px] text-[var(--bad)] m-0 mt-2">
+                {submitError}
+              </p>
+            )}
+            </>
           )}
         </div>
 

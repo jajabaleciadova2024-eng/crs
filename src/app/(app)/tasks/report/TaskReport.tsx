@@ -49,6 +49,17 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
   const [poking, setPoking] = useState<string | null>(null);
   const [poked, setPoked] = useState<Record<string, number>>({});
   const [pokeError, setPokeError] = useState<string | null>(null);
+  // Which task panels are open. Collapsed by default and keyed by id, so
+  // filtering or searching does not reopen everything — this page is one
+  // table per task, and with a few tasks it was several screens of scrolling
+  // to compare two of them.
+  const [openTasks, setOpenTasks] = useState<Record<string, boolean>>({});
+  const toggleTask = (id: string) => setOpenTasks((p) => ({ ...p, [id]: !p[id] }));
+  // Typing a name is an explicit "find this", so searching opens the panels
+  // rather than leaving the match hidden behind a collapsed header. An
+  // explicit toggle still wins — `??` only fills in where there is no
+  // decision on record.
+  const isOpen = (id: string) => openTasks[id] ?? query.trim().length > 0;
 
   // Only ever sent to people who actually owe the task; the API re-checks
   // and drops anyone already approved or awaiting review.
@@ -139,29 +150,42 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
           <Panel
             key={t.id}
             title={t.title}
+            collapsed={!isOpen(t.id)}
+            onToggle={() => toggleTask(t.id)}
             action={
               (() => {
                 const owing = t.rows.filter((r) => isOutstanding(r.status)).map((r) => r.profileId);
-                if (owing.length === 0) {
-                  return (
-                    <span className="text-[11px] sm:text-xs text-[var(--muted)] font-medium shrink-0">
-                      {t.rows.length} member{t.rows.length !== 1 ? "s" : ""}
-                    </span>
-                  );
-                }
+                const waiting = t.rows.filter((r) => r.status === "pending").length;
                 return (
-                  <button
-                    type="button"
-                    onClick={() => poke(t.id, owing, t.id)}
-                    disabled={poking === t.id}
-                    className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {poking === t.id
-                      ? "Nudging…"
-                      : poked[t.id]
-                        ? `Nudged ${poked[t.id]}`
-                        : `Nudge all ${owing.length}`}
-                  </button>
+                  <span className="flex items-center gap-2 shrink-0">
+                    {/* Collapsed, the header is the whole row — the counts
+                        have to be on it or the page says nothing until you
+                        open every task in turn. */}
+                    {waiting > 0 && (
+                      <span className="text-[11px] font-bold text-[var(--warn)]">{waiting} to review</span>
+                    )}
+                    {owing.length > 0 ? (
+                      <span className="text-[11px] text-[var(--muted)] font-medium">
+                        {owing.length} outstanding
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-[var(--good)] font-medium">All done</span>
+                    )}
+                    {owing.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => poke(t.id, owing, t.id)}
+                        disabled={poking === t.id}
+                        className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {poking === t.id
+                          ? "Nudging…"
+                          : poked[t.id]
+                            ? `Nudged ${poked[t.id]}`
+                            : `Nudge all ${owing.length}`}
+                      </button>
+                    )}
+                  </span>
                 );
               })()
             }

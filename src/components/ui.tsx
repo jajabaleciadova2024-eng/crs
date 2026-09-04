@@ -100,12 +100,18 @@ export function Panel({
   children,
   footnote,
   fill = false,
+  collapsed,
+  onToggle,
 }: {
   title: string;
   hint?: string;
   action?: ReactNode;
   children: ReactNode;
   footnote?: string;
+  /** Opt-in collapsing. Omit both and the panel behaves exactly as before —
+      always open, header not interactive. */
+  collapsed?: boolean;
+  onToggle?: () => void;
   // Stretch to the height of its grid row and let the body grow, so panels
   // sitting side by side line their inner sections up instead of each ending
   // wherever its own content happens to stop.
@@ -118,12 +124,50 @@ export function Panel({
       }`}
       style={{ boxShadow: "var(--shadow-sm)" }}
     >
-      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[var(--line)]">
-        <h2 className="text-[13px] sm:text-sm font-bold m-0 tracking-tight truncate">{title}</h2>
+      <div
+        // flex-wrap: on a narrow screen a long title and a busy action row
+        // cannot share a line, and without it the title — which is flex-1 —
+        // was the one that gave, squeezed to zero width at 320px.
+        className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-4 sm:px-5 py-3 sm:py-3.5 ${
+          collapsed ? "" : "border-b border-[var(--line)]"
+        }`}
+      >
+        {onToggle ? (
+          // The title is the toggle, not just the chevron — a 13px arrow is
+          // a poor target on a phone.
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={!collapsed}
+            className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className={`shrink-0 text-[var(--muted)] transition-transform duration-150 ${
+                collapsed ? "" : "rotate-90"
+              }`}
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+            <h2 className="text-[13px] sm:text-sm font-bold m-0 tracking-tight truncate">{title}</h2>
+          </button>
+        ) : (
+          <h2 className="text-[13px] sm:text-sm font-bold m-0 tracking-tight truncate">{title}</h2>
+        )}
         {action ?? (hint && <span className="text-[11px] sm:text-xs text-[var(--muted)] font-medium shrink-0">{hint}</span>)}
       </div>
-      <div className={`px-4 sm:px-5 pb-4 pt-2 ${fill ? "flex-1 flex flex-col" : ""}`}>{children}</div>
-      {footnote && (
+      {!collapsed && (
+        <div className={`px-4 sm:px-5 pb-4 pt-2 ${fill ? "flex-1 flex flex-col" : ""}`}>{children}</div>
+      )}
+      {footnote && !collapsed && (
         <div className="flex items-center gap-2 px-4 sm:px-5 py-2.5 text-[11.5px] sm:text-xs text-[var(--muted)] bg-[var(--paper)]/60 border-t border-dashed border-[var(--line)] leading-relaxed">
           {footnote}
         </div>
