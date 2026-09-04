@@ -158,6 +158,13 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
                 const waiting = t.rows.filter((r) => r.status === "pending").length;
                 return (
                   <span className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={`/api/tasks/${t.id}/export`}
+                      className="px-2.5 py-1 rounded-md text-[11px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] transition-colors"
+                      title={`Export "${t.title}" as CSV`}
+                    >
+                      Export CSV
+                    </a>
                     {/* Collapsed, the header is the whole row — the counts
                         have to be on it or the page says nothing until you
                         open every task in turn. */}

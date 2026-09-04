@@ -1066,6 +1066,20 @@ export default function TaskCard({
         {/* TL edit/delete actions */}
         {canManage && (
           <div className="flex items-center gap-1 shrink-0">
+            {/* One task per file, so the download lives on the task rather
+                than anywhere that could imply a combined export. */}
+            <a
+              href={`/api/tasks/${task.id}/export`}
+              onClick={(e) => e.stopPropagation()}
+              className="p-1.5 rounded hover:bg-[var(--accent-soft)] text-[var(--muted)] hover:text-[var(--accent-strong)] transition-colors cursor-pointer"
+              title={`Export "${task.title}" as CSV`}
+              aria-label="Export this task as CSV"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="M7 10l5 5 5-5M12 15V3" />
+              </svg>
+            </a>
             <button
               type="button"
               onClick={onEdit}
