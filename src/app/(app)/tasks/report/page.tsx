@@ -25,7 +25,7 @@ export default async function TaskReportPage() {
     admin.from("member_tasks").select("*").order("created_at", { ascending: false }),
     admin
       .from("member_task_completions")
-      .select("task_id, profile_id, status, completed_at, completion_date, review_note, photo_path"),
+      .select("id, task_id, profile_id, status, completed_at, completion_date, review_note, photo_path, photo_paths"),
     admin
       .from("profiles")
       .select("id, first_name, last_name, role")
@@ -85,7 +85,10 @@ export default async function TaskReportPage() {
           submittedAt: c?.completed_at ?? null,
           completionDate: c?.completion_date ?? null,
           reviewNote: c?.review_note ?? null,
-          hasPhoto: !!c?.photo_path,
+          // The completion id, so the report can open the same proof viewer
+        // the review screen uses instead of only hinting a photo exists.
+        completionId: c?.id ?? null,
+        photoCount: c?.photo_paths?.length ? c.photo_paths.length : c?.photo_path ? 1 : 0,
         };
       });
 

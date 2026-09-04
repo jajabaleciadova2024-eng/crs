@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import Linkify from "@/components/Linkify";
@@ -15,6 +14,7 @@ import {
   readUploadError,
   NETWORK_ERROR_MESSAGE,
 } from "@/lib/imageUpload";
+import ProofViewer from "@/components/ProofViewer";
 
 
 const MAX_PHOTOS = 6;
@@ -140,6 +140,13 @@ export interface TaskData {
   /** When each member was last nudged about THIS task, so the button can
       show the cooldown rather than looking live and then being refused. */
   lastPokedAt?: Record<string, string>;
+  /** The viewer's own submission, so they can check what they sent. */
+  mySubmission?: {
+    id: string;
+    completedAt: string | null;
+    completionDate: string | null;
+    photoCount: number;
+  } | null;
 }
 
 // One line of the Team Leader's roster table: an assignee and whatever they
@@ -217,15 +224,6 @@ export default function TaskCard({
   const [pulse, setPulse] = useState(false);
   // "When did you actually do it?" — only asked when the task requires it.
   const [completionDate, setCompletionDate] = useState("");
-  type ProofPhoto = { viewUrl: string; downloadUrl: string; fileName: string };
-  const [photoView, setPhotoView] = useState<
-    | { state: "closed" }
-    | { state: "loading" }
-    // A submission can carry several images, so the viewer holds the whole
-    // set and which one is on screen rather than a single URL.
-    | { state: "ready"; photos: ProofPhoto[]; index: number }
-    | { state: "error"; message: string }
-  >({ state: "closed" });
 
   function focusPhotoPanel() {
     // The panel lives in the collapsed half of the card, so open it first —
@@ -499,40 +497,6 @@ export default function TaskCard({
     setPoked((p) => ({ ...p, [key]: true }));
   }
 
-  // Opens the proof photo in a viewer on this page. The signed URL is
-  // short-lived, so it is fetched on click rather than baked into the page.
-  //
-  // Deliberately NOT window.open: that ran after an await, which loses the
-  // user-gesture context, so popup blockers swallowed it and the click did
-  // nothing at all. Every failure was invisible for the same reason — the
-  // old code returned silently on !res.ok — so a viewer plus a real error
-  // message is the fix for both.
-  async function openPhoto(completionId: string) {
-    setPhotoView({ state: "loading" });
-    try {
-      const res = await fetch(`/api/tasks/photo/${completionId}`);
-      if (!res.ok) {
-        const msg = (await res.json().catch(() => ({}))).error ?? "Couldn't open the photo.";
-        setPhotoView({ state: "error", message: msg });
-        return;
-      }
-      const body = await res.json();
-      // `photos` is the current shape; the single-photo fields are the
-      // fallback for a response from before this deploy.
-      const photos: ProofPhoto[] = body.photos?.length
-        ? body.photos
-        : [
-            {
-              viewUrl: body.viewUrl ?? body.url,
-              downloadUrl: body.downloadUrl ?? body.viewUrl ?? body.url,
-              fileName: body.fileName ?? "task-proof",
-            },
-          ];
-      setPhotoView({ state: "ready", photos, index: 0 });
-    } catch {
-      setPhotoView({ state: "error", message: "Couldn't reach the server." });
-    }
-  }
 
   // Is this task MINE to do? Distinct from canManage, which is about
   // reviewing other people's. A Team Leader is both: they carry the same
@@ -944,6 +908,29 @@ export default function TaskCard({
               </div>
             )}
 
+            {/* What you sent, in the same terms the Team Leader reviews it
+                by: when it went, the date you gave, and the photos — which
+                you could not open at all before, even though they are yours. */}
+            {isAssignee && task.mySubmission && task.completionStatus !== "none" && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-[var(--muted)]">
+                <span className="uppercase tracking-wider font-semibold text-[10px]">Your submission</span>
+                {task.mySubmission.completedAt && (
+                  <span>Sent {formatDeadline(task.mySubmission.completedAt.slice(0, 10))}</span>
+                )}
+                {task.mySubmission.completionDate && (
+                  <span>Done {formatDeadline(task.mySubmission.completionDate)}</span>
+                )}
+                {task.mySubmission.photoCount > 0 && (
+                  <ProofViewer
+                    fetchUrl={`/api/tasks/photo/${task.mySubmission.id}`}
+                    title={task.title}
+                    subtitle="Your submission"
+                    count={task.mySubmission.photoCount}
+                  />
+                )}
+              </div>
+            )}
+
             {/* The member's own view of a decline — the reason, and what to do
                 about it. Mirrors a rejected leave request's review_note. */}
             {isAssignee && task.completionStatus === "rejected" && (
@@ -1045,16 +1032,13 @@ export default function TaskCard({
                             </td>
                             <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
                               {c && photoCount(c) > 0 ? (
-                                <button
-                                  type="button"
-                                  onClick={() => openPhoto(c.id)}
-                                  className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
-                                >
-                                  {/* The count is on the link, so the Team
-                                      Leader knows there is a second image to
-                                      page to before opening it. */}
-                                  View{photoCount(c) > 1 ? ` (${photoCount(c)})` : ""}
-                                </button>
+                                <ProofViewer
+                                  fetchUrl={`/api/tasks/photo/${c.id}`}
+                                  title={task.title}
+                                  subtitle={r.name}
+                                  canDownload={canManage}
+                                  count={photoCount(c)}
+                                />
                               ) : task.requires_photo && c ? (
                                 <span className="text-[10.5px] text-[var(--muted)] italic">none</span>
                               ) : (
@@ -1190,136 +1174,6 @@ export default function TaskCard({
           )}
         </div>
 
-        {/* Proof-photo viewer. Portaled to <body> so the card's own
-            overflow-hidden and stacking context can't clip it.
-
-            A framed modal rather than an image floating on a black wall: the
-            controls now have somewhere to live. Download and close sit
-            together in the header, as icons, because a proof is opened,
-            glanced at, and either saved or dismissed — there is nothing here
-            worth a sentence of chrome. */}
-        {photoView.state !== "closed" &&
-          typeof document !== "undefined" &&
-          createPortal(
-            <div
-              className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-start justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in"
-              onClick={() => setPhotoView({ state: "closed" })}
-            >
-              <div
-                className="w-full max-w-3xl max-h-[92vh] my-auto flex flex-col bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-scale-in"
-                style={{ boxShadow: "var(--shadow-lg)" }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[var(--line)] shrink-0">
-                  <span className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold truncate">
-                    Proof of completion
-                    {photoView.state === "ready" && photoView.photos.length > 1 && (
-                      <span className="ml-1.5 normal-case tracking-normal text-[var(--ink)]">
-                        {photoView.index + 1} of {photoView.photos.length}
-                      </span>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* Paging only appears when there is more than one — a
-                        single proof should not grow two dead arrows. */}
-                    {photoView.state === "ready" && photoView.photos.length > 1 && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPhotoView((v) =>
-                              v.state === "ready"
-                                ? { ...v, index: (v.index - 1 + v.photos.length) % v.photos.length }
-                                : v,
-                            )
-                          }
-                          title="Previous"
-                          aria-label="Previous photo"
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors cursor-pointer"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m15 18-6-6 6-6" />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPhotoView((v) =>
-                              v.state === "ready"
-                                ? { ...v, index: (v.index + 1) % v.photos.length }
-                                : v,
-                            )
-                          }
-                          title="Next"
-                          aria-label="Next photo"
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors cursor-pointer"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m9 18 6-6-6-6" />
-                          </svg>
-                        </button>
-                      </>
-                    )}
-                    {photoView.state === "ready" && canManage && (
-                      <a
-                        href={photoView.photos[photoView.index].downloadUrl}
-                        download={photoView.photos[photoView.index].fileName}
-                        title="Download"
-                        aria-label="Download this photo"
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)] transition-colors cursor-pointer"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <path d="M7 10l5 5 5-5M12 15V3" />
-                        </svg>
-                      </a>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setPhotoView({ state: "closed" })}
-                      title="Close"
-                      aria-label="Close photo"
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors cursor-pointer"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 6 6 18M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* The image is capped against the VIEWPORT, not the modal.
-                    max-height:100% only resolves against a parent with a
-                    definite height, and this one is auto — so a 300x900
-                    proof rendered at full size and burst out of the frame,
-                    measured at every width. 92vh matches the modal's own cap
-                    less the header and this padding, so the modal still
-                    shrinks to a small image instead of always filling the
-                    screen. */}
-                <div className="flex-1 min-h-0 flex items-center justify-center p-3 bg-[var(--paper)]">
-                  {photoView.state === "loading" && (
-                    <span className="py-10 text-[13px] text-[var(--muted)]">Opening…</span>
-                  )}
-                  {photoView.state === "error" && (
-                    <p className="py-10 text-[13px] text-[var(--bad)] m-0 font-semibold text-center px-4">
-                      {photoView.message}
-                    </p>
-                  )}
-                  {photoView.state === "ready" && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={photoView.photos[photoView.index].viewUrl}
-                      src={photoView.photos[photoView.index].viewUrl}
-                      alt={`Task proof ${photoView.index + 1} of ${photoView.photos.length}`}
-                      className="max-w-full object-contain rounded"
-                      style={{ maxHeight: "calc(92vh - 72px)" }}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>,
-            document.body,
-          )}
 
         {/* TL edit/delete actions */}
         {canManage && (

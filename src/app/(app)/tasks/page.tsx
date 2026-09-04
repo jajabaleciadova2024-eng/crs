@@ -36,7 +36,7 @@ export default async function TasksPage() {
         .order("created_at", { ascending: false }),
       admin
         .from("member_task_completions")
-        .select("task_id, status, review_note")
+        .select("id, task_id, status, review_note, completed_at, completion_date, photo_path, photo_paths")
         .eq("profile_id", profile.id),
       canManage
         ? withMissingColumnFallback(
@@ -101,6 +101,20 @@ export default async function TasksPage() {
     ...t,
     completionStatus: (myStatusMap.get(t.id) as string | undefined) ?? "none",
     myReviewNote: (myNoteMap.get(t.id) as string | null | undefined) ?? null,
+    // What the member themselves sent. They could see a status pill and
+    // nothing else — not the date they gave, not the photos they attached —
+    // so there was no way to check their own submission before or after the
+    // Team Leader looked at it.
+    mySubmission: (() => {
+      const c = (myCompletions ?? []).find((x: any) => x.task_id === t.id);
+      if (!c) return null;
+      return {
+        id: c.id as string,
+        completedAt: (c.completed_at as string | null) ?? null,
+        completionDate: (c.completion_date as string | null) ?? null,
+        photoCount: c.photo_paths?.length ? c.photo_paths.length : c.photo_path ? 1 : 0,
+      };
+    })(),
     completions: canManage
       ? (allCompletions ?? []).filter((c: any) => c.task_id === t.id)
       : undefined,

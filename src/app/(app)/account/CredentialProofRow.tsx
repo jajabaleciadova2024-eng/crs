@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
-import ProofImage from "./ProofImage";
+import ProofViewer from "@/components/ProofViewer";
 import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 // One "upload your screenshot" row. MFA is required and gates the reset
@@ -118,7 +118,10 @@ export default function CredentialProofRow({
       <span className="ml-auto sm:ml-0 sm:justify-self-end flex items-center gap-2.5">
         {hasProof ? (
           <>
-            <ProofImage kind={kind} label="View" />
+            <ProofViewer
+              fetchUrl={`/api/account/credential-proof?kind=${kind}`}
+              title={kind === "mfa" ? "Your MFA screenshot" : "Your passkey screenshot"}
+            />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import ProofImage from "./ProofImage";
+import ProofViewer from "@/components/ProofViewer";
 
 // Verify / reject one member's MFA or passkey screenshot.
 //
@@ -15,12 +15,16 @@ export default function ProofVerify({
   hasProof,
   verified,
   required,
+  memberName,
 }: {
   kind: "mfa" | "passkey";
   profileId: string;
   hasProof: boolean;
   verified: boolean;
   required: boolean;
+  /** Whose screenshot it is — named in the viewer, so verifying a row means
+      checking a proof you can see belongs to that person. */
+  memberName?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -88,7 +92,11 @@ export default function ProofVerify({
       ) : (
         <span className="text-[11px] font-bold text-[var(--warn)]">Needs check</span>
       )}
-      <ProofImage kind={kind} profileId={profileId} label="View" />
+      <ProofViewer
+        fetchUrl={`/api/account/credential-proof?kind=${kind}${profileId ? `&profile_id=${profileId}` : ""}`}
+        title={kind === "mfa" ? "MFA screenshot" : "Passkey screenshot"}
+        subtitle={memberName}
+      />
       {!verified && (
         <button
           type="button"

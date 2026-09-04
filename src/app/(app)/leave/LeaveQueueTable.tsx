@@ -281,7 +281,11 @@ export default function LeaveQueueTable({
                         canReplace={r.status === "rejected" && !r.final_rejection}
                       />
                     ) : canManage && r.document_path ? (
-                      <DocumentLinks requestId={r.id} canDownload={canManage} />
+                      <DocumentLinks
+                        requestId={r.id}
+                        canDownload={canManage}
+                        memberName={formatFullName(r.profiles?.first_name, r.profiles?.last_name)}
+                      />
                     ) : canManage ? (
                       <span className="text-[var(--muted)]">{r.is_half_day ? "Not required" : "Not uploaded"}</span>
                     ) : (

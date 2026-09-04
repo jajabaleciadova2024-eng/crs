@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { Panel, Pill } from "@/components/ui";
 import PasswordCountdown from "@/components/PasswordCountdown";
 import { expiryState, expiryFrom, daysRemaining, PASSWORD_VALID_DAYS, BLOCK_WITHIN_DAYS } from "@/lib/passwordExpiry";
-import ProofLink from "./ProofLink";
-import ProofImage from "./ProofImage";
+import ProofViewer from "@/components/ProofViewer";
 import ProofVerify from "./ProofVerify";
 
 export type OversightRow = {
@@ -174,7 +173,11 @@ export default function CredentialOversight({
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                   {r.lastProofResetId ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <ProofLink resetId={r.lastProofResetId} label="View" />
+                      <ProofViewer
+                        fetchUrl={`/api/account/proof/${r.lastProofResetId}`}
+                        title="Password reset proof"
+                        subtitle={r.name}
+                      />
                       {r.lastProofStatus === "pending" && (
                         <span className="text-[10px] text-[var(--warn)] font-semibold">unconfirmed</span>
                       )}
@@ -187,6 +190,7 @@ export default function CredentialOversight({
                   <ProofVerify
                     kind="mfa"
                     profileId={r.profileId}
+                    memberName={r.name}
                     hasProof={r.mfa}
                     verified={r.mfaVerified}
                     required={r.profileId !== viewerId}
@@ -196,6 +200,7 @@ export default function CredentialOversight({
                   <ProofVerify
                     kind="passkey"
                     profileId={r.profileId}
+                    memberName={r.name}
                     hasProof={r.passkey}
                     verified={r.passkeyVerified}
                     required={false}
@@ -240,7 +245,13 @@ export default function CredentialOversight({
                               reset {shortDate(r.pendingResetAt)}
                             </span>
                           )}
-                          {r.pendingHasProof && <ProofLink resetId={r.pendingResetId} />}
+                          {r.pendingHasProof && (
+                            <ProofViewer
+                              fetchUrl={`/api/account/proof/${r.pendingResetId}`}
+                              title="Password reset proof"
+                              subtitle={r.name}
+                            />
+                          )}
                           <button
                             type="button"
                             disabled={busy === r.pendingResetId || !r.mfaVerified}

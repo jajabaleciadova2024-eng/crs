@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Panel, Pill } from "@/components/ui";
+import ProofViewer from "@/components/ProofViewer";
 
 export type ReportRow = {
   profileId: string;
@@ -10,7 +11,8 @@ export type ReportRow = {
   submittedAt: string | null;
   completionDate: string | null;
   reviewNote: string | null;
-  hasPhoto: boolean;
+  completionId: string | null;
+  photoCount: number;
 };
 
 export type ReportTask = {
@@ -158,12 +160,19 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
                 const waiting = t.rows.filter((r) => r.status === "pending").length;
                 return (
                   <span className="flex items-center gap-2 shrink-0">
+                    {/* Icon, matching the same action on the Members Tasks
+                        card. Two spellings of one button across two screens
+                        is exactly the drift this pass is closing. */}
                     <a
                       href={`/api/tasks/${t.id}/export`}
-                      className="px-2.5 py-1 rounded-md text-[11px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] transition-colors"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--accent-strong)] hover:bg-[var(--accent-soft)] hover:border-[var(--accent)] transition-colors"
                       title={`Export "${t.title}" as CSV`}
+                      aria-label={`Export "${t.title}" as CSV`}
                     >
-                      Export CSV
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <path d="M7 10l5 5 5-5M12 15V3" />
+                      </svg>
                     </a>
                     {/* Collapsed, the header is the whole row — the counts
                         have to be on it or the page says nothing until you
@@ -210,7 +219,12 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
               <table className="w-full text-[13px] border-collapse min-w-[520px]">
                 <thead>
                   <tr>
-                    {["Member", "Status", "Completed on", "Submitted", "Note", ""].map((h) => (
+                    {/* Same columns, same order as the review table on
+                        Members Tasks. They describe the same rows, and a
+                        Team Leader moving between the two should not have to
+                        re-find which column is which — or discover that the
+                        proof they could open there is missing here. */}
+                    {["Member", "Submitted", "Date done", "Proof", "Status", "Note", ""].map((h) => (
                       <th
                         key={h || "actions"}
                         className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap"
@@ -226,15 +240,29 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
                       <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                         {r.name}
                       </td>
-                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
-                        <Pill tone={STATUS[r.status].tone}>{STATUS[r.status].label}</Pill>
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)] whitespace-nowrap">
+                        {r.submittedAt ? fmtDate(r.submittedAt) : "—"}
                       </td>
                       <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)] whitespace-nowrap">
                         {fmtDate(r.completionDate)}
                       </td>
-                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)] whitespace-nowrap">
-                        {r.submittedAt ? fmtDate(r.submittedAt) : "—"}
-                        {r.hasPhoto && <span className="ml-1.5">📷</span>}
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
+                        {r.completionId && r.photoCount > 0 ? (
+                          <ProofViewer
+                            fetchUrl={`/api/tasks/photo/${r.completionId}`}
+                            title={t.title}
+                            subtitle={r.name}
+                            canDownload
+                            count={r.photoCount}
+                          />
+                        ) : t.requiresPhoto && r.status !== "none" ? (
+                          <span className="text-[10.5px] text-[var(--muted)] italic">none</span>
+                        ) : (
+                          <span className="text-[var(--muted)]">—</span>
+                        )}
+                      </td>
+                      <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
+                        <Pill tone={STATUS[r.status].tone}>{STATUS[r.status].label}</Pill>
                       </td>
                       <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
                         <span className="block max-w-[220px] break-words">{r.reviewNote ?? "—"}</span>

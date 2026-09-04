@@ -140,7 +140,11 @@ export default async function LeaveHistoryPage() {
                         <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                           {typeConfig?.behavior === "auto_approve_document" ? (
                             r.document_path ? (
-                              <DocumentLinks requestId={r.id} canDownload={canDownload} />
+                              <DocumentLinks
+                                requestId={r.id}
+                                canDownload={canDownload}
+                                memberName={formatFullName(p?.first_name, p?.last_name)}
+                              />
                             ) : (
                               <span className="text-[var(--muted)]">Not uploaded</span>
                             )

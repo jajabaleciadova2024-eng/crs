@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Panel, Pill } from "@/components/ui";
 import PasswordCountdown from "@/components/PasswordCountdown";
 import { expiryState, expiryFrom, BLOCK_WITHIN_DAYS, PASSWORD_VALID_DAYS } from "@/lib/passwordExpiry";
-import ProofLink from "./ProofLink";
+import ProofViewer from "@/components/ProofViewer";
 import ProofExample from "./ProofExample";
 import CredentialProofRow from "./CredentialProofRow";
 import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
@@ -432,7 +432,14 @@ export default function MyCredentialPanel({
                     {h.reviewNote ?? "—"}
                   </span>
                   <span className="ml-auto sm:ml-0 sm:justify-self-end">
-                    {h.hasProof ? <ProofLink resetId={h.id} /> : <span className="text-[var(--muted)]">—</span>}
+                    {h.hasProof ? (
+                      <ProofViewer
+                        fetchUrl={`/api/account/proof/${h.id}`}
+                        title="Your password reset proof"
+                      />
+                    ) : (
+                      <span className="text-[var(--muted)]">—</span>
+                    )}
                   </span>
                 </div>
               ))}

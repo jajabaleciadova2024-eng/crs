@@ -89,7 +89,17 @@ export default function DocumentUpload({
 // (`canDownload`); everyone else viewing just sees the document, no
 // download link, matching the same signed-link-per-click pattern as
 // before (fetched fresh on open since links expire).
-export function DocumentLinks({ requestId, canDownload }: { requestId: string; canDownload: boolean }) {
+export function DocumentLinks({
+  requestId,
+  canDownload,
+  memberName,
+}: {
+  requestId: string;
+  canDownload: boolean;
+  /** Whose request this is — a Team Leader reviewing a queue needs to know
+      which document they just opened, same as the task proof viewer. */
+  memberName?: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [links, setLinks] = useState<{ viewUrl: string; downloadUrl: string; fileName: string } | null>(null);
@@ -144,17 +154,46 @@ export function DocumentLinks({ requestId, canDownload }: { requestId: string; c
             style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)] shrink-0">
-              <h2 className="font-serif text-base text-[var(--ink)] m-0">Supporting document</h2>
-              <div className="flex items-center gap-2">
-                {canDownload && (
-                  <Button variant="primary" style={{ padding: "5px 10px" }} onClick={() => window.open(links.downloadUrl, "_blank", "noreferrer")}>
-                    Download
-                  </Button>
+            {/* Same header as the proof viewer: what you are looking at on
+                the left, icon-only download and close on the right. It used
+                to be a filled green Download button beside an outlined
+                Close, which read as the primary action on a screen whose
+                whole purpose is reading the document. */}
+            <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[var(--line)] shrink-0">
+              <div className="min-w-0">
+                <div className="text-[12.5px] font-semibold text-[var(--ink)] truncate">Supporting document</div>
+                {(memberName || links.fileName) && (
+                  <div className="text-[11px] text-[var(--muted)] truncate">
+                    {memberName ?? links.fileName}
+                  </div>
                 )}
-                <Button style={{ padding: "5px 10px" }} onClick={() => setLinks(null)}>
-                  Close
-                </Button>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {canDownload && (
+                  <a
+                    href={links.downloadUrl}
+                    download={links.fileName || undefined}
+                    title="Download"
+                    aria-label="Download this document"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors cursor-pointer"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <path d="M7 10l5 5 5-5M12 15V3" />
+                    </svg>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setLinks(null)}
+                  title="Close"
+                  aria-label="Close"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors cursor-pointer"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             </div>
             <div className="flex-1 w-full overflow-hidden flex items-center justify-center bg-[var(--paper)]">
