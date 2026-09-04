@@ -48,7 +48,11 @@ export async function POST(request: Request) {
   );
 
   const eligible = (profile_ids as string[]).filter(
-    (id) => !settled.has(id) && taskAppliesTo(task, id),
+    // Not yourself: the Team Leader carries these tasks too now, and a
+    // nudge to your own bell tells you nothing. bellNotify would drop it
+    // anyway, but silently — leaving a cooldown recorded for a message
+    // nobody received.
+    (id) => id !== user.id && !settled.has(id) && taskAppliesTo(task, id),
   );
   if (eligible.length === 0) {
     return NextResponse.json({ error: "Nobody to nudge — they're all up to date." }, { status: 400 });

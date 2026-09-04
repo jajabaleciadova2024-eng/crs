@@ -10,10 +10,15 @@ import TaskModal from "./TaskModal";
 export default function TaskList({
   tasks,
   canManage,
+  viewerId,
   members,
 }: {
   tasks: TaskData[];
   canManage: boolean;
+  /** Who is looking. A Team Leader both manages tasks AND carries them, so
+      "can I act on this row" and "is this task mine to do" are now two
+      different questions and the card needs both answers. */
+  viewerId: string;
   members: { id: string; first_name: string; last_name: string }[];
 }) {
   const router = useRouter();
@@ -58,6 +63,7 @@ export default function TaskList({
         key={t.id}
         task={t}
         canManage={canManage}
+        viewerId={viewerId}
         assigneeName={t.assign_to !== "all" ? nameMap.get(t.assign_to) : undefined}
         roster={members}
         onEdit={() => { setEditTask(t); setShowModal(true); }}

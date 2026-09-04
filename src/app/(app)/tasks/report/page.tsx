@@ -30,7 +30,6 @@ export default async function TaskReportPage() {
       .from("profiles")
       .select("id, first_name, last_name, role")
       .eq("is_active", true)
-      .neq("role", "team_leader")
       .order("first_name"),
   ]);
 

@@ -151,6 +151,7 @@ const STATUS_PILL: Record<CompletionStatus, { label: string; tone: "warn" | "goo
 export default function TaskCard({
   task,
   canManage,
+  viewerId,
   assigneeName,
   roster,
   onEdit,
@@ -158,6 +159,7 @@ export default function TaskCard({
 }: {
   task: TaskData;
   canManage: boolean;
+  viewerId: string;
   assigneeName?: string;
   /** Active members, so the Team Leader's table can list everyone the task
       is for — including the people who have submitted nothing. */
@@ -345,7 +347,10 @@ export default function TaskCard({
   // people a nudge is actually for.
   const owingIds = rosterRows
     .filter((r) => !r.completion || r.completion.status === "rejected")
-    .map((r) => r.profileId);
+    .map((r) => r.profileId)
+    // Never yourself. The Team Leader is on this roster now, and a nudge to
+    // your own bell is a notification you already knew about.
+    .filter((id) => id !== viewerId);
   // Nudges are once per member per task per cooldown window, so the bulk
   // button offers only the people it can actually reach right now.
   // Before the clock is live, treat everyone as nudgeable rather than
@@ -473,23 +478,29 @@ export default function TaskCard({
     }
   }
 
-  // For non-TL: checkbox behavior based on status
-  const canUndo = !canManage && task.completionStatus === "pending";
-  // A photo is still outstanding: this task wants one, and the member hasn't
-  // submitted yet (a decline puts them back in this state).
-  const needsPhoto =
-    !canManage &&
-    !!task.requires_photo &&
-    (task.completionStatus === "none" || task.completionStatus === "rejected");
-  const needsDate =
-    !canManage &&
-    !!task.requires_completion_date &&
-    (task.completionStatus === "none" || task.completionStatus === "rejected");
+  // Is this task MINE to do? Distinct from canManage, which is about
+  // reviewing other people's. A Team Leader is both: they carry the same
+  // courses and also sign them off, so the submit controls are gated on
+  // being an assignee rather than on not being a manager.
+  const isAssignee = taskAppliesTo(task, viewerId);
+  const notDoneYet =
+    task.completionStatus === "none" || task.completionStatus === "rejected";
+
+  // A Team Leader's own submission is approved as it is written, so it is
+  // never "pending" and there is nothing to withdraw.
+  const canUndo = isAssignee && !canManage && task.completionStatus === "pending";
+  // A photo is still outstanding: this task wants one, and it has not been
+  // submitted yet (a decline puts you back in this state).
+  const needsPhoto = isAssignee && !!task.requires_photo && notDoneYet;
+  const needsDate = isAssignee && !!task.requires_completion_date && notDoneYet;
 
   return (
     <div
+      // Dimmed only for someone whose own involvement is over. For a Team
+      // Leader, finishing their own copy says nothing about the eight people
+      // still to submit, so their card must not go grey and look settled.
       className={`border border-[var(--line)] rounded-lg px-4 py-3 transition-all ${
-        isDone ? "bg-[var(--paper)]/60 opacity-70" : "bg-[var(--paper-raised)]"
+        isDone && !canManage ? "bg-[var(--paper)]/60 opacity-70" : "bg-[var(--paper-raised)]"
       }`}
     >
       <div className="flex items-start gap-3">
@@ -498,7 +509,7 @@ export default function TaskCard({
             something you click rather than a status dot. On a photo task it
             stays live and jumps to the attach panel — a disabled grey box
             just looks broken. */}
-        {!canManage && (
+        {isAssignee && (
           <button
             type="button"
             // Deliberately NOT an undo control while a submission is
@@ -588,7 +599,7 @@ export default function TaskCard({
             >
               <path d="m9 18 6-6-6-6" />
             </svg>
-            <span className={`text-[13px] font-semibold ${isDone ? "line-through text-[var(--muted)]" : "text-[var(--ink)]"}`}>
+            <span className={`text-[13px] font-semibold ${isDone && !canManage ? "line-through text-[var(--muted)]" : "text-[var(--ink)]"}`}>
               {task.title}
             </span>
             {task.assign_to === "all" ? (
@@ -725,7 +736,11 @@ export default function TaskCard({
             {/* Says out loud what the checkbox does. A bare square carries no
                 label, which is fine on a to-do app people already know and
                 poor on a page someone opens twice a month. */}
-            {!canManage && !needsPhoto && task.completionStatus === "none" && (
+            {/* Shown once nothing is outstanding: no photo wanted, and either
+                no date wanted or one already picked. Gating on needsDate
+                alone hid it for good on a date-only task — the date got
+                entered and then there was nothing to press. */}
+            {isAssignee && !needsPhoto && notDoneYet && (!needsDate || !!completionDate) && (
               <button
                 type="button"
                 onClick={() => handleSubmit()}
@@ -735,7 +750,7 @@ export default function TaskCard({
                 {toggling ? "Submitting…" : "Mark as complete"}
               </button>
             )}
-            {!canManage && canUndo && (
+            {canUndo && (
               <button
                 type="button"
                 onClick={handleUndo}
@@ -875,7 +890,7 @@ export default function TaskCard({
 
             {/* The member's own view of a decline — the reason, and what to do
                 about it. Mirrors a rejected leave request's review_note. */}
-            {!canManage && task.completionStatus === "rejected" && (
+            {isAssignee && task.completionStatus === "rejected" && (
               <div className="mt-2 rounded-lg border border-[var(--bad)]/40 bg-[var(--bad-soft)] px-3 py-2">
                 <div className="text-[11px] font-bold text-[var(--bad)] uppercase tracking-wider">
                   Declined by your Team Leader
@@ -891,7 +906,7 @@ export default function TaskCard({
               </div>
             )}
 
-            {!canManage && submitError && (
+            {isAssignee && submitError && (
               <p role="alert" className="text-[12px] text-[var(--bad)] m-0 mt-2">
                 {submitError}
               </p>
@@ -1002,7 +1017,9 @@ export default function TaskCard({
                               )}
                             </td>
                             <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
-                              {!c || st === "rejected" ? (
+                              {r.profileId === viewerId ? (
+                                <span className="text-[var(--muted)]">{"\u2014"}</span>
+                              ) : !c || st === "rejected" ? (
                                 poked[r.profileId] || poked.all ? (
                                   <span className="text-[10.5px] text-[var(--good)] font-bold">Nudged</span>
                                 ) : cooldownFor(r.profileId) > 0 ? (

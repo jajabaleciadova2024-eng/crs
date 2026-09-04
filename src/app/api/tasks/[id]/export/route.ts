@@ -36,7 +36,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       .from("profiles")
       .select("id, psid, first_name, last_name")
       .eq("is_active", true)
-      .neq("role", "team_leader")
       .order("first_name"),
     admin
       .from("member_task_completions")

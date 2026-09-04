@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { bellNotify, taskAssignableMemberIds } from "@/lib/bellNotify";
+import { bellNotify, allActiveMemberIds } from "@/lib/bellNotify";
 import { taskAppliesTo } from "@/lib/taskAssignment";
 
 export async function GET(request: Request) {
@@ -103,9 +103,9 @@ export async function POST(request: Request) {
   // Members excused from this task. Ids only, deduped — a bad id here would
   // silently exempt nobody, which is the wrong way for this to fail.
   // Excusing somebody only means something if they could otherwise be
-  // assigned. A Team Leader is excluded by role, so storing their id here
-  // says nothing and later shows as a count with no name behind it.
-  const assignable = new Set(await taskAssignableMemberIds());
+  // assigned, so ids that match no active member are dropped rather than
+  // stored — that is what left a count with no name behind it before.
+  const assignable = new Set(await allActiveMemberIds());
   const excluded_ids: string[] = Array.isArray(body.excluded_ids)
     ? [
         ...new Set(
@@ -129,14 +129,10 @@ export async function POST(request: Request) {
 
   // Validate assign_to if not 'all'
   if (assign_to !== "all") {
-    // A Team Leader is not a valid assignee — they set tasks, they do not
-    // carry them. The dropdown no longer offers them; this is the half that
-    // holds if the request comes from anywhere else.
     const { data: target } = await admin
       .from("profiles")
       .select("id")
       .eq("id", assign_to)
-      .neq("role", "team_leader")
       .maybeSingle();
     if (!target) return NextResponse.json({ error: "Assigned member not found." }, { status: 400 });
   }
@@ -169,7 +165,7 @@ export async function POST(request: Request) {
 
   // Notify whoever the task landed on — everyone, or the one assignee.
   const recipients = (
-    assign_to === "all" ? await taskAssignableMemberIds() : [assign_to]
+    assign_to === "all" ? await allActiveMemberIds() : [assign_to]
   ).filter((id) => !excluded_ids.includes(id));
   await bellNotify(recipients, user.id, "task_assigned");
 
@@ -212,7 +208,6 @@ export async function PATCH(request: Request) {
         .from("profiles")
         .select("id")
         .eq("id", body.assign_to)
-        .neq("role", "team_leader")
         .maybeSingle();
       if (!target) return NextResponse.json({ error: "Assigned member not found." }, { status: 400 });
     }
@@ -222,7 +217,7 @@ export async function PATCH(request: Request) {
     if (!Array.isArray(body.excluded_ids)) {
       return NextResponse.json({ error: "excluded_ids must be a list." }, { status: 400 });
     }
-    const assignable = new Set(await taskAssignableMemberIds());
+    const assignable = new Set(await allActiveMemberIds());
     updates.excluded_ids = [
       ...new Set(
         (body.excluded_ids as unknown[]).filter(

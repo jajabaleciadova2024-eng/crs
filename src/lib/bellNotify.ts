@@ -59,18 +59,6 @@ export async function allActiveMemberIds(): Promise<string[]> {
   return (data ?? []).map((p: { id: string }) => p.id);
 }
 
-// Everyone a task can be assigned to — active, minus Team Leaders, who set
-// the tasks rather than carry them out.
-export async function taskAssignableMemberIds(): Promise<string[]> {
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("is_active", true)
-    .neq("role", "team_leader");
-  return (data ?? []).map((p: { id: string }) => p.id);
-}
-
 // Everyone who can review leave (team_leader + oic).
 export async function approverIds(): Promise<string[]> {
   const admin = createAdminClient();

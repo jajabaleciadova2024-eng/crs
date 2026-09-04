@@ -158,10 +158,19 @@ export async function POST(request: Request) {
       photo_paths.push(path);
     }
 
-    // A task the Team Leader marked as not needing review is approved on
-    // submission, so it stops blocking immediately. Otherwise it lands as
-    // 'pending' and waits, which is how every task behaved before 0030.
-    const autoApprove = task.requires_approval === false;
+    // Approved on submission in two cases.
+    //
+    // One: the task was marked as not needing review, so it stops blocking
+    // immediately. That is what requires_approval has always meant.
+    //
+    // Two: the submitter IS the Team Leader. They carry the same courses as
+    // everyone else, but approval is their own signature — routing it into
+    // a queue for themselves to sign would be theatre, and would leave a
+    // "1 awaiting review" on their own dashboard that only they could
+    // clear. Same posture as their Account Security row, which records
+    // rather than gates.
+    const selfApproves = profile?.role === "team_leader";
+    const autoApprove = task.requires_approval === false || selfApproves;
 
     // Was this member ALREADY waiting on review for this task? The upsert
     // below cannot tell you afterwards — it reports success either way —
@@ -205,7 +214,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Nothing to review, so nobody to notify.
+    // Nothing to review, so nobody to notify — including the Team Leader
+    // about their own submission.
     if (autoApprove) return NextResponse.json({ ok: true, status: "approved" });
 
     // Already in the review queue — the row was refreshed, but no new
