@@ -8,6 +8,7 @@ import LeaveQueueTable from "./LeaveQueueTable";
 import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
 import { countBlockingTasks } from "@/lib/taskBlockingServer";
 import { credentialBlock } from "@/lib/passwordBlockingServer";
+import { resolveBellNotices } from "@/lib/bellNotify";
 
 export default async function LeavePage() {
   const profile = await requireProfile();
@@ -87,7 +88,18 @@ export default async function LeavePage() {
   // Run via the admin client since RLS only lets an owner update their OWN
   // request while it's still pending, not after it's been decided.
   const admin = createAdminClient();
-  await admin.from("leave_requests").update({ seen_by_associate: true }).eq("associate_id", profile.id).eq("seen_by_associate", false);
+  // Opening this page IS seeing the decision. The same stroke that clears
+  // the sidebar badge clears the bell notice behind it, or the two disagree
+  // the moment you look at the page.
+  const { data: nowSeen } = await admin
+    .from("leave_requests")
+    .update({ seen_by_associate: true })
+    .eq("associate_id", profile.id)
+    .eq("seen_by_associate", false)
+    .select("id");
+  for (const row of nowSeen ?? []) {
+    await resolveBellNotices("leave_reviewed", (row as { id: string }).id);
+  }
 
   return (
     <>

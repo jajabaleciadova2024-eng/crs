@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { uploadTaskPhoto, deleteTaskPhoto } from "@/lib/taskPhotoStorage";
 import { todayInManila } from "@/lib/scheduleDates";
 import { taskAppliesTo } from "@/lib/taskAssignment";
+import { resolveBellNotices } from "@/lib/bellNotify";
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 export const MAX_PHOTOS = 6; // 10MB
@@ -191,7 +192,7 @@ export async function POST(request: Request) {
     // same (task_id, profile_id) unique row, and a plain insert would just
     // hit the duplicate and silently leave the old rejection — along with
     // its decline note and stale photo — in place.
-    const { error } = await admin.from("member_task_completions").upsert(
+    const { data: saved, error } = await admin.from("member_task_completions").upsert(
       {
         task_id,
         profile_id: user.id,
@@ -207,12 +208,22 @@ export async function POST(request: Request) {
         reviewed_at: autoApprove ? new Date().toISOString() : null,
       },
       { onConflict: "task_id,profile_id" },
-    );
+    ).select("id").single();
 
     if (error) {
       console.error("[tasks/complete] POST error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Submitting is the member's half of the job, so the "you were assigned
+    // this" and "you are being chased about this" notices are finished with
+    // — whether or not it still needs review.
+    await resolveBellNotices("task_assigned", task_id);
+    await resolveBellNotices("task_poke", task_id);
+    // Re-submitting after a decline is the answer to it. The upsert keeps
+    // the same completion row, so the old "reviewed your task" notice is
+    // about exactly this one.
+    if (saved?.id) await resolveBellNotices("task_reviewed", saved.id);
 
     // Nothing to review, so nobody to notify — including the Team Leader
     // about their own submission.
@@ -235,6 +246,9 @@ export async function POST(request: Request) {
         recipient_id: tl.id,
         actor_id: user.id,
         type: "task_submitted" as const,
+        // The completion, so reviewing THIS one clears exactly this notice
+        // and not the same member's other submission.
+        ref_id: saved?.id ?? null,
         post_id: null,
         comment_id: null,
         reaction: null,

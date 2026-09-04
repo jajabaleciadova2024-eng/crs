@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveBellNotices } from "@/lib/bellNotify";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -69,12 +70,18 @@ export async function POST(request: Request) {
     );
   }
 
+  // The submission has been dealt with, so every Team Leader's "submitted
+  // for approval" notice about THIS completion is finished — that is what
+  // keeps the bell in step with the sidebar badge, which already dropped.
+  await resolveBellNotices("task_submitted", completion_id);
+
   // Notify the associate about the review decision. Reached only by the
   // request that actually moved the row out of 'pending'.
   await admin.from("notifications").insert({
     recipient_id: updated[0].profile_id,
     actor_id: user.id,
     type: "task_reviewed" as const,
+    ref_id: completion_id,
     post_id: null,
     comment_id: null,
     reaction: null,

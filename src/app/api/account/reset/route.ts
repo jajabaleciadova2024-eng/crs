@@ -102,14 +102,14 @@ export async function POST(request: Request) {
   }
 
   const now = new Date().toISOString();
-  const { error } = await admin.from("password_resets").insert({
+  const { data: claim, error } = await admin.from("password_resets").insert({
     profile_id: user.id,
     reset_at: resetAt.toISOString(),
     proof_path: path,
     status: selfConfirms ? "approved" : "pending",
     reviewed_by: selfConfirms ? user.id : null,
     reviewed_at: selfConfirms ? now : null,
-  });
+  }).select("id").single();
   if (error) {
     console.error("[account/reset] insert failed:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -130,7 +130,13 @@ export async function POST(request: Request) {
     .select("id")
     .eq("role", "team_leader")
     .eq("is_active", true);
-  await bellNotify((leaders ?? []).map((l: { id: string }) => l.id), user.id, "password_reset_submitted");
+  await bellNotify(
+    (leaders ?? []).map((l: { id: string }) => l.id),
+    user.id,
+    "password_reset_submitted",
+    null,
+    claim?.id ?? null,
+  );
 
   return NextResponse.json({ ok: true });
 }

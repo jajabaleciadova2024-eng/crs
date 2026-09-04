@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { bellNotify } from "@/lib/bellNotify";
+import { bellNotify, resolveBellNotices } from "@/lib/bellNotify";
 
 // The Team Leader confirming (or rejecting) a member's claimed reset.
 // Confirming is the ONLY thing that restarts the countdown (see
@@ -84,6 +84,10 @@ export async function POST(request: Request) {
     );
   }
 
-  await bellNotify([reset.profile_id], user.id, "password_reset_reviewed");
+  // Decided, so the Team Leader's "reported a password reset" notice for
+  // this claim is finished — it was the thing the Account Security badge
+  // was counting.
+  await resolveBellNotices("password_reset_submitted", reset_id);
+  await bellNotify([reset.profile_id], user.id, "password_reset_reviewed", null, reset_id);
   return NextResponse.json({ ok: true });
 }

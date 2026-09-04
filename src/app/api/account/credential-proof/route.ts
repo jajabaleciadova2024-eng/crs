@@ -94,6 +94,10 @@ export async function POST(request: Request) {
       (leaders ?? []).map((l: { id: string }) => l.id),
       user.id,
       "credential_proof_submitted",
+      null,
+      // credential_status has one row per member, so the member IS the
+      // subject — verifying their proof clears exactly this notice.
+      user.id,
     );
   }
 

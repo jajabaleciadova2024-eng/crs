@@ -8,9 +8,8 @@ import NotificationBell from "@/components/NotificationBell";
 import UnseenAnnouncementModal from "@/components/announcements/UnseenAnnouncementModal";
 import AutoLogout from "@/components/AutoLogout";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { isPasswordBlocking } from "@/lib/passwordExpiry";
-import { taskAppliesTo, taskBlocks } from "@/lib/taskAssignment";
+import { taskAppliesTo } from "@/lib/taskAssignment";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, realRole, previewing } = await requireProfileWithPreview();
@@ -59,30 +58,38 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .eq("status", "pending");
     pendingTaskCount = count ?? 0;
   } else {
-    // Associate/OIC: count incomplete blocking tasks (without approved completion)
+    // A member's badge is what they still OWE — nothing submitted, or
+    // submitted and declined.
+    //
+    // It used to count only tasks blocking the schedule TODAY, which made it
+    // disagree with the bell twice over: a task assigned for next week sent
+    // a notification and showed no badge, and a non-blocking task sent one
+    // and never showed a badge at all. Blocking is a consequence of an
+    // outstanding task, not the definition of one.
+    //
+    // A submission awaiting review is deliberately NOT counted: the member
+    // has done their part and it is the Team Leader's move, which is also
+    // why submitting clears the "assigned"/"nudge" notices.
     const [{ data: myTasks }, { data: myCompletions }] = await Promise.all([
       admin
         .from("member_tasks")
-        .select("id, deadline, blocker_days_before, assign_to, excluded_ids, blocks_schedule, blocks_leave")
+        .select("id, assign_to, excluded_ids")
         .or(`assign_to.eq.all,assign_to.eq.${profile.id}`),
       admin
         .from("member_task_completions")
         .select("task_id, status")
         .eq("profile_id", profile.id),
     ]);
-    const approvedIds = new Set(
+    const settledIds = new Set(
       (myCompletions ?? [])
-        .filter((c: { status: string }) => c.status === "approved")
+        .filter((c: { status: string }) => c.status === "approved" || c.status === "pending")
         .map((c: { task_id: string }) => c.task_id),
     );
     // .or() matches assign_to only — the exemption list is applied here, or
     // an excused member keeps a sidebar badge for a task that is not theirs.
     pendingTaskCount = (myTasks ?? []).filter(
-      (t: { id: string; deadline: string | null; blocker_days_before: number; assign_to: string; excluded_ids: string[] | null; blocks_schedule: boolean | null; blocks_leave: boolean | null }) =>
-        taskAppliesTo(t, profile.id) &&
-        taskBlocks(t, "schedule") &&
-        !approvedIds.has(t.id) &&
-        isTaskBlockingToday(t),
+      (t: { id: string; assign_to: string; excluded_ids: string[] | null }) =>
+        taskAppliesTo(t, profile.id) && !settledIds.has(t.id),
     ).length;
   }
 
@@ -102,7 +109,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         .from("credential_status")
         .select("mfa_proof_path, mfa_verified, mfa_review_note, passkey_proof_path, passkey_verified, passkey_review_note"),
     ]);
-    const needsCheck = (unchecked ?? []).reduce((n: number, c: any) => {
+    type ProofRow = {
+      mfa_proof_path: string | null;
+      mfa_verified: boolean | null;
+      mfa_review_note: string | null;
+      passkey_proof_path: string | null;
+      passkey_verified: boolean | null;
+      passkey_review_note: string | null;
+    };
+    const needsCheck = ((unchecked ?? []) as ProofRow[]).reduce((n: number, c) => {
       // A rejected proof is already actioned — it is the member's move now.
       if (c.mfa_proof_path && !c.mfa_verified && !c.mfa_review_note) n += 1;
       if (c.passkey_proof_path && !c.passkey_verified && !c.passkey_review_note) n += 1;

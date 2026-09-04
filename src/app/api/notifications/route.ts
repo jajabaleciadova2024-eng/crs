@@ -24,45 +24,41 @@ export async function GET(_request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Reconcile "submitted a task for approval" against what is actually in
-  // the tasks table.
+  // Reconcile "submitted a task for approval" against what is actually there.
   //
-  // A notification is a fire-and-forget row: once written it stays written,
-  // even after the thing it announced is gone. A member who submits and then
-  // withdraws — or whose task gets deleted — leaves the Team Leader holding
-  // a notice for work that does not exist, with no way to tell that from a
-  // submission the page is failing to show. That is not a cosmetic problem:
-  // it makes the bell untrustworthy exactly where it is meant to be a queue.
+  // Reviewing a submission now marks its notice read at the moment of the
+  // decision, so the ordinary case needs nothing here. This covers the one
+  // it cannot: a member who WITHDRAWS. The completion row is deleted, so
+  // there is no review to hang a resolution on, and the Team Leader is left
+  // holding a notice for work that no longer exists — which is exactly how
+  // the bell and the sidebar badge drifted apart.
   //
-  // So every task_submitted notice is checked against its actor's
-  // completions before it is handed over. It stays as-is while that member
-  // still has a row (pending = still yours to review; approved/declined =
-  // true history of something you already actioned). With no row at all,
-  // there is nothing behind it, and it is relabelled rather than silently
-  // dropped so the Team Leader can see what happened.
-  const rows = (data ?? []) as { type: string; actor_id: string | null; read: boolean }[];
-  const submitterIds = [
+  // ref_id names the completion, so this is a single lookup: any notice
+  // whose completion has gone is stale. Rows from before ref_id existed
+  // have none and are left alone rather than guessed at.
+  const rows = (data ?? []) as {
+    type: string;
+    ref_id: string | null;
+    read: boolean;
+  }[];
+  const completionIds = [
     ...new Set(
-      rows
-        .filter((n) => n.type === "task_submitted" && n.actor_id)
-        .map((n) => n.actor_id as string),
+      rows.filter((n) => n.type === "task_submitted" && n.ref_id).map((n) => n.ref_id as string),
     ),
   ];
 
-  let withdrawnBy = new Set<string>();
-  if (submitterIds.length > 0) {
+  let goneIds = new Set<string>();
+  if (completionIds.length > 0) {
     const { data: live } = await admin
       .from("member_task_completions")
-      .select("profile_id")
-      .in("profile_id", submitterIds);
-    const stillHasWork = new Set((live ?? []).map((c: { profile_id: string }) => c.profile_id));
-    withdrawnBy = new Set(submitterIds.filter((id) => !stillHasWork.has(id)));
+      .select("id")
+      .in("id", completionIds);
+    const alive = new Set((live ?? []).map((c: { id: string }) => c.id));
+    goneIds = new Set(completionIds.filter((id) => !alive.has(id)));
   }
 
   const notifications = rows.map((n) =>
-    n.type === "task_submitted" && n.actor_id && withdrawnBy.has(n.actor_id)
-      ? { ...n, stale: true }
-      : n,
+    n.type === "task_submitted" && n.ref_id && goneIds.has(n.ref_id) ? { ...n, stale: true } : n,
   );
 
   // A notice with nothing behind it is not work waiting on you, so it does

@@ -167,7 +167,7 @@ export async function POST(request: Request) {
   const recipients = (
     assign_to === "all" ? await allActiveMemberIds() : [assign_to]
   ).filter((id) => !excluded_ids.includes(id));
-  await bellNotify(recipients, user.id, "task_assigned");
+  await bellNotify(recipients, user.id, "task_assigned", null, inserted.id);
 
   return NextResponse.json({ ok: true, id: inserted.id });
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { bellNotify } from "@/lib/bellNotify";
+import { bellNotify, resolveBellNotices } from "@/lib/bellNotify";
 
 const KINDS = ["mfa", "passkey"] as const;
 type Kind = (typeof KINDS)[number];
@@ -67,6 +67,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await bellNotify([profile_id], user.id, "password_reset_reviewed");
+  // Checked, so the "uploaded a security screenshot to verify" notice is
+  // done. Both proofs share one credential row, so this clears whichever
+  // was outstanding — which is right: the Team Leader has now looked.
+  await resolveBellNotices("credential_proof_submitted", profile_id);
+  await bellNotify([profile_id], user.id, "password_reset_reviewed", null, profile_id);
   return NextResponse.json({ ok: true });
 }

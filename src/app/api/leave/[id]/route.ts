@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyLeaveStatusChange } from "@/lib/notify";
-import { bellNotify } from "@/lib/bellNotify";
+import { bellNotify, resolveBellNotices } from "@/lib/bellNotify";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
 import { recomputeVacationConflicts } from "@/lib/leaveConflict";
 
@@ -100,7 +100,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .eq("id", id)
     .maybeSingle();
   if (reviewedRow?.associate_id) {
-    await bellNotify([reviewedRow.associate_id], user.id, "leave_reviewed");
+    // Decided, so the approvers' "filed a request" and "updated a request"
+    // notices about it are done — they were the queue, and the queue is
+    // what the sidebar badge counts.
+    await resolveBellNotices("leave_submitted", id);
+    await resolveBellNotices("leave_updated", id);
+    await bellNotify([reviewedRow.associate_id], user.id, "leave_reviewed", null, id);
   }
 
   return NextResponse.json({ ok: true });

@@ -99,6 +99,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Couldn't send that nudge. Please try again." }, { status: 500 });
   }
 
-  await bellNotify(targets, user.id, "task_poke");
+  await bellNotify(targets, user.id, "task_poke", null, task_id);
   return NextResponse.json({ ok: true, poked: targets.length, skipped: eligible.length - targets.length });
 }
