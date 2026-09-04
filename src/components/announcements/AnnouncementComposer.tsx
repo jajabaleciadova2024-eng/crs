@@ -1,14 +1,19 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { shrinkImagesForUpload } from "@/lib/imageUpload";
 
 const MAX_IMAGES = 6;
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+// The ceiling on what can be PICKED. Images are re-encoded before they are
+// sent, so this only has to keep something absurd out of the browser's
+// memory — the size that actually goes over the wire is decided later.
+const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
 
 export default function AnnouncementComposer({
   onSubmit,
 }: {
-  onSubmit: (title: string, body: string, images: File[]) => Promise<void>;
+  /** Resolves to an error to show, or null when the announcement posted. */
+  onSubmit: (title: string, body: string, images: File[]) => Promise<string | null>;
 }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -16,6 +21,9 @@ export default function AnnouncementComposer({
   type Picked = { file: File; url: string };
   const [images, setImages] = useState<Picked[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
+  // Why the announcement didn't post. Separate from imageError so it reads
+  // next to the button that was pressed, not under the image picker.
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -27,9 +35,9 @@ export default function AnnouncementComposer({
     if (!picked) return;
     setImageError(null);
     const incoming = [...picked];
-    const tooBig = incoming.find((f) => f.size > MAX_IMAGE_BYTES);
+    const tooBig = incoming.find((f) => f.size > MAX_SOURCE_BYTES);
     if (tooBig) {
-      setImageError(`"${tooBig.name}" is too large (10MB max).`);
+      setImageError(`"${tooBig.name}" is too large (25MB max).`);
       return;
     }
     const notImage = incoming.find((f) => !f.type.startsWith("image/"));
@@ -57,14 +65,34 @@ export default function AnnouncementComposer({
       return [];
     });
     setImageError(null);
+    setSubmitError(null);
   }
 
   async function handleSubmit() {
     if (!title.trim() || !body.trim() || submitting) return;
     setSubmitting(true);
-    await onSubmit(title.trim(), body.trim(), images.map((p) => p.file));
-    reset();
+    setImageError(null);
+    setSubmitError(null);
+
+    // Camera-sized images are refused by the platform before the route runs,
+    // which came back as a failure with no message at all. Re-encode them to
+    // fit one request first.
+    const { files, error: tooBig } = await shrinkImagesForUpload(images.map((p) => p.file));
+    if (tooBig) {
+      setImageError(tooBig);
+      setSubmitting(false);
+      return;
+    }
+
+    const error = await onSubmit(title.trim(), body.trim(), files);
     setSubmitting(false);
+    // Keep what they wrote on screen when it didn't post — closing the
+    // composer on a failure threw the whole announcement away.
+    if (error) {
+      setSubmitError(error);
+      return;
+    }
+    reset();
     setOpen(false);
   }
 
@@ -198,6 +226,12 @@ export default function AnnouncementComposer({
                 </p>
               )}
             </div>
+
+            {submitError && (
+              <p role="alert" className="text-[11.5px] text-[var(--bad)] m-0">
+                {submitError}
+              </p>
+            )}
 
             <div className="flex justify-end gap-2 mt-1">
               <button

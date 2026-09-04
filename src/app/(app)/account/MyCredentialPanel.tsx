@@ -8,6 +8,7 @@ import { expiryState, expiryFrom, BLOCK_WITHIN_DAYS, PASSWORD_VALID_DAYS } from 
 import ProofLink from "./ProofLink";
 import ProofExample from "./ProofExample";
 import CredentialProofRow from "./CredentialProofRow";
+import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 type Reset = { id: string; resetAt: string; status: string; reviewNote: string | null; hasProof: boolean };
 
@@ -114,12 +115,30 @@ export default function MyCredentialPanel({
     setBusy(true);
     setError(null);
     const fd = new FormData();
-    if (proof) fd.append("proof", proof);
+    if (proof) {
+      // The screenshot comes off a phone at several MB — more than one
+      // request may carry, and the platform refuses it before our route can
+      // say so. Re-encode it down first.
+      const { file: ready, error: tooBig } = await shrinkOneForUpload(proof);
+      if (tooBig) {
+        setError(tooBig);
+        setBusy(false);
+        return;
+      }
+      fd.append("proof", ready);
+    }
     fd.append("reset_at", new Date(`${resetDate}T00:00:00`).toISOString());
-    const res = await fetch("/api/account/reset", { method: "POST", body: fd });
+    let res: Response;
+    try {
+      res = await fetch("/api/account/reset", { method: "POST", body: fd });
+    } catch {
+      setBusy(false);
+      setError(NETWORK_ERROR_MESSAGE);
+      return;
+    }
     setBusy(false);
     if (!res.ok) {
-      setError((await res.json().catch(() => ({}))).error ?? "Couldn't submit.");
+      setError(await readUploadError(res, "Couldn't submit."));
       return;
     }
     if (preview) URL.revokeObjectURL(preview);

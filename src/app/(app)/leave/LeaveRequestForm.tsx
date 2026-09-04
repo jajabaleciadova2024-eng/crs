@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import { datePickerOnlyProps } from "@/lib/dateInputGuards";
 import type { LeaveTypeConfig } from "@/lib/leaveTypes";
+import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 type DateRange = { start_date: string; end_date: string };
 
@@ -104,15 +105,25 @@ export default function LeaveRequestForm({
     // the request we just created — same endpoint the queue's upload
     // button uses, just called immediately instead of later.
     if (file && body.id) {
+      // Photographed certificates arrive camera-sized, over what one request
+      // may carry; a PDF is left exactly as it is.
+      const { file: ready, error: tooBig } = await shrinkOneForUpload(file);
       const formData = new FormData();
-      formData.append("file", file);
-      const uploadRes = await fetch(`/api/leave/${body.id}/document`, { method: "POST", body: formData });
-      if (!uploadRes.ok) {
-        const uploadBody = await uploadRes.json().catch(() => ({}));
+      formData.append("file", ready);
+      let uploadFailure: string | null = tooBig;
+      if (!uploadFailure) {
+        try {
+          const uploadRes = await fetch(`/api/leave/${body.id}/document`, { method: "POST", body: formData });
+          if (!uploadRes.ok) {
+            uploadFailure = await readUploadError(uploadRes, "please try again from the queue below.");
+          }
+        } catch {
+          uploadFailure = NETWORK_ERROR_MESSAGE;
+        }
+      }
+      if (uploadFailure) {
         setSubmitting(false);
-        setError(
-          `Request submitted, but the document upload failed: ${uploadBody.error ?? "please try again from the queue below."}`
-        );
+        setError(`Request submitted, but the document upload failed: ${uploadFailure}`);
         router.refresh();
         return;
       }

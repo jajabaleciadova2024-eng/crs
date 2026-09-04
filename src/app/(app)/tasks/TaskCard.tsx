@@ -10,10 +10,19 @@ import { todayInManila } from "@/lib/scheduleDates";
 import { taskAppliesTo } from "@/lib/taskAssignment";
 import { pokeCooldownRemaining, formatCooldown, POKE_COOLDOWN_HOURS } from "@/lib/pokeCooldown";
 import { useNowMinute } from "@/lib/useNowMinute";
+import {
+  shrinkImagesForUpload,
+  readUploadError,
+  NETWORK_ERROR_MESSAGE,
+} from "@/lib/imageUpload";
 
 
 const MAX_PHOTOS = 6;
-const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+// What a phone may hand us, not what gets sent. Everything picked is
+// re-encoded down before it leaves the browser, so the old 10MB ceiling was
+// turning away 48-megapixel shots the app could handle perfectly well —
+// while the member had no way to make the file smaller themselves.
+const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
 
 const TAG_TONE: Record<string, string> = {
   neutral: "bg-[var(--paper)] text-[var(--muted)] border-[var(--line)]",
@@ -169,6 +178,10 @@ export default function TaskCard({
 }) {
   const router = useRouter();
   const [toggling, setToggling] = useState(false);
+  // Re-encoding several phone photos takes a second or two on a mid-range
+  // handset, and it happens after the press. Saying which step is running
+  // keeps that from reading as a stuck button.
+  const [preparing, setPreparing] = useState(false);
   const [reviewing, setReviewing] = useState<string | null>(null);
   // Which completion is mid-decline, and the reason being typed for it.
   const [declining, setDeclining] = useState<string | null>(null);
@@ -230,9 +243,9 @@ export default function TaskCard({
     if (!picked) return;
     setSubmitError(null);
     const incoming = [...picked];
-    const tooBig = incoming.find((f) => f.size > MAX_PHOTO_BYTES);
+    const tooBig = incoming.find((f) => f.size > MAX_SOURCE_BYTES);
     if (tooBig) {
-      setSubmitError(`"${tooBig.name}" is too large (10MB max).`);
+      setSubmitError(`"${tooBig.name}" is too large (25MB max).`);
       return;
     }
     const notImage = incoming.find((f) => !f.type.startsWith("image/"));
@@ -369,54 +382,90 @@ export default function TaskCard({
     setToggling(true);
     setSubmitError(null);
 
-    let res: Response;
-    if (attachments.length > 0) {
-      const fd = new FormData();
-      fd.append("task_id", task.id);
-      // One entry per file under the same key; the route reads them with
-      // getAll, so a single photo still posts exactly as it used to.
-      for (const f of attachments) fd.append("photo", f);
-      if (completionDate) fd.append("completion_date", completionDate);
-      res = await fetch("/api/tasks/complete", { method: "POST", body: fd });
-    } else {
-      res = await fetch("/api/tasks/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task_id: task.id, completion_date: completionDate || null }),
-      });
-    }
+    try {
+      let res: Response;
+      if (attachments.length > 0) {
+        // Phone photos are 3–8MB each and the request body is capped well
+        // below that, so a straight upload of what was picked is refused by
+        // the platform before the route ever sees it — which is what the
+        // bare "Couldn't submit." used to be. Re-encode them to fit first.
+        setPreparing(true);
+        const { files, error: tooBig } = await shrinkImagesForUpload(attachments);
+        setPreparing(false);
+        if (tooBig) {
+          setSubmitError(tooBig);
+          setToggling(false);
+          return;
+        }
 
-    if (!res.ok) {
-      setSubmitError((await res.json().catch(() => ({}))).error ?? "Couldn't submit.");
+        const fd = new FormData();
+        fd.append("task_id", task.id);
+        // One entry per file under the same key; the route reads them with
+        // getAll, so a single photo still posts exactly as it used to.
+        for (const f of files) fd.append("photo", f);
+        if (completionDate) fd.append("completion_date", completionDate);
+        res = await fetch("/api/tasks/complete", { method: "POST", body: fd });
+      } else {
+        res = await fetch("/api/tasks/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task_id: task.id, completion_date: completionDate || null }),
+        });
+      }
+
+      if (!res.ok) {
+        setSubmitError(await readUploadError(res, "Couldn't submit."));
+        setToggling(false);
+        return;
+      }
       setToggling(false);
-      return;
+      clearPhotos();
+      router.refresh();
+    } catch {
+      // A dropped connection rejects the fetch outright. Unhandled, that
+      // left the button spinning on "Submitting…" with nothing to read.
+      setPreparing(false);
+      setSubmitError(NETWORK_ERROR_MESSAGE);
+      setToggling(false);
     }
-    setToggling(false);
-    clearPhotos();
-    router.refresh();
   }
 
   async function handleUndo() {
     setToggling(true);
-    await fetch("/api/tasks/complete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ task_id: task.id, undo: true }),
-    });
+    setSubmitError(null);
+    try {
+      const res = await fetch("/api/tasks/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_id: task.id, undo: true }),
+      });
+      // A refused undo used to look exactly like a successful one — the
+      // card just came back unchanged after the refresh.
+      if (!res.ok) setSubmitError(await readUploadError(res, "Couldn't undo that submission."));
+    } catch {
+      setSubmitError(NETWORK_ERROR_MESSAGE);
+    }
     setToggling(false);
     router.refresh();
   }
 
   async function handleReview(completionId: string, status: "approved" | "rejected", note?: string) {
     setReviewing(completionId);
-    const res = await fetch("/api/tasks/approve", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completion_id: completionId, status, review_note: note ?? null }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/tasks/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completion_id: completionId, status, review_note: note ?? null }),
+      });
+    } catch {
+      setReviewing(null);
+      setSubmitError(NETWORK_ERROR_MESSAGE);
+      return;
+    }
     setReviewing(null);
     if (!res.ok) {
-      setSubmitError((await res.json().catch(() => ({}))).error ?? "Couldn't save that review.");
+      setSubmitError(await readUploadError(res, "Couldn't save that review."));
       return;
     }
     setDeclining(null);
@@ -430,14 +479,21 @@ export default function TaskCard({
   async function poke(profileIds: string[], key: string) {
     setPoking(key);
     setPokeError(null);
-    const res = await fetch("/api/tasks/poke", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ task_id: task.id, profile_ids: profileIds }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/tasks/poke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_id: task.id, profile_ids: profileIds }),
+      });
+    } catch {
+      setPoking(null);
+      setPokeError(NETWORK_ERROR_MESSAGE);
+      return;
+    }
     setPoking(null);
     if (!res.ok) {
-      setPokeError((await res.json().catch(() => ({}))).error ?? "Couldn't send that nudge.");
+      setPokeError(await readUploadError(res, "Couldn't send that nudge."));
       return;
     }
     setPoked((p) => ({ ...p, [key]: true }));
@@ -747,7 +803,7 @@ export default function TaskCard({
                 disabled={toggling}
                 className="mt-2 text-[12px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
               >
-                {toggling ? "Submitting…" : "Mark as complete"}
+                {preparing ? "Preparing photos…" : toggling ? "Submitting…" : "Mark as complete"}
               </button>
             )}
             {canUndo && (
@@ -880,7 +936,7 @@ export default function TaskCard({
                         disabled={toggling}
                         className="ml-auto shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                       >
-                        {toggling ? "Submitting…" : "Submit"}
+                        {preparing ? "Preparing…" : toggling ? "Submitting…" : "Submit"}
                       </button>
                     </div>
                   </div>

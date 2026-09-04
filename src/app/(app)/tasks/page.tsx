@@ -7,6 +7,7 @@ import { Panel, PageHeader } from "@/components/ui";
 import Link from "next/link";
 import TaskList from "./TaskList";
 import { taskAppliesTo } from "@/lib/taskAssignment";
+import { withMissingColumnFallback } from "@/lib/schemaCompat";
 
 export default async function TasksPage() {
   const profile = await requireProfile();
@@ -38,10 +39,22 @@ export default async function TasksPage() {
         .select("task_id, status, review_note")
         .eq("profile_id", profile.id),
       canManage
-        ? admin
-            .from("member_task_completions")
-            .select("id, task_id, profile_id, status, completed_at, completion_date, photo_path, photo_paths, review_note, profiles!member_task_completions_profile_id_fkey(first_name, last_name)")
-            .order("completed_at", { ascending: false })
+        ? withMissingColumnFallback(
+            "photo_paths",
+            () =>
+              admin
+                .from("member_task_completions")
+                .select("id, task_id, profile_id, status, completed_at, completion_date, photo_path, photo_paths, review_note, profiles!member_task_completions_profile_id_fkey(first_name, last_name)")
+                .order("completed_at", { ascending: false }),
+            // photo_paths arrives with 0044, which is applied by hand — until
+            // it has been, asking for it empties the Team Leader's entire
+            // submission queue rather than costing them the extra images.
+            () =>
+              admin
+                .from("member_task_completions")
+                .select("id, task_id, profile_id, status, completed_at, completion_date, photo_path, review_note, profiles!member_task_completions_profile_id_fkey(first_name, last_name)")
+                .order("completed_at", { ascending: false }),
+          )
         : Promise.resolve({ data: [], error: null }),
       // Who tasks can be FOR: every active member, Team Leader included.
       // They carry the same courses as everyone else — the difference is

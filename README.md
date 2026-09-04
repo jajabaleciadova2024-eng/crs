@@ -363,6 +363,29 @@ npm test
 
 ## Gotchas hit during setup (useful if debugging weirdness later)
 
+- **Uploads are shrunk in the browser before they are sent.** Vercel refuses
+  any request body over ~4.5MB, and it does so *in front of* the route — the
+  response is not our JSON, so the page had nothing to show but a bare
+  "Couldn't submit." A phone photo is 3–8MB, so a single proof photo could
+  trip it and six always did. `src/lib/imageUpload.ts` re-encodes every
+  picked image (max edge 1800px, JPEG, quality stepped down until it fits)
+  so a whole set stays under one request's budget, and turns a 413/504 into
+  a sentence that says what to do. Every upload path uses it: task proof
+  photos, announcement images, MFA/passkey screenshots, leave documents
+  (images only — a PDF passes through untouched), feed images, and ticket
+  attachments. The per-file limits the routes enforce are unchanged; what
+  the browser sends is simply much smaller now.
+- **The code tolerates a database that is one migration behind.** Migrations
+  here are applied by hand in the SQL editor, so a deploy can land before
+  its migration does — and PostgREST says so straight to the member's face:
+  "Could not find the 'photo_paths' column of 'member_task_completions' in
+  the schema cache", with their submission thrown away. `src/lib/schemaCompat.ts`
+  spots that one failure (PGRST204 / 42703 for a named column) so a query
+  can retry in the pre-migration shape; task submission uses it to save the
+  first photo through the old `photo_path` column when `0044` hasn't been
+  run yet. It is a safety net, not a substitute — **run the pending
+  migrations in `supabase/migrations/` and the full feature comes back.** A
+  `[schemaCompat]` warning in the Vercel logs means one is still pending.
 - **Next.js 16 renamed `middleware.ts` → `proxy.ts`** (function `proxy`
   instead of `middleware`). This project already uses the new convention
   (`src/proxy.ts`) — don't recreate a `middleware.ts`.
