@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
+import Linkify from "@/components/Linkify";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { todayInManila } from "@/lib/scheduleDates";
 import { taskAppliesTo } from "@/lib/taskAssignment";
@@ -586,7 +587,7 @@ export default function TaskCard({
 
           {expanded && task.description && (
             <p className="text-[12.5px] text-[var(--muted)] mt-1 leading-relaxed whitespace-pre-wrap break-words">
-              {task.description}
+              <Linkify text={task.description} />
             </p>
           )}
 

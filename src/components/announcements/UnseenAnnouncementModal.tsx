@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatFullName } from "@/lib/format";
+import Linkify from "@/components/Linkify";
 
 type UnseenAnnouncement = {
   id: string;
@@ -91,7 +92,7 @@ export default function UnseenAnnouncementModal() {
         {/* Body */}
         <div className="px-6 py-5 max-h-[50vh] overflow-y-auto">
           <p className="text-[14px] text-[var(--ink)] leading-relaxed whitespace-pre-wrap break-words m-0">
-            {announcement.body}
+            <Linkify text={announcement.body} />
           </p>
 
           {(announcement.image_urls?.length ?? 0) > 0 && (

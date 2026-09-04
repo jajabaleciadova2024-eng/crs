@@ -5,6 +5,7 @@ import type { Announcement, ReactionType } from "./AnnouncementsFeed";
 import { Avatar } from "@/components/ui";
 import CommentSection from "@/components/feed/CommentSection";
 import type { Mentionable } from "@/components/feed/mentions";
+import Linkify from "@/components/Linkify";
 
 const REACTION_EMOJI: Record<string, string> = {
   like: "👍", heart: "❤️", poop: "💩", roll_eyes: "🙄", angry: "😡",
@@ -187,7 +188,7 @@ export default function AnnouncementCard({
           <>
             <h3 className="text-[16px] font-bold text-[var(--ink)] m-0 mb-1.5">{ann.title}</h3>
             <p className="text-[14px] text-[var(--ink)] leading-relaxed whitespace-pre-wrap break-words m-0">
-              {ann.body}
+              <Linkify text={ann.body} />
             </p>
 
             {/* One image runs full width; several tile two-up. Each opens
