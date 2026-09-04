@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useMentionAutocomplete, MentionDropdown, type Mentionable } from "./mentions";
+import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 const MOOD_EMOJIS = [
   "😀", "😂", "🥹", "😍", "🤩", "😎", "🤔", "😤",
@@ -105,14 +106,34 @@ export default function PostComposer({
     setFocused(true);
 
     setUploading(true);
+    // Re-encoded to fit one request: a photo straight off a camera is
+    // refused by the platform before the route runs, and that rejection
+    // isn't our JSON, so it read as a generic "Upload failed".
+    const { file: ready, error: tooBig } = await shrinkOneForUpload(file);
+    if (tooBig) {
+      setUploading(false);
+      setUploadError(tooBig);
+      setImagePreview(null);
+      URL.revokeObjectURL(localUrl);
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("file", file);
-    const res = await fetch("/api/feed/image", { method: "POST", body: formData });
+    formData.append("file", ready);
+    let res: Response;
+    try {
+      res = await fetch("/api/feed/image", { method: "POST", body: formData });
+    } catch {
+      setUploading(false);
+      setUploadError(NETWORK_ERROR_MESSAGE);
+      setImagePreview(null);
+      URL.revokeObjectURL(localUrl);
+      return;
+    }
     setUploading(false);
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setUploadError(body.error ?? "Upload failed — try again.");
+      setUploadError(await readUploadError(res, "Upload failed — try again."));
       setImagePreview(null);
       URL.revokeObjectURL(localUrl);
       return;

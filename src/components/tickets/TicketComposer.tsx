@@ -2,6 +2,7 @@
 
 import { useState, useRef, useTransition } from "react";
 import { Button } from "@/components/ui";
+import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 type UploadedFile = {
   url: string;
@@ -30,20 +31,27 @@ export default function TicketComposer({ onCreated }: { onCreated: () => void })
 
     for (let i = 0; i < selected.length; i++) {
       const f = selected[i];
+      // Screenshots of the problem are the usual attachment here, and off a
+      // phone they exceed what one request may carry. Non-images (a log, a
+      // PDF) go up as they are.
+      const { file: ready, error: tooBig } = await shrinkOneForUpload(f);
+      if (tooBig) {
+        setError(`${f.name}: ${tooBig}`);
+        continue;
+      }
       const fd = new FormData();
-      fd.append("file", f);
+      fd.append("file", ready);
 
       try {
         const res = await fetch("/api/tickets/upload", { method: "POST", body: fd });
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          setError(body.error ?? `Failed to upload ${f.name}`);
+          setError(await readUploadError(res, `Failed to upload ${f.name}`));
           continue;
         }
         const data = await res.json();
         setFiles((prev) => [...prev, data]);
       } catch {
-        setError(`Failed to upload ${f.name}`);
+        setError(`${f.name}: ${NETWORK_ERROR_MESSAGE}`);
       }
     }
 

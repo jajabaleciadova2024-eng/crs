@@ -19,7 +19,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ com
   const [{ data: completion }, { data: profile }] = await Promise.all([
     admin
       .from("member_task_completions")
-      .select("id, profile_id, photo_path, photo_paths, member_tasks(title), profiles!member_task_completions_profile_id_fkey(first_name, last_name)")
+      // "*" covers photo_paths without naming it: on a database that hasn't
+      // had 0044 applied yet, naming it fails the whole query and every
+      // proof photo becomes unopenable, not just the multi-image ones.
+      .select("*, member_tasks(title), profiles!member_task_completions_profile_id_fkey(first_name, last_name)")
       .eq("id", completionId)
       .single(),
     admin.from("profiles").select("role").eq("id", user.id).single(),

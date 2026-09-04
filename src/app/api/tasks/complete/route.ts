@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { uploadTaskPhoto, deleteTaskPhoto } from "@/lib/taskPhotoStorage";
 import { todayInManila } from "@/lib/scheduleDates";
 import { taskAppliesTo } from "@/lib/taskAssignment";
+import { isMissingColumnError } from "@/lib/schemaCompat";
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 export const MAX_PHOTOS = 6; // 10MB
@@ -79,7 +80,10 @@ export async function POST(request: Request) {
       .eq("task_id", task_id)
       .eq("profile_id", user.id)
       .eq("status", "pending")
-      .select("id, photo_path, photo_paths");
+      // "*" rather than a column list: photo_paths only exists once 0044 has
+      // been run, and naming a column the database doesn't have yet fails the
+      // whole delete — leaving the member unable to undo at all.
+      .select("*");
 
     if (!deleted || deleted.length === 0) {
       return NextResponse.json({ error: "Cannot undo — completion is already approved or does not exist." }, { status: 400 });
@@ -178,31 +182,49 @@ export async function POST(request: Request) {
       .eq("status", "pending")
       .maybeSingle();
 
+    const row = {
+      task_id,
+      profile_id: user.id,
+      // Mirrors the first, so anything still reading the single column —
+      // the CSV's certificate flag, an un-refreshed page — keeps working.
+      photo_path: photo_paths[0] ?? null,
+      completion_date,
+      status: autoApprove ? "approved" : "pending",
+      completed_at: new Date().toISOString(),
+      review_note: null,
+      reviewed_by: autoApprove ? user.id : null,
+      reviewed_at: autoApprove ? new Date().toISOString() : null,
+    };
+
     // Upsert, not insert: a rejected completion is re-submitted against the
     // same (task_id, profile_id) unique row, and a plain insert would just
     // hit the duplicate and silently leave the old rejection — along with
     // its decline note and stale photo — in place.
-    const { error } = await admin.from("member_task_completions").upsert(
-      {
-        task_id,
-        profile_id: user.id,
-        photo_paths,
-        // Mirrors the first, so anything still reading the single column —
-        // the CSV's certificate flag, an un-refreshed page — keeps working.
-        photo_path: photo_paths[0] ?? null,
-        completion_date,
-        status: autoApprove ? "approved" : "pending",
-        completed_at: new Date().toISOString(),
-        review_note: null,
-        reviewed_by: autoApprove ? user.id : null,
-        reviewed_at: autoApprove ? new Date().toISOString() : null,
-      },
-      { onConflict: "task_id,profile_id" },
-    );
+    let { error } = await admin
+      .from("member_task_completions")
+      .upsert({ ...row, photo_paths }, { onConflict: "task_id,profile_id" });
+
+    // The database may not have 0044 yet — migrations are applied by hand.
+    // Without this the member saw "Could not find the 'photo_paths' column
+    // ... in the schema cache" under the Submit button and lost the
+    // submission entirely; now the first photo goes in through the old
+    // column and the rest wait for the migration.
+    if (isMissingColumnError(error, "photo_paths")) {
+      console.warn("[tasks/complete] photo_paths is missing — run supabase/migrations/0044_task_photo_paths.sql");
+      ({ error } = await admin
+        .from("member_task_completions")
+        .upsert(row, { onConflict: "task_id,profile_id" }));
+      // Nothing can point at the extra images, so don't leave them in the bucket.
+      for (const stranded of photo_paths.slice(1)) await deleteTaskPhoto(stranded);
+    }
 
     if (error) {
       console.error("[tasks/complete] POST error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      // The photos are unreferenced now — the row that would have pointed at
+      // them was never written. Leaving them behind fills the bucket with
+      // images nothing can ever show or delete.
+      for (const stranded of photo_paths) await deleteTaskPhoto(stranded);
+      return NextResponse.json({ error: "Couldn't save your submission. Please try again." }, { status: 500 });
     }
 
     // Nothing to review, so nobody to notify.
