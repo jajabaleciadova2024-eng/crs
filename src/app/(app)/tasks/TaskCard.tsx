@@ -199,7 +199,10 @@ export default function TaskCard({
   // "When did you actually do it?" — only asked when the task requires it.
   const [completionDate, setCompletionDate] = useState("");
   const [photoView, setPhotoView] = useState<
-    { state: "closed" } | { state: "loading" } | { state: "ready"; url: string } | { state: "error"; message: string }
+    | { state: "closed" }
+    | { state: "loading" }
+    | { state: "ready"; url: string; downloadUrl: string; fileName: string }
+    | { state: "error"; message: string }
   >({ state: "closed" });
 
   function focusPhotoPanel() {
@@ -393,8 +396,13 @@ export default function TaskCard({
         setPhotoView({ state: "error", message: msg });
         return;
       }
-      const { url } = await res.json();
-      setPhotoView({ state: "ready", url });
+      const { url, viewUrl, downloadUrl, fileName } = await res.json();
+      setPhotoView({
+        state: "ready",
+        url: viewUrl ?? url,
+        downloadUrl: downloadUrl ?? viewUrl ?? url,
+        fileName: fileName ?? "task-proof",
+      });
     } catch {
       setPhotoView({ state: "error", message: "Couldn't reach the server." });
     }
@@ -1043,13 +1051,35 @@ export default function TaskCard({
                 </div>
               )}
               {photoView.state === "ready" && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={photoView.url}
-                  alt="Task proof"
-                  className="max-w-full max-h-full rounded-lg object-contain"
+                <div
+                  className="flex flex-col items-center gap-3 max-w-full max-h-full"
                   onClick={(e) => e.stopPropagation()}
-                />
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photoView.url}
+                    alt="Task proof"
+                    className="max-w-full max-h-[calc(100%-52px)] rounded-lg object-contain"
+                  />
+                  {/* Team Leader only, matching the leave document viewer:
+                      a member looking at their own proof has the original on
+                      the device they took it with. A separate signed URL,
+                      because the download header is baked into the link —
+                      the one showing the image above cannot also save it. */}
+                  {canManage && (
+                    <a
+                      href={photoView.downloadUrl}
+                      download={photoView.fileName}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-bold bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] transition-colors shrink-0"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <path d="M7 10l5 5 5-5M12 15V3" />
+                      </svg>
+                      Download
+                    </a>
+                  )}
+                </div>
               )}
               <button
                 type="button"

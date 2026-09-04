@@ -38,6 +38,10 @@ export function slugForFilename(title: string): string {
       .replace(/[^\w\s-]/g, "")
       .trim()
       .replace(/\s+/g, "-")
+      // Collapse runs: "Task - Member" becomes "Task---Member" otherwise,
+      // because the separator's own spaces each turn into a hyphen too.
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
       .slice(0, 60) || "task"
   );
 }

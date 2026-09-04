@@ -53,7 +53,18 @@ describe("slugForFilename", () => {
     expect(slugForFilename("2026 Unisys Code Of Conduct")).toBe("2026-Unisys-Code-Of-Conduct");
   });
 
+  it("collapses the runs a ' - ' separator would leave", () => {
+    expect(slugForFilename("2026 Security Awareness - Abegail Fabay")).toBe(
+      "2026-Security-Awareness-Abegail-Fabay",
+    );
+  });
+
+  it("does not leave a leading or trailing hyphen", () => {
+    expect(slugForFilename(" - Ilene Santiago - ")).toBe("Ilene-Santiago");
+  });
+
   it("never returns an empty name", () => {
     expect(slugForFilename("!!!")).toBe("task");
+    expect(slugForFilename("---")).toBe("task");
   });
 });
