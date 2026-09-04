@@ -1024,71 +1024,86 @@ export default function TaskCard({
         </div>
 
         {/* Proof-photo viewer. Portaled to <body> so the card's own
-            overflow-hidden and stacking context can't clip it. */}
+            overflow-hidden and stacking context can't clip it.
+
+            A framed modal rather than an image floating on a black wall: the
+            controls now have somewhere to live. Download and close sit
+            together in the header, as icons, because a proof is opened,
+            glanced at, and either saved or dismissed — there is nothing here
+            worth a sentence of chrome. */}
         {photoView.state !== "closed" &&
           typeof document !== "undefined" &&
           createPortal(
             <div
-              className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
+              className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-start justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in"
               onClick={() => setPhotoView({ state: "closed" })}
             >
-              {photoView.state === "loading" && (
-                <span className="text-white text-[13px]">Opening photo…</span>
-              )}
-              {photoView.state === "error" && (
-                <div
-                  className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl px-4 py-3 max-w-sm cursor-auto"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <p className="text-[13px] text-[var(--bad)] m-0 font-semibold">{photoView.message}</p>
-                  <button
-                    type="button"
-                    onClick={() => setPhotoView({ state: "closed" })}
-                    className="mt-2 text-[12px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
-                  >
-                    Close
-                  </button>
-                </div>
-              )}
-              {photoView.state === "ready" && (
-                <div
-                  className="flex flex-col items-center gap-3 max-w-full max-h-full"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photoView.url}
-                    alt="Task proof"
-                    className="max-w-full max-h-[calc(100%-52px)] rounded-lg object-contain"
-                  />
-                  {/* Team Leader only, matching the leave document viewer:
-                      a member looking at their own proof has the original on
-                      the device they took it with. A separate signed URL,
-                      because the download header is baked into the link —
-                      the one showing the image above cannot also save it. */}
-                  {canManage && (
-                    <a
-                      href={photoView.downloadUrl}
-                      download={photoView.fileName}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-bold bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] transition-colors shrink-0"
+              <div
+                className="w-full max-w-3xl max-h-[92vh] my-auto flex flex-col bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-scale-in"
+                style={{ boxShadow: "var(--shadow-lg)" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[var(--line)] shrink-0">
+                  <span className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold truncate">
+                    Proof of completion
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {photoView.state === "ready" && canManage && (
+                      <a
+                        href={photoView.downloadUrl}
+                        download={photoView.fileName}
+                        title="Download"
+                        aria-label="Download this photo"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)] transition-colors cursor-pointer"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <path d="M7 10l5 5 5-5M12 15V3" />
+                        </svg>
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setPhotoView({ state: "closed" })}
+                      title="Close"
+                      aria-label="Close photo"
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors cursor-pointer"
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <path d="M7 10l5 5 5-5M12 15V3" />
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6 6 18M6 6l12 12" />
                       </svg>
-                      Download
-                    </a>
+                    </button>
+                  </div>
+                </div>
+
+                {/* The image is capped against the VIEWPORT, not the modal.
+                    max-height:100% only resolves against a parent with a
+                    definite height, and this one is auto — so a 300x900
+                    proof rendered at full size and burst out of the frame,
+                    measured at every width. 92vh matches the modal's own cap
+                    less the header and this padding, so the modal still
+                    shrinks to a small image instead of always filling the
+                    screen. */}
+                <div className="flex-1 min-h-0 flex items-center justify-center p-3 bg-[var(--paper)]">
+                  {photoView.state === "loading" && (
+                    <span className="py-10 text-[13px] text-[var(--muted)]">Opening…</span>
+                  )}
+                  {photoView.state === "error" && (
+                    <p className="py-10 text-[13px] text-[var(--bad)] m-0 font-semibold text-center px-4">
+                      {photoView.message}
+                    </p>
+                  )}
+                  {photoView.state === "ready" && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={photoView.url}
+                      alt="Task proof"
+                      className="max-w-full object-contain rounded"
+                      style={{ maxHeight: "calc(92vh - 72px)" }}
+                    />
                   )}
                 </div>
-              )}
-              <button
-                type="button"
-                onClick={() => setPhotoView({ state: "closed" })}
-                aria-label="Close photo"
-                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[20px] cursor-pointer"
-              >
-                ×
-              </button>
+              </div>
             </div>,
             document.body,
           )}
