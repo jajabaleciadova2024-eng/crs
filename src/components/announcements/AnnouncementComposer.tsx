@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 const MAX_IMAGES = 6;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -13,19 +13,15 @@ export default function AnnouncementComposer({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [images, setImages] = useState<File[]>([]);
+  type Picked = { file: File; url: string };
+  const [images, setImages] = useState<Picked[]>([]);
   const [imageError, setImageError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Object URLs are a manual resource: created per file, revoked when that
-  // file is dropped or the composer closes, or every re-pick leaks one.
-  const [previews, setPreviews] = useState<string[]>([]);
-  useEffect(() => {
-    const urls = images.map((f) => URL.createObjectURL(f));
-    setPreviews(urls);
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
-  }, [images]);
+  // Object URLs are a manual resource, created WITH the file in the handler
+  // that picked it. Deriving them in an effect meant a cascading render on
+  // every pick, and they still had to be revoked by hand either way.
 
   function addFiles(picked: FileList | null) {
     if (!picked) return;
@@ -44,25 +40,29 @@ export default function AnnouncementComposer({
     setImages((prev) => {
       // Adding, not replacing — picking a second time should extend the set
       // rather than throw away what was already chosen.
-      const next = [...prev, ...incoming].slice(0, MAX_IMAGES);
-      if (prev.length + incoming.length > MAX_IMAGES) {
+      const room = MAX_IMAGES - prev.length;
+      if (incoming.length > room) {
         setImageError(`Up to ${MAX_IMAGES} images — the rest were left out.`);
       }
-      return next;
+      const taken = incoming.slice(0, Math.max(0, room));
+      return [...prev, ...taken.map((file) => ({ file, url: URL.createObjectURL(file) }))];
     });
   }
 
   function reset() {
     setTitle("");
     setBody("");
-    setImages([]);
+    setImages((prev) => {
+      for (const p of prev) URL.revokeObjectURL(p.url);
+      return [];
+    });
     setImageError(null);
   }
 
   async function handleSubmit() {
     if (!title.trim() || !body.trim() || submitting) return;
     setSubmitting(true);
-    await onSubmit(title.trim(), body.trim(), images);
+    await onSubmit(title.trim(), body.trim(), images.map((p) => p.file));
     reset();
     setSubmitting(false);
     setOpen(false);
@@ -150,17 +150,23 @@ export default function AnnouncementComposer({
                 }}
               />
 
-              {previews.length > 0 && (
+              {images.length > 0 && (
                 <div className="mt-1.5 grid grid-cols-3 gap-2">
-                  {previews.map((src, i) => (
-                    <div key={src} className="relative aspect-square rounded-lg overflow-hidden border border-[var(--line)]">
+                  {images.map((p, i) => (
+                    <div key={p.url} className="relative aspect-square rounded-lg overflow-hidden border border-[var(--line)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt={images[i]?.name ?? ""} className="w-full h-full object-cover" />
+                      <img src={p.url} alt={p.file.name} className="w-full h-full object-cover" />
                       <button
                         type="button"
-                        onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                        onClick={() =>
+                          setImages((prev) => {
+                            const gone = prev[i];
+                            if (gone) URL.revokeObjectURL(gone.url);
+                            return prev.filter((_, j) => j !== i);
+                          })
+                        }
                         disabled={submitting}
-                        aria-label={`Remove ${images[i]?.name ?? "image"}`}
+                        aria-label={`Remove ${p.file.name}`}
                         className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white text-[13px] leading-none flex items-center justify-center hover:bg-black cursor-pointer"
                       >
                         ×
@@ -175,7 +181,7 @@ export default function AnnouncementComposer({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={submitting || images.length >= MAX_IMAGES}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                  previews.length > 0 ? "mt-2" : ""
+                  images.length > 0 ? "mt-2" : ""
                 }`}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

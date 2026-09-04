@@ -9,7 +9,11 @@ import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { todayInManila } from "@/lib/scheduleDates";
 import { taskAppliesTo } from "@/lib/taskAssignment";
 import { pokeCooldownRemaining, formatCooldown, POKE_COOLDOWN_HOURS } from "@/lib/pokeCooldown";
+import { useNowMinute } from "@/lib/useNowMinute";
 
+
+const MAX_PHOTOS = 6;
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 
 const TAG_TONE: Record<string, string> = {
   neutral: "bg-[var(--paper)] text-[var(--muted)] border-[var(--line)]",
@@ -95,6 +99,8 @@ interface CompletionEntry {
   status: string;
   completed_at: string;
   photo_path: string | null;
+  /** Every proof image, in attachment order. photo_path mirrors the first. */
+  photo_paths?: string[] | null;
   review_note: string | null;
   completion_date: string | null;
   profiles: { first_name: string; last_name: string } | null;
@@ -176,21 +182,19 @@ export default function TaskCard({
   // you wanted. The header carries enough to choose from: title, what it
   // blocks, the deadline, and how many people are waiting on you.
   const [expanded, setExpanded] = useState(false);
-  // One clock for the whole card, read after mount. Date.now() during SSR
-  // and again in the browser gives two different answers and a hydration
-  // mismatch; the cooldown is measured in hours, so a per-minute tick is
-  // more than precise enough.
-  const [nowMs, setNowMs] = useState(0);
-  useEffect(() => {
-    setNowMs(Date.now());
-    const id = setInterval(() => setNowMs(Date.now()), 60_000);
-    return () => clearInterval(id);
-  }, []);
+  // Ticks once a minute; 0 until mounted, so server and client agree on the
+  // first render. The cooldown is measured in hours — a per-minute clock is
+  // far more precision than it needs.
+  const nowMs = useNowMinute();
   const [submitError, setSubmitError] = useState<string | null>(null);
   // Photo-proof flow: the member picks a file, sees what they picked, and
   // then submits deliberately. Nothing is uploaded until they press Submit.
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  // The preview URL is created WITH the file, in the event handler that
+  // picked it — not derived in an effect. An object URL is a resource, not
+  // derived state: making it in an effect meant a cascading render on every
+  // pick, and it has to be revoked by hand either way.
+  type PickedPhoto = { file: File; url: string };
+  const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoPanelRef = useRef<HTMLDivElement>(null);
   // Briefly rings the attach panel when the checkbox sends you to it, so the
@@ -198,10 +202,13 @@ export default function TaskCard({
   const [pulse, setPulse] = useState(false);
   // "When did you actually do it?" — only asked when the task requires it.
   const [completionDate, setCompletionDate] = useState("");
+  type ProofPhoto = { viewUrl: string; downloadUrl: string; fileName: string };
   const [photoView, setPhotoView] = useState<
     | { state: "closed" }
     | { state: "loading" }
-    | { state: "ready"; url: string; downloadUrl: string; fileName: string }
+    // A submission can carry several images, so the viewer holds the whole
+    // set and which one is on screen rather than a single URL.
+    | { state: "ready"; photos: ProofPhoto[]; index: number }
     | { state: "error"; message: string }
   >({ state: "closed" });
 
@@ -217,20 +224,66 @@ export default function TaskCard({
     window.setTimeout(() => setPulse(false), 900);
   }
 
-  function choosePhoto(file: File) {
-    // Revoke the previous object URL before replacing it, or each re-pick
-    // leaks a blob for the lifetime of the page.
-    if (photoPreview) URL.revokeObjectURL(photoPreview);
-    setPhoto(file);
-    setPhotoPreview(URL.createObjectURL(file));
+  function choosePhotos(picked: FileList | null) {
+    if (!picked) return;
     setSubmitError(null);
+    const incoming = [...picked];
+    const tooBig = incoming.find((f) => f.size > MAX_PHOTO_BYTES);
+    if (tooBig) {
+      setSubmitError(`"${tooBig.name}" is too large (10MB max).`);
+      return;
+    }
+    const notImage = incoming.find((f) => !f.type.startsWith("image/"));
+    if (notImage) {
+      setSubmitError("Only images can be attached.");
+      return;
+    }
+    setPhotos((prev) => {
+      // Adds rather than replaces: picking a second time on a phone, once
+      // per photo, is the normal way to attach two.
+      const room = MAX_PHOTOS - prev.length;
+      if (incoming.length > room) {
+        setSubmitError(`Up to ${MAX_PHOTOS} photos — the rest were left out.`);
+      }
+      const taken = incoming.slice(0, Math.max(0, room));
+      return [...prev, ...taken.map((file) => ({ file, url: URL.createObjectURL(file) }))];
+    });
   }
 
-  function clearPhoto() {
-    if (photoPreview) URL.revokeObjectURL(photoPreview);
-    setPhoto(null);
-    setPhotoPreview(null);
+  function removePhoto(index: number) {
+    setPhotos((prev) => {
+      const gone = prev[index];
+      if (gone) URL.revokeObjectURL(gone.url);
+      return prev.filter((_, i) => i !== index);
+    });
   }
+
+  function clearPhotos() {
+    setPhotos((prev) => {
+      for (const p of prev) URL.revokeObjectURL(p.url);
+      return [];
+    });
+  }
+
+  // Last resort: whatever is still picked when the card goes away. Removing
+  // and clearing revoke as they go, so this only catches a navigation
+  // mid-attach. The ref keeps the effect free of a `photos` dependency,
+  // which would otherwise revoke live URLs on every pick.
+  const photosRef = useRef<PickedPhoto[]>([]);
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
+  useEffect(
+    () => () => {
+      for (const p of photosRef.current) URL.revokeObjectURL(p.url);
+    },
+    [],
+  );
+  // How many proofs a submission carries. photo_paths is the truth;
+  // photo_path is the single upload from before multiple were allowed.
+  const photoCount = (c?: { photo_path: string | null; photo_paths?: string[] | null } | null) =>
+    c?.photo_paths?.length ? c.photo_paths.length : c?.photo_path ? 1 : 0;
+
   const blocking = isTaskBlockingToday(task);
   // What this task actually locks. "Blocking" alone said nothing about
   // which, and now that it can be one, both, or neither, it has to.
@@ -295,11 +348,15 @@ export default function TaskCard({
     .map((r) => r.profileId);
   // Nudges are once per member per task per cooldown window, so the bulk
   // button offers only the people it can actually reach right now.
+  // Before the clock is live, treat everyone as nudgeable rather than
+  // guessing: the route re-checks and refuses with the remaining time, so
+  // the worst case is one honest error message instead of a button that
+  // flickers between states on load.
   const cooldownFor = (profileId: string) =>
-    pokeCooldownRemaining(task.lastPokedAt?.[profileId], nowMs || Date.now());
+    nowMs ? pokeCooldownRemaining(task.lastPokedAt?.[profileId], nowMs) : 0;
   const nudgeableIds = owingIds.filter((id) => cooldownFor(id) === 0);
 
-  async function handleSubmit(photo?: File) {
+  async function handleSubmit(attachments: File[] = []) {
     if (task.requires_completion_date && !completionDate) {
       setSubmitError("Pick the date you completed this.");
       return;
@@ -308,10 +365,12 @@ export default function TaskCard({
     setSubmitError(null);
 
     let res: Response;
-    if (photo) {
+    if (attachments.length > 0) {
       const fd = new FormData();
       fd.append("task_id", task.id);
-      fd.append("photo", photo);
+      // One entry per file under the same key; the route reads them with
+      // getAll, so a single photo still posts exactly as it used to.
+      for (const f of attachments) fd.append("photo", f);
       if (completionDate) fd.append("completion_date", completionDate);
       res = await fetch("/api/tasks/complete", { method: "POST", body: fd });
     } else {
@@ -328,7 +387,7 @@ export default function TaskCard({
       return;
     }
     setToggling(false);
-    clearPhoto();
+    clearPhotos();
     router.refresh();
   }
 
@@ -396,13 +455,19 @@ export default function TaskCard({
         setPhotoView({ state: "error", message: msg });
         return;
       }
-      const { url, viewUrl, downloadUrl, fileName } = await res.json();
-      setPhotoView({
-        state: "ready",
-        url: viewUrl ?? url,
-        downloadUrl: downloadUrl ?? viewUrl ?? url,
-        fileName: fileName ?? "task-proof",
-      });
+      const body = await res.json();
+      // `photos` is the current shape; the single-photo fields are the
+      // fallback for a response from before this deploy.
+      const photos: ProofPhoto[] = body.photos?.length
+        ? body.photos
+        : [
+            {
+              viewUrl: body.viewUrl ?? body.url,
+              downloadUrl: body.downloadUrl ?? body.viewUrl ?? body.url,
+              fileName: body.fileName ?? "task-proof",
+            },
+          ];
+      setPhotoView({ state: "ready", photos, index: 0 });
     } catch {
       setPhotoView({ state: "error", message: "Couldn't reach the server." });
     }
@@ -489,8 +554,10 @@ export default function TaskCard({
         )}
 
         <div className="flex-1 min-w-0">
-          {/* The whole header toggles. A dedicated chevron alone is a small
-              target on a phone, and the title is the obvious thing to press. */}
+          {/* The whole header strip toggles — the title row AND the line of
+              facts under it. Anything a collapsed card shows is part of the
+              same target, so there is no dead strip to hit by accident; a
+              chevron alone would be a 13px target on a phone. */}
           <div
             role="button"
             tabIndex={0}
@@ -502,8 +569,9 @@ export default function TaskCard({
                 setExpanded((v) => !v);
               }
             }}
-            className="flex items-center gap-2 flex-wrap cursor-pointer select-none"
+            className="cursor-pointer select-none"
           >
+            <div className="flex items-center gap-2 flex-wrap">
             <svg
               width="13"
               height="13"
@@ -593,11 +661,6 @@ export default function TaskCard({
             )}
           </div>
 
-          {expanded && task.description && (
-            <p className="text-[12.5px] text-[var(--muted)] mt-1 leading-relaxed whitespace-pre-wrap break-words">
-              <Linkify text={task.description} />
-            </p>
-          )}
 
           <div className="flex items-center gap-x-3 gap-y-1 mt-2 flex-wrap text-[11px] text-[var(--muted)]">
             {task.deadline &&
@@ -646,6 +709,13 @@ export default function TaskCard({
             )}
             {canManage && notSubmitted > 0 && <span>{notSubmitted} not submitted</span>}
           </div>
+          </div>
+
+          {expanded && task.description && (
+            <p className="text-[12.5px] text-[var(--muted)] mt-1 leading-relaxed whitespace-pre-wrap break-words">
+              <Linkify text={task.description} />
+            </p>
+          )}
 
           {/* Everything below the header is the detail: the description,
               the member's own submit controls, and the Team Leader's
@@ -711,15 +781,17 @@ export default function TaskCard({
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   className="hidden"
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
+                    choosePhotos(e.target.files);
+                    // Cleared, or picking the same file twice running is a
+                    // no-op because the input's value never changed.
                     e.target.value = "";
-                    if (f) choosePhoto(f);
                   }}
                 />
 
-                {!photo ? (
+                {photos.length === 0 ? (
                   <div className="flex items-center gap-2.5">
                     <span className="text-[15px] leading-none shrink-0" aria-hidden="true">
                       📷
@@ -729,7 +801,7 @@ export default function TaskCard({
                         Photo proof required
                       </div>
                       <div className="text-[11px] text-[var(--muted)] leading-tight mt-0.5">
-                        Attach an image, then submit.
+                        Attach one or more images, then submit.
                       </div>
                     </div>
                     <button
@@ -737,46 +809,65 @@ export default function TaskCard({
                       onClick={() => fileInputRef.current?.click()}
                       className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer"
                     >
-                      Choose photo
+                      Choose photos
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photoPreview ?? ""}
-                      alt=""
-                      className="w-11 h-11 rounded-md object-cover border border-[var(--line)] shrink-0"
-                    />
-                    <div className="min-w-0 max-w-[180px]">
-                      <div className="text-[12px] text-[var(--ink)] truncate leading-tight">{photo.name}</div>
-                      <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-col gap-2">
+                    {/* Thumbnails wrap instead of sitting in a row: six of
+                        them beside a Submit button does not fit a phone. */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {photos.map((p, i) => (
+                        <div key={p.url} className="relative w-14 h-14 shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={p.url}
+                            alt={p.file.name}
+                            className="w-full h-full rounded-md object-cover border border-[var(--line)]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(i)}
+                            disabled={toggling}
+                            aria-label={`Remove ${p.file.name}`}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black/75 text-white text-[12px] leading-none flex items-center justify-center hover:bg-black cursor-pointer disabled:opacity-50"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] text-[var(--muted)]">
+                        {photos.length} photo{photos.length !== 1 ? "s" : ""} attached
+                      </span>
+                      {photos.length < MAX_PHOTOS && (
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={toggling}
                           className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer disabled:opacity-50"
                         >
-                          Change
+                          Add more
                         </button>
-                        <button
-                          type="button"
-                          onClick={clearPhoto}
-                          disabled={toggling}
-                          className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer disabled:opacity-50"
-                        >
-                          Remove
-                        </button>
-                      </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={clearPhotos}
+                        disabled={toggling}
+                        className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        Remove all
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSubmit(photos.map((p) => p.file))}
+                        disabled={toggling}
+                        className="ml-auto shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {toggling ? "Submitting…" : "Submit"}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleSubmit(photo)}
-                      disabled={toggling}
-                      className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      {toggling ? "Submitting…" : "Submit"}
-                    </button>
                   </div>
                 )}
               </div>
@@ -882,13 +973,16 @@ export default function TaskCard({
                               {c?.completion_date ? formatDeadline(c.completion_date) : "\u2014"}
                             </td>
                             <td className="px-2 py-2 border-b border-[var(--line)]/60 whitespace-nowrap">
-                              {c?.photo_path ? (
+                              {c && photoCount(c) > 0 ? (
                                 <button
                                   type="button"
                                   onClick={() => openPhoto(c.id)}
                                   className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
                                 >
-                                  View
+                                  {/* The count is on the link, so the Team
+                                      Leader knows there is a second image to
+                                      page to before opening it. */}
+                                  View{photoCount(c) > 1 ? ` (${photoCount(c)})` : ""}
                                 </button>
                               ) : task.requires_photo && c ? (
                                 <span className="text-[10.5px] text-[var(--muted)] italic">none</span>
@@ -1046,12 +1140,57 @@ export default function TaskCard({
                 <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[var(--line)] shrink-0">
                   <span className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold truncate">
                     Proof of completion
+                    {photoView.state === "ready" && photoView.photos.length > 1 && (
+                      <span className="ml-1.5 normal-case tracking-normal text-[var(--ink)]">
+                        {photoView.index + 1} of {photoView.photos.length}
+                      </span>
+                    )}
                   </span>
                   <div className="flex items-center gap-1 shrink-0">
+                    {/* Paging only appears when there is more than one — a
+                        single proof should not grow two dead arrows. */}
+                    {photoView.state === "ready" && photoView.photos.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPhotoView((v) =>
+                              v.state === "ready"
+                                ? { ...v, index: (v.index - 1 + v.photos.length) % v.photos.length }
+                                : v,
+                            )
+                          }
+                          title="Previous"
+                          aria-label="Previous photo"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors cursor-pointer"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m15 18-6-6 6-6" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPhotoView((v) =>
+                              v.state === "ready"
+                                ? { ...v, index: (v.index + 1) % v.photos.length }
+                                : v,
+                            )
+                          }
+                          title="Next"
+                          aria-label="Next photo"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors cursor-pointer"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m9 18 6-6-6-6" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
                     {photoView.state === "ready" && canManage && (
                       <a
-                        href={photoView.downloadUrl}
-                        download={photoView.fileName}
+                        href={photoView.photos[photoView.index].downloadUrl}
+                        download={photoView.photos[photoView.index].fileName}
                         title="Download"
                         aria-label="Download this photo"
                         className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)] transition-colors cursor-pointer"
@@ -1096,8 +1235,9 @@ export default function TaskCard({
                   {photoView.state === "ready" && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={photoView.url}
-                      alt="Task proof"
+                      key={photoView.photos[photoView.index].viewUrl}
+                      src={photoView.photos[photoView.index].viewUrl}
+                      alt={`Task proof ${photoView.index + 1} of ${photoView.photos.length}`}
                       className="max-w-full object-contain rounded"
                       style={{ maxHeight: "calc(92vh - 72px)" }}
                     />

@@ -5,7 +5,8 @@ import { uploadTaskPhoto, deleteTaskPhoto } from "@/lib/taskPhotoStorage";
 import { todayInManila } from "@/lib/scheduleDates";
 import { taskAppliesTo } from "@/lib/taskAssignment";
 
-const MAX_PHOTO_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+export const MAX_PHOTOS = 6; // 10MB
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
   // so branch on the header rather than try/catch.
   let task_id: string | undefined;
   let undo = false;
-  let photo: File | null = null;
+  let photos: File[] = [];
   // The date the member says the work was actually done — distinct from
   // completed_at, which is when they pressed submit.
   let completion_date: string | null = null;
@@ -29,8 +30,10 @@ export async function POST(request: Request) {
     task_id = (form.get("task_id") as string) || undefined;
     undo = form.get("undo") === "true";
     completion_date = (form.get("completion_date") as string) || null;
-    const f = form.get("photo");
-    if (f instanceof File && f.size > 0) photo = f;
+    // getAll: the picker sends one "photo" entry per file now. A single
+    // file still arrives as a one-element list, so an older page posting one
+    // entry keeps working.
+    photos = form.getAll("photo").filter((f): f is File => f instanceof File && f.size > 0);
   } else {
     const body = await request.json();
     task_id = body.task_id;
@@ -39,11 +42,16 @@ export async function POST(request: Request) {
   }
 
   if (!task_id) return NextResponse.json({ error: "task_id is required." }, { status: 400 });
-  if (photo && photo.size > MAX_PHOTO_BYTES) {
-    return NextResponse.json({ error: "Photo is too large (10MB max)." }, { status: 400 });
+  if (photos.length > MAX_PHOTOS) {
+    return NextResponse.json({ error: `You can attach up to ${MAX_PHOTOS} photos.` }, { status: 400 });
   }
-  if (photo && !photo.type.startsWith("image/")) {
-    return NextResponse.json({ error: "Only image files can be attached." }, { status: 400 });
+  for (const f of photos) {
+    if (f.size > MAX_PHOTO_BYTES) {
+      return NextResponse.json({ error: `"${f.name}" is too large (10MB max).` }, { status: 400 });
+    }
+    if (!f.type.startsWith("image/")) {
+      return NextResponse.json({ error: "Only image files can be attached." }, { status: 400 });
+    }
   }
 
   const admin = createAdminClient();
@@ -71,7 +79,7 @@ export async function POST(request: Request) {
       .eq("task_id", task_id)
       .eq("profile_id", user.id)
       .eq("status", "pending")
-      .select("id, photo_path");
+      .select("id, photo_path, photo_paths");
 
     if (!deleted || deleted.length === 0) {
       return NextResponse.json({ error: "Cannot undo — completion is already approved or does not exist." }, { status: 400 });
@@ -79,7 +87,12 @@ export async function POST(request: Request) {
     // Drop the proof photo too — the row that pointed at it is gone, so
     // leaving the object behind just orphans it in the bucket.
     for (const row of deleted) {
-      if (row.photo_path) await deleteTaskPhoto(row.photo_path);
+      const paths: string[] = (row.photo_paths as string[] | null)?.length
+        ? (row.photo_paths as string[])
+        : row.photo_path
+          ? [row.photo_path as string]
+          : [];
+      for (const path of paths) await deleteTaskPhoto(path);
     }
 
     // Take back the "submitted a task for approval" notice as well. The
@@ -116,7 +129,7 @@ export async function POST(request: Request) {
       }
     }
   } else {
-    if (task.requires_photo && !photo) {
+    if (task.requires_photo && photos.length === 0) {
       return NextResponse.json({ error: "This task requires a photo as proof." }, { status: 400 });
     }
     if (task.requires_completion_date && !completion_date) {
@@ -132,13 +145,17 @@ export async function POST(request: Request) {
       }
     }
 
-    let photo_path: string | null = null;
-    if (photo) {
-      const buffer = Buffer.from(await photo.arrayBuffer());
-      const path = `${task_id}/${user.id}-${Date.now()}-${photo.name}`;
-      const uploaded = await uploadTaskPhoto(path, photo.type || "image/jpeg", buffer);
-      if (!uploaded.ok) return NextResponse.json({ error: uploaded.error }, { status: 400 });
-      photo_path = path;
+    const photo_paths: string[] = [];
+    for (const [i, f] of photos.entries()) {
+      const buffer = Buffer.from(await f.arrayBuffer());
+      const path = `${task_id}/${user.id}-${Date.now()}-${i}-${f.name}`;
+      const uploaded = await uploadTaskPhoto(path, f.type || "image/jpeg", buffer);
+      if (!uploaded.ok) {
+        // Nothing points at the earlier ones yet, so don't strand them.
+        for (const done of photo_paths) await deleteTaskPhoto(done);
+        return NextResponse.json({ error: uploaded.error }, { status: 400 });
+      }
+      photo_paths.push(path);
     }
 
     // A task the Team Leader marked as not needing review is approved on
@@ -169,7 +186,10 @@ export async function POST(request: Request) {
       {
         task_id,
         profile_id: user.id,
-        photo_path,
+        photo_paths,
+        // Mirrors the first, so anything still reading the single column —
+        // the CSV's certificate flag, an un-refreshed page — keeps working.
+        photo_path: photo_paths[0] ?? null,
         completion_date,
         status: autoApprove ? "approved" : "pending",
         completed_at: new Date().toISOString(),

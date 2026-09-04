@@ -40,7 +40,7 @@ export default async function TasksPage() {
       canManage
         ? admin
             .from("member_task_completions")
-            .select("id, task_id, profile_id, status, completed_at, completion_date, photo_path, review_note, profiles!member_task_completions_profile_id_fkey(first_name, last_name)")
+            .select("id, task_id, profile_id, status, completed_at, completion_date, photo_path, photo_paths, review_note, profiles!member_task_completions_profile_id_fkey(first_name, last_name)")
             .order("completed_at", { ascending: false })
         : Promise.resolve({ data: [], error: null }),
       // Who tasks can be FOR. Team Leaders are excluded: they set the tasks,
