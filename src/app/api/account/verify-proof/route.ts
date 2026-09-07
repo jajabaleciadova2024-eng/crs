@@ -71,6 +71,6 @@ export async function POST(request: Request) {
   // done. Both proofs share one credential row, so this clears whichever
   // was outstanding — which is right: the Team Leader has now looked.
   await resolveBellNotices("credential_proof_submitted", profile_id);
-  await bellNotify([profile_id], user.id, "password_reset_reviewed", null, profile_id);
+  await bellNotify([profile_id], user.id, "credential_proof_reviewed", null, profile_id);
   return NextResponse.json({ ok: true });
 }

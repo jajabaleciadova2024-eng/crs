@@ -152,5 +152,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   // e.g. it turned out to be the one causing the conflict).
   await recomputeVacationConflicts();
 
+  await resolveBellNotices("leave_submitted", id);
+  await resolveBellNotices("leave_updated", id);
+  await resolveBellNotices("leave_reviewed", id);
+
   return NextResponse.json({ ok: true });
 }

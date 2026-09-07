@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bellNotify, resolveBellNotices, leaveReviewerIds } from "@/lib/bellNotify";
+import { countBlockingTasks } from "@/lib/taskBlockingServer";
+import { credentialBlock } from "@/lib/passwordBlockingServer";
 
 // Resubmits a rejected (non-final) leave request by resetting it to pending.
 // The member's own request only — uses the admin client because the RLS policy
@@ -14,6 +16,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  const { data: filerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (filerProfile && filerProfile.role !== "team_leader") {
+    const cred = await credentialBlock(user.id);
+    if (cred.blocking) {
+      return NextResponse.json(
+        { error: "Reset your password and have it confirmed before resubmitting a leave request." },
+        { status: 403 },
+      );
+    }
+    const blocking = await countBlockingTasks(user.id, "leave");
+    if (blocking > 0) {
+      return NextResponse.json(
+        { error: `You have ${blocking} pending task${blocking !== 1 ? "s" : ""} to complete before resubmitting a leave request.` },
+        { status: 403 },
+      );
+    }
   }
 
   const { data: leaveRequest } = await supabase

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasVacationConflict, recomputeVacationConflicts } from "@/lib/leaveConflict";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
+import { countBlockingTasks } from "@/lib/taskBlockingServer";
+import { credentialBlock } from "@/lib/passwordBlockingServer";
 
 // Lets the requester edit their OWN request while it's still pending or
 // rejected (non-final). Pending uses RLS; rejected uses the admin client
@@ -71,6 +73,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const isRejectedResubmit = existing.status === "rejected";
+
+  if (isRejectedResubmit) {
+    const { data: filerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    if (filerProfile && filerProfile.role !== "team_leader") {
+      const cred = await credentialBlock(user.id);
+      if (cred.blocking) {
+        return NextResponse.json(
+          { error: "Reset your password and have it confirmed before resubmitting a leave request." },
+          { status: 403 },
+        );
+      }
+      const blocking = await countBlockingTasks(user.id, "leave");
+      if (blocking > 0) {
+        return NextResponse.json(
+          { error: `You have ${blocking} pending task${blocking !== 1 ? "s" : ""} to complete before resubmitting a leave request.` },
+          { status: 403 },
+        );
+      }
+    }
+  }
   const updateFields = {
     leave_type,
     start_date: primary.start_date,
@@ -95,7 +117,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .from("leave_requests")
     .update(updateFields, { count: "exact" })
     .eq("id", id)
-    .eq("associate_id", user.id);
+    .eq("associate_id", user.id)
+    .eq("status", isRejectedResubmit ? "rejected" : "pending");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });

@@ -20,7 +20,8 @@ export type BellType =
   | "password_expiring"
   | "schedule_changed"
   | "leave_updated"
-  | "credential_proof_submitted";
+  | "credential_proof_submitted"
+  | "credential_proof_reviewed";
 
 export async function bellNotify(
   recipientIds: string[],
