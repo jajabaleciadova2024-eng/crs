@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { bellNotify, leaveReviewerIds } from "@/lib/bellNotify";
+import { bellNotify, resolveBellNotices, leaveReviewerIds } from "@/lib/bellNotify";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasVacationConflict, recomputeVacationConflicts } from "@/lib/leaveConflict";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, findLeaveTypeConfig, type LeaveTypeConfig } from "@/lib/leaveTypes";
 
-// Lets the requester edit their OWN request while it's still pending
-// (type, dates, reason). Respects "leave_requests_update_own_pending" RLS
-// for the parent row; leave_request_ranges are simply wiped and
-// re-inserted (simpler and safer than diffing).
+// Lets the requester edit their OWN request while it's still pending or
+// rejected (non-final). Pending uses RLS; rejected uses the admin client
+// (RLS only allows pending updates) and resets the request back to pending
+// so it re-enters the approval flow.
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -50,24 +50,52 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const [primary, ...extra] = ranges;
 
-  // RLS (leave_requests_update_own_pending) enforces: own row, still
-  // pending, and stays pending after the update.
-  const { error, count } = await supabase
+  // Check ownership and current status before updating.
+  const { data: existing } = await supabase
     .from("leave_requests")
-    .update(
-      {
-        leave_type,
-        start_date: primary.start_date,
-        end_date: primary.end_date,
-        reason: reason || null,
-        flagged_conflict: flaggedConflict,
-        is_half_day: Boolean(is_half_day),
-      },
-      { count: "exact" }
-    )
+    .select("associate_id, status, final_rejection")
     .eq("id", id)
-    .eq("associate_id", user.id)
-    .eq("status", "pending");
+    .single();
+
+  if (!existing) {
+    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+  if (existing.associate_id !== user.id) {
+    return NextResponse.json({ error: "You can only edit your own request." }, { status: 403 });
+  }
+  if (existing.status !== "pending" && existing.status !== "rejected") {
+    return NextResponse.json({ error: "That request can no longer be edited." }, { status: 400 });
+  }
+  if (existing.status === "rejected" && existing.final_rejection) {
+    return NextResponse.json({ error: "This request was finally rejected and cannot be edited." }, { status: 400 });
+  }
+
+  const isRejectedResubmit = existing.status === "rejected";
+  const updateFields = {
+    leave_type,
+    start_date: primary.start_date,
+    end_date: primary.end_date,
+    reason: reason || null,
+    flagged_conflict: flaggedConflict,
+    is_half_day: Boolean(is_half_day),
+    ...(isRejectedResubmit && {
+      status: "pending" as const,
+      reviewed_by: null,
+      reviewed_at: null,
+      review_note: null,
+      seen_by_associate: false,
+      final_rejection: false,
+    }),
+  };
+
+  // Pending requests go through RLS; rejected ones need the admin client
+  // because RLS only allows updates on pending rows.
+  const updateClient = isRejectedResubmit ? admin : supabase;
+  const { error, count } = await updateClient
+    .from("leave_requests")
+    .update(updateFields, { count: "exact" })
+    .eq("id", id)
+    .eq("associate_id", user.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
@@ -76,11 +104,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "That request can no longer be edited." }, { status: 400 });
   }
 
-  // Replace extra ranges wholesale — RLS (leave_request_ranges_write_own_pending)
-  // requires the parent to still be pending, which it just was confirmed to be.
-  await supabase.from("leave_request_ranges").delete().eq("leave_request_id", id);
+  // Replace extra ranges — use admin client when resubmitting a rejected
+  // request since the range RLS may also be gated on pending status.
+  const rangeClient = isRejectedResubmit ? admin : supabase;
+  await rangeClient.from("leave_request_ranges").delete().eq("leave_request_id", id);
   if (extra.length > 0) {
-    await supabase.from("leave_request_ranges").insert(
+    await rangeClient.from("leave_request_ranges").insert(
       extra.map((r: { start_date: string; end_date: string }) => ({
         leave_request_id: id,
         start_date: r.start_date,
@@ -94,11 +123,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // everyone's flag, not just this one.
   await recomputeVacationConflicts();
 
-  // Dates or reason changed under a reviewer who may already be
-
-  // looking at the old version.
-
-  await bellNotify(await leaveReviewerIds(), user.id, "leave_updated", null, id);
+  if (isRejectedResubmit) {
+    await resolveBellNotices("leave_reviewed", id);
+    await bellNotify(await leaveReviewerIds(), user.id, "leave_submitted", null, id);
+  } else {
+    await bellNotify(await leaveReviewerIds(), user.id, "leave_updated", null, id);
+  }
 
 
   return NextResponse.json({ ok: true, flagged_conflict: flaggedConflict });

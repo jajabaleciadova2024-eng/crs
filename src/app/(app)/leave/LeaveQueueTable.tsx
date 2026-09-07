@@ -169,6 +169,15 @@ export default function LeaveQueueTable({
     });
   }
 
+  function resubmitRequest(id: string) {
+    setPendingId(id);
+    startTransition(async () => {
+      await fetch(`/api/leave/${id}/resubmit`, { method: "POST" });
+      setPendingId(null);
+      router.refresh();
+    });
+  }
+
   // Team-Leader-only: delete any request regardless of status (e.g. an
   // approved leave entered in error) — separate from cancelRequest above,
   // which is the requester cancelling their own still-pending request.
@@ -303,6 +312,16 @@ export default function LeaveQueueTable({
                       </Button>
                       <Button style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => cancelRequest(r.id)}>
                         Cancel
+                      </Button>
+                    </div>
+                  )}
+                  {isOwn && r.status === "rejected" && !r.final_rejection && !isEditing && (
+                    <div className="flex gap-1.5">
+                      <Button style={{ padding: "5px 10px" }} onClick={() => setEditingId(r.id)}>
+                        Edit
+                      </Button>
+                      <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => resubmitRequest(r.id)}>
+                        Resubmit
                       </Button>
                     </div>
                   )}

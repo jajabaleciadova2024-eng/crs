@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requireProfile, isApprover } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { currentQueueWeekStart } from "@/lib/scheduleDates";
 import { Panel, Pill, PageHeader } from "@/components/ui";
 import { getPayPeriod } from "@/lib/payPeriod";
 import { formatLeaveRanges } from "@/lib/leaveFormat";
@@ -26,10 +25,8 @@ export default async function LeaveHistoryPage() {
   const canDownload = profile.role === "team_leader";
 
   const supabase = await createClient();
-  // History is everything that's rolled OUT of the Queue's current-week
-  // window -- the two pages are mirrors of each other split only by time,
-  // so they share the exact same columns/formatting (see leave/page.tsx).
-  const weekStart = currentQueueWeekStart();
+  // History shows approved and finally-rejected requests. Non-final
+  // rejections stay in the Queue so the associate can resubmit.
   const historyQuery = supabase
     .from("leave_requests")
     // Must disambiguate: leave_requests has two FKs to profiles
@@ -41,16 +38,12 @@ export default async function LeaveHistoryPage() {
       "id, associate_id, leave_type, start_date, end_date, status, reason, document_path, reviewed_at, review_note, final_rejection, is_half_day, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)"
     )
     // Approved requests appear here IMMEDIATELY on approval (no reviewed_at
-    // cutoff) — the Queue drops them the moment they're decided. Rejected
-    // ones still roll in on the weekly schedule, and only once they're out
-    // of an open reject -> re-upload -> re-review cycle: rejected WITH a
-    // document AND not finally rejected stays in the Queue instead
-    // (document_path is only ever set for that behavior type). The
-    // reviewed_at cutoff is folded into the rejected branches rather than
-    // applied to the whole query, so the two pages stay non-overlapping.
-    // See leave/page.tsx for the matching exclusion on the Queue side.
+    // cutoff) — the Queue drops them the moment they're decided. Only
+    // finally-rejected requests appear here — non-final rejections stay in
+    // the Queue so the associate can resubmit or upload a document.
+    // See leave/page.tsx for the matching Queue filter.
     .or(
-      `status.eq.approved,and(status.eq.rejected,reviewed_at.lt.${weekStart},document_path.is.null),and(status.eq.rejected,reviewed_at.lt.${weekStart},final_rejection.eq.true)`
+      `status.eq.approved,and(status.eq.rejected,final_rejection.eq.true)`
     )
     .order("start_date", { ascending: false });
 
