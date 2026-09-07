@@ -1,7 +1,6 @@
 import { requireProfile, isApprover, canManageOperations } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { currentQueueWeekStart } from "@/lib/scheduleDates";
 import { Panel, PageHeader, Button } from "@/components/ui";
 import LeaveRequestForm from "./LeaveRequestForm";
 import LeaveQueueTable from "./LeaveQueueTable";
@@ -50,7 +49,6 @@ export default async function LeavePage() {
   // rejection (final_rejection = true) ends that cycle -- it rolls into
   // History on the normal week-based schedule like anything else, even
   // with a document attached.
-  const weekStart = currentQueueWeekStart();
   const listQuery = supabase
     .from("leave_requests")
     // leave_requests has two FKs to profiles (associate_id, reviewed_by) —
@@ -60,10 +58,10 @@ export default async function LeavePage() {
     .select("*, profiles!leave_requests_associate_id_fkey(first_name, last_name, avatar_url), leave_request_ranges(start_date, end_date)")
     // Approved requests leave the Queue the moment they're approved — the
     // decision is made, so it belongs in History, not in the review list.
-    // Rejections still linger through the current week so the associate
-    // sees the outcome (and, for pre-approved types, can upload a document
-    // and get it re-reviewed).
-    .or(`status.eq.pending,and(status.eq.rejected,reviewed_at.gte.${weekStart}),and(status.eq.rejected,document_path.not.is.null,final_rejection.eq.false)`)
+    // All non-final rejections stay in the Queue so the associate can
+    // resubmit or upload a document regardless of when it was rejected.
+    // Only final rejections roll to History.
+    .or(`status.eq.pending,and(status.eq.rejected,final_rejection.eq.false),and(status.eq.rejected,final_rejection.is.null)`)
     // status first (leave_status is an enum declared pending/approved/
     // rejected, so pending — the rows that still need action — sorts to the
     // top), then by the leave date itself: soonest on top, furthest down,
