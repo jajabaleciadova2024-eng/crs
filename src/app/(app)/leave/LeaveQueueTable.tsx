@@ -160,20 +160,34 @@ export default function LeaveQueueTable({
     });
   }
 
+  const [actionError, setActionError] = useState<string | null>(null);
+
   function cancelRequest(id: string) {
     setPendingId(id);
+    setActionError(null);
     startTransition(async () => {
-      await fetch(`/api/leave/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/leave/${id}`, { method: "DELETE" });
       setPendingId(null);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setActionError(body.error ?? "That request can no longer be cancelled.");
+        return;
+      }
       router.refresh();
     });
   }
 
   function resubmitRequest(id: string) {
     setPendingId(id);
+    setActionError(null);
     startTransition(async () => {
-      await fetch(`/api/leave/${id}/resubmit`, { method: "POST" });
+      const res = await fetch(`/api/leave/${id}/resubmit`, { method: "POST" });
       setPendingId(null);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setActionError(body.error ?? "Couldn't resubmit that request.");
+        return;
+      }
       router.refresh();
     });
   }
@@ -316,13 +330,18 @@ export default function LeaveQueueTable({
                     </div>
                   )}
                   {isOwn && r.status === "rejected" && !r.final_rejection && !isEditing && (
-                    <div className="flex gap-1.5">
-                      <Button style={{ padding: "5px 10px" }} onClick={() => setEditingId(r.id)}>
-                        Edit
-                      </Button>
-                      <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => resubmitRequest(r.id)}>
-                        Resubmit
-                      </Button>
+                    <div className="flex flex-col gap-1 items-start">
+                      <div className="flex gap-1.5">
+                        <Button style={{ padding: "5px 10px" }} onClick={() => setEditingId(r.id)}>
+                          Edit
+                        </Button>
+                        <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => resubmitRequest(r.id)}>
+                          Resubmit
+                        </Button>
+                      </div>
+                      {actionError && pendingId === null && (
+                        <span className="text-[11px] text-[var(--bad)]">{actionError}</span>
+                      )}
                     </div>
                   )}
                   {canManage && (
