@@ -241,7 +241,7 @@ export default function MyCredentialPanel({
           <StepNumber n={2} done={passkeyVerified} />
           <div className="flex-1 min-w-0">
             <div className="text-[12.5px] font-semibold text-[var(--ink)]">
-              Upload Passkey screenshot <span className="text-[var(--muted)]">(optional)</span>
+              Upload Passkey screenshot <span className="text-[var(--muted)]">(recommended)</span>
             </div>
             <p className="text-[11px] text-[var(--muted)] m-0 mt-0.5 leading-snug">
               If you have a passkey set up, screenshot the section showing it&apos;s configured.
@@ -267,13 +267,18 @@ export default function MyCredentialPanel({
           <StepNumber n={3} done={!!pending || state === "ok"} />
           <div className="flex-1 min-w-0">
             <div className="text-[12.5px] font-semibold text-[var(--ink)]">
-              Report password reset
+              Report password reset <span className="text-[var(--muted)]">(required)</span>
             </div>
             <p className="text-[11px] text-[var(--muted)] m-0 mt-0.5 leading-snug">
               {isTeamLeader
                 ? "Reset your password on the platform, then report it here. Your own reports are auto-confirmed."
                 : "Reset your password on the platform, then report it here with a screenshot. Your Team Leader will confirm it."}
             </p>
+            {!isTeamLeader && (
+              <p className="text-[10.5px] text-[var(--muted)] m-0 mt-1 leading-snug italic">
+                To submit: Step 1 (MFA screenshot) must be uploaded and verified by your Team Leader, and you must attach a screenshot of your password reset.
+              </p>
+            )}
 
             {pending ? (
               <div className="flex flex-wrap items-center gap-2 text-[12.5px] mt-2">
