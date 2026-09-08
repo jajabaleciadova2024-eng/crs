@@ -103,7 +103,7 @@ export default function AnnouncementCard({
             <span className="text-[13.5px] font-bold text-[var(--ink)] truncate">
               {toTitleCase(authorFirst)} {toTitleCase(authorLast)}
             </span>
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--accent-soft)] text-[var(--accent-strong)]">
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--warn-soft)] text-[var(--warn)]">
               TL
             </span>
           </div>
@@ -171,14 +171,14 @@ export default function AnnouncementCard({
               className="w-full resize-none bg-[var(--paper)] border border-[var(--line)] rounded-lg px-3 py-2 text-[14px] text-[var(--ink)] outline-none focus:border-[var(--accent)] transition-colors leading-relaxed"
             />
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] rounded-md hover:bg-[var(--paper)] transition-colors">
+              <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] rounded-md hover:bg-[var(--paper)] transition-colors cursor-pointer">
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveEdit}
                 disabled={!editTitle.trim() || !editBody.trim()}
-                className="px-3 py-1.5 text-[12px] font-bold bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors"
+                className="px-3 py-1.5 text-[12px] font-bold bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors cursor-pointer"
               >
                 Save
               </button>

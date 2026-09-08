@@ -84,7 +84,7 @@ export default function HolidayManager({ holidays: initial }: { holidays: Holida
         </div>
         <Button onClick={addHoliday} disabled={pending}>Add Holiday</Button>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-[var(--bad)]">{error}</p>}
 
       {/* List */}
       {holidays.length === 0 ? (
@@ -104,7 +104,7 @@ export default function HolidayManager({ holidays: initial }: { holidays: Holida
                     <button
                       type="button"
                       onClick={() => removeHoliday(h.date)}
-                      className="text-xs text-red-500 hover:text-red-700 font-medium shrink-0 cursor-pointer"
+                      className="text-xs text-[var(--bad)] hover:text-[var(--bad-strong)] font-medium shrink-0 cursor-pointer"
                     >
                       Remove
                     </button>

@@ -201,7 +201,7 @@ export function DocumentLinks({
                 // eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URL, not a static asset next/image can optimize
                 <img src={links.viewUrl} alt="Supporting document" className="max-w-full max-h-full object-contain" />
               ) : (
-                <iframe src={links.viewUrl} title="Supporting document" className="w-full h-full border-0 bg-white" />
+                <iframe src={links.viewUrl} title="Supporting document" className="w-full h-full border-0 bg-[var(--paper)]" />
               )}
             </div>
           </div>

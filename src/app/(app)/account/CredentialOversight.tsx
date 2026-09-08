@@ -172,15 +172,25 @@ export default function CredentialOversight({
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                   {r.lastProofResetId ? (
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1">
+                      {r.lastProofStatus === "pending" ? (
+                        <span title="Unconfirmed">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                          </svg>
+                        </span>
+                      ) : (
+                        <span title="Confirmed">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--good)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </span>
+                      )}
                       <ProofViewer
                         fetchUrl={`/api/account/proof/${r.lastProofResetId}`}
                         title="Password reset proof"
                         subtitle={r.name}
                       />
-                      {r.lastProofStatus === "pending" && (
-                        <span className="text-[10px] text-[var(--warn)] font-semibold">unconfirmed</span>
-                      )}
                     </span>
                   ) : (
                     <span className="text-[var(--muted)]">—</span>
@@ -206,117 +216,115 @@ export default function CredentialOversight({
                     required={false}
                   />
                 </td>
-                {(
-                  <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
-                    {r.pendingResetId ? (
-                      rejecting === r.pendingResetId ? (
-                        <span className="flex flex-wrap items-center gap-1.5">
-                          <input
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                            autoFocus
-                            placeholder="What must they resubmit? The member sees this."
-                            className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px] w-[220px]"
-                          />
-                          <button
-                            type="button"
-                            disabled={!note.trim() || busy === r.pendingResetId}
-                            onClick={() => review(r.pendingResetId!, "rejected", note.trim())}
-                            className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white cursor-pointer disabled:opacity-40"
-                          >
-                            Send rejection
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setRejecting(null)}
-                            className="text-[10.5px] font-bold text-[var(--muted)] cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        </span>
-                      ) : (
-                        <span className="flex flex-wrap items-center gap-1.5">
-                          <Pill tone="warn">Claimed</Pill>
-                          {/* Check this against the screenshot's own "Last
-                              updated" line before confirming — they are two
-                              separate claims and only one is verifiable. */}
-                          {r.pendingResetAt && (
-                            <span className="text-[10.5px] text-[var(--ink)] font-semibold">
-                              reset {shortDate(r.pendingResetAt)}
-                            </span>
-                          )}
-                          {r.pendingHasProof && (
-                            <ProofViewer
-                              fetchUrl={`/api/account/proof/${r.pendingResetId}`}
-                              title="Password reset proof"
-                              subtitle={r.name}
-                            />
-                          )}
-                          <button
-                            type="button"
-                            disabled={busy === r.pendingResetId || !r.mfaVerified}
-                            onClick={() => review(r.pendingResetId!, "approved")}
-                            title={
-                              r.mfaVerified
-                                ? `Confirm the reset and restart their ${PASSWORD_VALID_DAYS} days`
-                                : r.mfa
-                                  ? "Verify their MFA screenshot first"
-                                  : "No MFA screenshot on file — they must upload it first"
-                            }
-                            className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            Confirm
-                          </button>
-                          {!r.mfaVerified && (
-                            <span className="text-[10.5px] text-[var(--bad)] font-semibold">
-                              {r.mfa ? "Verify MFA first" : "MFA missing"}
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => { setRejecting(r.pendingResetId); setNote(""); }}
-                            className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 cursor-pointer"
-                          >
-                            Reject
-                          </button>
-                        </span>
-                      )
-                    ) : baselineFor === r.profileId ? (
-                      <span className="flex items-center gap-1.5">
+                <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
+                  {r.pendingResetId ? (
+                    rejecting === r.pendingResetId ? (
+                      <span className="inline-flex flex-wrap items-center gap-1">
                         <input
-                          type="date"
-                          value={baselineDate}
-                          max={new Date().toISOString().slice(0, 10)}
-                          onChange={(e) => setBaselineDate(e.target.value)}
-                          className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px]"
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          autoFocus
+                          placeholder="What's wrong?"
+                          className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px] w-[140px]"
                         />
                         <button
                           type="button"
-                          disabled={!baselineDate || busy === r.profileId}
-                          onClick={() => saveBaseline(r.profileId)}
-                          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--accent)] text-white cursor-pointer disabled:opacity-40"
+                          disabled={!note.trim() || busy === r.pendingResetId}
+                          onClick={() => review(r.pendingResetId!, "rejected", note.trim())}
+                          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white cursor-pointer disabled:opacity-40"
                         >
-                          Save
+                          Send
                         </button>
                         <button
                           type="button"
-                          onClick={() => setBaselineFor(null)}
+                          onClick={() => setRejecting(null)}
                           className="text-[10.5px] font-bold text-[var(--muted)] cursor-pointer"
                         >
                           Cancel
                         </button>
                       </span>
                     ) : (
+                      <span className="inline-flex items-center gap-1">
+                        <span className="text-[10.5px] text-[var(--ink)]" title={r.pendingResetAt ? `Reset ${shortDate(r.pendingResetAt)}` : "Pending"}>
+                          {r.pendingResetAt ? shortDate(r.pendingResetAt) : "Pending"}
+                        </span>
+                        {r.pendingHasProof && (
+                          <ProofViewer
+                            fetchUrl={`/api/account/proof/${r.pendingResetId}`}
+                            title="Password reset proof"
+                            subtitle={r.name}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          disabled={busy === r.pendingResetId || !r.mfaVerified}
+                          onClick={() => review(r.pendingResetId!, "approved")}
+                          title={
+                            r.mfaVerified
+                              ? `Confirm and restart their ${PASSWORD_VALID_DAYS} days`
+                              : r.mfa
+                                ? "Verify their MFA screenshot first"
+                                : "No MFA screenshot — they must upload first"
+                          }
+                          className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--good)] text-white hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setRejecting(r.pendingResetId); setNote(""); }}
+                          title="Reject — member re-uploads"
+                          className="inline-flex items-center justify-center w-6 h-6 rounded text-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                        </button>
+                      </span>
+                    )
+                  ) : baselineFor === r.profileId ? (
+                    <span className="inline-flex items-center gap-1">
+                      <input
+                        type="date"
+                        value={baselineDate}
+                        max={new Date().toISOString().slice(0, 10)}
+                        onChange={(e) => setBaselineDate(e.target.value)}
+                        className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px]"
+                      />
                       <button
                         type="button"
-                        onClick={() => { setBaselineFor(r.profileId); setBaselineDate(""); }}
-                        className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
+                        disabled={!baselineDate || busy === r.profileId}
+                        onClick={() => saveBaseline(r.profileId)}
+                        title="Save baseline"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--accent)] text-white cursor-pointer disabled:opacity-40"
                       >
-                        {r.lastResetAt ? "Correct date" : "Set baseline"}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
                       </button>
-                    )}
-                  </td>
-                )}
+                      <button
+                        type="button"
+                        onClick={() => setBaselineFor(null)}
+                        title="Cancel"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded text-[var(--muted)] hover:bg-[var(--paper-raised)] transition-colors cursor-pointer"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setBaselineFor(r.profileId); setBaselineDate(""); }}
+                      className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline cursor-pointer"
+                    >
+                      {r.lastResetAt ? "Correct date" : "Set baseline"}
+                    </button>
+                  )}
+                </td>
               </tr>
             );
           })}
@@ -336,21 +344,25 @@ export default function CredentialOversight({
           {error}
         </p>
       )}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--muted)] mb-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-[var(--muted)] mb-3">
         <span className="inline-flex items-center gap-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--good)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-          Verified
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--good)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+          Verified / Confirm
         </span>
         <span className="inline-flex items-center gap-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
           Needs check
         </span>
         <span className="inline-flex items-center gap-1">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--bad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
           Missing
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="text-[var(--muted)] text-sm leading-none">—</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          Reject
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="text-[var(--muted)] leading-none">—</span>
           Not required
         </span>
       </div>

@@ -36,8 +36,8 @@ function IconButton({
       disabled={disabled}
       className={`inline-flex items-center justify-center w-8 h-8 rounded-md border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
         tone === "danger"
-          ? "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--bad)] hover:bg-[var(--bad-soft)] hover:border-[var(--bad)]"
-          : "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)]"
+          ? "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--bad)] hover:bg-[var(--bad-soft)] hover:border-[var(--bad)] cursor-pointer"
+          : "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] cursor-pointer"
       }`}
     >
       {children}

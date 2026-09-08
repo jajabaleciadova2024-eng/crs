@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useTransition } from "react";
-import { Button } from "@/components/ui";
+import { Button, Pill } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -186,22 +186,14 @@ export default function TicketThread({
           className="mt-1 shrink-0 w-8 h-8 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] flex items-center justify-center transition-colors"
           aria-label="Back"
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="font-serif text-lg text-[var(--ink)] m-0 leading-tight">{ticket.subject}</h2>
-            <span
-              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                isClosed
-                  ? "bg-[var(--muted)]/15 text-[var(--muted)]"
-                  : "bg-[var(--good-soft)] text-[var(--good-strong)]"
-              }`}
-            >
-              {ticket.status}
-            </span>
+            <Pill tone={isClosed ? "muted" : "good"}>{isClosed ? "Closed" : "Open"}</Pill>
           </div>
           <div className="text-[11px] text-[var(--muted)] mt-0.5 flex items-center gap-2 flex-wrap">
             <span>
@@ -212,7 +204,7 @@ export default function TicketThread({
                 type="button"
                 onClick={toggleStatus}
                 disabled={pending}
-                className="text-[11px] font-semibold text-[var(--accent-strong)] hover:underline disabled:opacity-50"
+                className="text-[11px] font-semibold text-[var(--accent-strong)] hover:underline disabled:opacity-50 cursor-pointer"
               >
                 {isClosed ? "Reopen" : "Close Ticket"}
               </button>
