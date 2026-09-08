@@ -172,26 +172,63 @@ export default function CredentialOversight({
                 </td>
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
                   {r.lastProofResetId ? (
-                    <span className="inline-flex items-center gap-1">
-                      {r.lastProofStatus === "pending" ? (
-                        <span title="Unconfirmed">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                    rejecting === `proof-${r.lastProofResetId}` ? (
+                      <span className="inline-flex flex-wrap items-center gap-1">
+                        <input
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          autoFocus
+                          placeholder="What's wrong?"
+                          className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px] w-[140px]"
+                        />
+                        <button
+                          type="button"
+                          disabled={!note.trim() || busy === r.lastProofResetId}
+                          onClick={() => review(r.lastProofResetId!, "rejected", note.trim())}
+                          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white cursor-pointer disabled:opacity-40"
+                        >
+                          Send
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRejecting(null)}
+                          className="text-[10.5px] font-bold text-[var(--muted)] cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1">
+                        {r.lastProofStatus === "pending" ? (
+                          <span title="Unconfirmed">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span title="Confirmed">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--good)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                          </span>
+                        )}
+                        <ProofViewer
+                          fetchUrl={`/api/account/proof/${r.lastProofResetId}`}
+                          title="Password reset proof"
+                          subtitle={r.name}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { setRejecting(`proof-${r.lastProofResetId}`); setNote(""); }}
+                          title="Reject — member re-uploads"
+                          className="inline-flex items-center justify-center w-6 h-6 rounded text-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                           </svg>
-                        </span>
-                      ) : (
-                        <span title="Confirmed">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--good)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M20 6 9 17l-5-5" />
-                          </svg>
-                        </span>
-                      )}
-                      <ProofViewer
-                        fetchUrl={`/api/account/proof/${r.lastProofResetId}`}
-                        title="Password reset proof"
-                        subtitle={r.name}
-                      />
-                    </span>
+                        </button>
+                      </span>
+                    )
                   ) : (
                     <span className="text-[var(--muted)]">—</span>
                   )}
