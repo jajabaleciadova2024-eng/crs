@@ -291,7 +291,7 @@ export default function LeaveQueueTable({
                   {r.status === "rejected" && r.final_rejection && (
                     <div className="text-[10.5px] font-bold text-[var(--bad)] mt-1">Final — closed</div>
                   )}
-                  {r.review_note && (r.status === "rejected" || (r.status === "approved" && !r.document_path)) && (
+                  {r.review_note && (r.status === "rejected" || r.status === "approved") && (
                     <div className="text-[10.5px] text-[var(--muted)] mt-1 max-w-[180px]">{r.review_note}</div>
                   )}
                 </td>
@@ -358,10 +358,10 @@ export default function LeaveQueueTable({
                           <>
                             <IconAction
                               tone="good"
-                              label={needsDocument ? "Approve — no document attached yet, you'll be asked for a note" : "Approve"}
+                              label={needsDocument ? "Approve — no document attached yet, you'll be asked for a note" : r.flagged_conflict ? "Approve — has a possible conflict, you'll be asked for a note" : "Approve"}
                               disabled={pendingId === r.id}
                               onClick={() => {
-                                if (needsDocument) {
+                                if (needsDocument || r.flagged_conflict) {
                                   setApprovingRequest(r);
                                   setApproveNote("");
                                   setApproveError(null);
@@ -489,6 +489,7 @@ export default function LeaveQueueTable({
     {approvingRequest && (() => {
       const busy = pendingId === approvingRequest.id;
       const typeConfig = leaveTypeConfigs.find((c) => c.key === approvingRequest.leave_type);
+      const isConflictApproval = approvingRequest.flagged_conflict && !(typeConfig?.behavior === "auto_approve_document" && !approvingRequest.document_path && !approvingRequest.is_half_day);
       return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto" onClick={() => setApprovingRequest(null)}>
           <div
@@ -496,17 +497,23 @@ export default function LeaveQueueTable({
             style={{ boxShadow: "var(--shadow-lg)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-serif text-xl text-[var(--ink)] m-0">Approve without a document?</h2>
+            <h2 className="font-serif text-xl text-[var(--ink)] m-0">
+              {isConflictApproval ? "Approve despite conflict?" : "Approve without a document?"}
+            </h2>
             <p className="text-sm text-[var(--muted)] m-0">
-              {typeConfig?.label ?? approvingRequest.leave_type} requests are normally held until a supporting
-              document is uploaded. You can still approve this one on your own judgment — add a short note
-              explaining why, so there&apos;s a record of it.
+              {isConflictApproval
+                ? "This request overlaps with another leave request. You can still approve it — add a short note explaining why, so there’s a record of it."
+                : <>
+                    {typeConfig?.label ?? approvingRequest.leave_type} requests are normally held until a supporting
+                    document is uploaded. You can still approve this one on your own judgment — add a short note
+                    explaining why, so there&apos;s a record of it.
+                  </>}
             </p>
             <textarea
               value={approveNote}
               onChange={(e) => setApproveNote(e.target.value)}
               rows={3}
-              placeholder="e.g. Verbally confirmed, document to follow"
+              placeholder={isConflictApproval ? "e.g. Checked with the team, coverage is fine" : "e.g. Verbally confirmed, document to follow"}
               className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-none"
               autoFocus
             />

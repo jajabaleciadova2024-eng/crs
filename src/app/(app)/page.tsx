@@ -298,12 +298,15 @@ export default async function DashboardPage() {
   const myNextWindowLabel = (myTomorrowAssignment as any)?.workstation_windows?.label as string | undefined;
 
   // Org-wide leave calendar — visible to every role (see leave/calendar/page.tsx).
-  const [leaveCalendarRequests, { data: calendarOrgSettings }] = await Promise.all([
+  const [leaveCalendarRequests, { data: calendarOrgSettings }, allHolidays] = await Promise.all([
     getLeaveCalendarRequests(),
     supabase.from("org_settings").select("leave_type_configs").limit(1).maybeSingle(),
+    holidaysInRange(supabase, "2020-01-01", "2099-12-31"),
   ]);
   const leaveTypeConfigs = calendarOrgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
   const leaveDayMap = buildLeaveDayMap(leaveCalendarRequests);
+  const calendarHolidayMap: Record<string, string> = {};
+  for (const h of allHolidays) calendarHolidayMap[h.date] = h.name;
 
   return (
     <>
@@ -509,7 +512,7 @@ export default async function DashboardPage() {
           </Link>
         }
       >
-        <LeaveCalendar dayMap={leaveDayMap} leaveTypeConfigs={leaveTypeConfigs} today={todayInManila()} />
+        <LeaveCalendar dayMap={leaveDayMap} leaveTypeConfigs={leaveTypeConfigs} today={todayInManila()} holidays={calendarHolidayMap} />
       </Panel>
 
       <Panel title="Team Feed" hint="What's happening">
