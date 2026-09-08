@@ -158,7 +158,7 @@ export default function PostCard({
               {toTitleCase(authorFirst)} {toTitleCase(authorLast)}
             </span>
             {authorRole === "team_leader" && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--accent-soft)] text-[var(--accent-strong)]">
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--warn-soft)] text-[var(--warn)]">
                 TL
               </span>
             )}
@@ -240,7 +240,7 @@ export default function PostCard({
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="px-3 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] rounded-md hover:bg-[var(--paper)] transition-colors"
+                className="px-3 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] rounded-md hover:bg-[var(--paper)] transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -248,7 +248,7 @@ export default function PostCard({
                 type="button"
                 onClick={handleSaveEdit}
                 disabled={!editContent.trim()}
-                className="px-3 py-1.5 text-[12px] font-bold bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors"
+                className="px-3 py-1.5 text-[12px] font-bold bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors cursor-pointer"
               >
                 Save
               </button>

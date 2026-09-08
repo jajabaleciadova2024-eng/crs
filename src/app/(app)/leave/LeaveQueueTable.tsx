@@ -227,7 +227,8 @@ export default function LeaveQueueTable({
 
   return (
     <>
-    <table className="w-full text-[13px] border-collapse">
+    <div className="overflow-x-auto scroll-shadow-x">
+    <table className="w-full text-[13px] border-collapse min-w-[700px]">
       <thead>
         <tr>
           {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Associate</th>}
@@ -425,6 +426,7 @@ export default function LeaveQueueTable({
         })}
       </tbody>
     </table>
+    </div>
 
     {rejectingRequest && (() => {
       const rejectingTypeConfig = leaveTypeConfigs.find((c) => c.key === rejectingRequest.leave_type);
