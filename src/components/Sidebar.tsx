@@ -6,6 +6,7 @@ import SignOutButton from "@/components/SignOutButton";
 import PreviewRoleSwitcher from "@/components/PreviewRoleSwitcher";
 import NavLink from "@/components/NavLink";
 import NavGroup from "@/components/NavGroup";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type NavItem = {
   href: string;
@@ -389,6 +390,12 @@ export default function Sidebar({
             <PreviewRoleSwitcher currentRole={profile.role} />
           </div>
         )}
+        {/* Appearance — every role gets the same control, so nobody's
+            colours differ from anyone else's unless they chose so. */}
+        <div className="flex items-center justify-between gap-2 px-1 md:group-data-[collapsed=true]/sidebar:hidden">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Appearance</span>
+          <ThemeToggle />
+        </div>
       </div>
 
       <div className="border-t border-[var(--line)] pt-3.5 flex items-center gap-2.5 md:group-data-[collapsed=true]/sidebar:justify-center">

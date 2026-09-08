@@ -147,7 +147,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         />
       </SidebarShell>
       <main
-        className="flex-1 min-w-0 px-3 sm:px-4 md:px-10 pt-2 md:pt-3 pb-16 w-full md:ml-[var(--sidebar-width,220px)] transition-[margin-left] duration-200 ease-out"
+        className="flex-1 min-w-0 px-3 sm:px-4 md:px-10 pt-2 md:pt-3 pb-[calc(4rem+var(--safe-bottom))] w-full md:ml-[var(--sidebar-width,220px)] transition-[margin-left] duration-200 ease-out"
         // PageHeader (fixed) shifts down by this much while the preview
         // banner (also fixed, see PreviewBanner.tsx) is showing above it,
         // so the two don't overlap. Approximate — the banner can wrap to
@@ -161,7 +161,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Notification bell — fixed top-right. On mobile it sits inside the
           hamburger top bar (same z-30 band, left of the hamburger button);
           on desktop it floats above the PageHeader. */}
-      <div className="fixed top-2 right-14 md:top-3 md:right-6 z-30 md:z-40">
+      <div className="fixed top-[calc(0.5rem+var(--safe-top))] right-14 md:top-3 md:right-6 z-30 md:z-40">
         <NotificationBell userId={profile.id} />
       </div>
       <UnseenAnnouncementModal />

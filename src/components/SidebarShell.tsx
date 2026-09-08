@@ -94,17 +94,26 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
           content doesn't jump up underneath it. Blurred + slightly
           translucent so content peeking through underneath reads as
           "there's more above" rather than a flat wall. */}
-      <div aria-hidden="true" className="md:hidden flex items-center justify-between h-14 px-4 invisible">
+      <div aria-hidden="true" className="md:hidden flex items-center justify-between h-14 px-4 invisible" style={{ paddingTop: "var(--safe-top)" }}>
         <span className="font-serif text-[17px] font-bold tracking-tight">CRS Naga</span>
         <span className="inline-flex w-10 h-10" />
       </div>
-      <div className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between h-14 px-4 border-b border-[var(--line)] bg-[var(--paper)]/85 backdrop-blur-md">
-        <span className="font-serif text-[17px] font-bold text-[var(--ink)] tracking-tight">CRS Naga</span>
+      <div
+        className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between h-[calc(56px+var(--safe-top))] px-4 border-b border-[var(--line)] glass"
+        style={{ paddingTop: "var(--safe-top)" }}
+      >
+        <span className="flex items-center gap-2 font-serif text-[17px] font-bold text-[var(--ink)] tracking-tight">
+          <span className="inline-flex w-7 h-7 rounded-md bg-[var(--accent)] text-white items-center justify-center text-[11px] font-bold shadow-sm">
+            CN
+          </span>
+          CRS Naga
+        </span>
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open menu"
-          className="inline-flex items-center justify-center w-10 h-10 -mr-2 text-[var(--ink)] rounded-lg hover:bg-[var(--accent-soft)]"
+          aria-expanded={open}
+          className="inline-flex items-center justify-center w-10 h-10 -mr-2 text-[var(--ink)] rounded-lg hover:bg-[var(--accent-soft)] active:bg-[var(--accent-soft)]"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="6" x2="21" y2="6" />
@@ -135,11 +144,25 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
         }`}
       >
         <div
-          className={`group/sidebar relative h-full border-r border-[var(--line)] bg-[var(--paper)] transition-[width] duration-200 ease-out w-[264px] max-md:shadow-2xl ${
+          className={`group/sidebar relative h-full border-r border-[var(--line)] bg-[var(--paper)] transition-[width] duration-200 ease-out w-[min(284px,86vw)] max-md:shadow-2xl ${
             collapsed ? "md:w-[72px]" : "md:w-[220px]"
           }`}
           data-collapsed={collapsed ? "true" : "false"}
+          style={{ paddingTop: "var(--safe-top)", paddingBottom: "var(--safe-bottom)" }}
         >
+          {/* Mobile-only close button inside the drawer — swiping the
+              backdrop is not discoverable for everyone. */}
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close menu"
+            className="md:hidden absolute top-3 right-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--accent-soft)]"
+            style={{ top: "calc(0.75rem + var(--safe-top))" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
           {children}
 
           {/* Collapse/pin handle — desktop only, floats on the sidebar's
