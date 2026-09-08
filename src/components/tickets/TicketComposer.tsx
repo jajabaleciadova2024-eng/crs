@@ -231,7 +231,6 @@ export default function TicketComposer({ onCreated }: { onCreated: () => void })
 
         <div className="flex justify-end gap-2 mt-1">
           <Button
-            style={{ padding: "7px 14px" }}
             disabled={pending}
             onClick={() => { setOpen(false); setError(null); }}
           >
@@ -239,7 +238,7 @@ export default function TicketComposer({ onCreated }: { onCreated: () => void })
           </Button>
           <Button
             variant="primary"
-            style={{ padding: "7px 14px" }}
+            loading={pending}
             disabled={pending || !subject.trim() || !description.trim() || uploading}
             onClick={submit}
           >

@@ -185,10 +185,10 @@ export default function EditLeaveRequestForm({
       {error && <p className="text-xs text-[var(--bad)] bg-[var(--bad-soft)] rounded px-2.5 py-1.5 m-0">{error}</p>}
 
       <div className="flex justify-end gap-1.5">
-        <Button variant="primary" style={{ padding: "5px 10px" }} disabled={saving} onClick={save}>
+        <Button variant="primary" size="sm" loading={saving} disabled={saving} onClick={save}>
           {saving ? "Saving…" : "Save"}
         </Button>
-        <Button style={{ padding: "5px 10px" }} onClick={onCancel}>
+        <Button size="sm" onClick={onCancel}>
           Cancel
         </Button>
       </div>

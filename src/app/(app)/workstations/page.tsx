@@ -1,6 +1,6 @@
 import { requireProfile, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, PageHeader } from "@/components/ui";
+import { Panel, PageHeader, EmptyState } from "@/components/ui";
 import AddWorkstationForm from "./AddWorkstationForm";
 import WorkstationRow from "./WorkstationRow";
 import { compareStationNames } from "@/lib/stationOrder";
@@ -47,8 +47,8 @@ export default async function WorkstationsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-4 text-[var(--muted)]">
-                    No workstations yet.
+                  <td colSpan={5}>
+                    <EmptyState icon="🖥️" title="No workstations yet" hint="Add the stations associates rotate through, then set each one’s headcount and windows." />
                   </td>
                 </tr>
               )}

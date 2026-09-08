@@ -1,11 +1,10 @@
 // The Supabase client is deliberately untyped (see src/lib/supabase/client.ts),
 // so joined-column access below is cast through `any` on purpose.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Link from "next/link";
 import { requireProfile, isApprover, ROLE_LABEL } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Panel, Pill, Card, PageHeader } from "@/components/ui";
+import { Panel, Pill, Card, PageHeader, Button, EmptyState } from "@/components/ui";
 import type { LeaveStatus } from "@/lib/database.types";
 import { todayInManila, startOfWorkWeek, isWorkday, isTomorrowRevealed, addDays, nextWorkday, weekdayLongLabel } from "@/lib/scheduleDates";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
@@ -507,9 +506,7 @@ export default async function DashboardPage() {
         title="Leave Calendar"
         hint="Org-wide"
         action={
-          <Link href="/leave/calendar" className="text-xs font-bold text-[var(--accent-strong)]">
-            Open full calendar →
-          </Link>
+          <Button href="/leave/calendar" size="sm">Open full calendar →</Button>
         }
       >
         <LeaveCalendar dayMap={leaveDayMap} leaveTypeConfigs={leaveTypeConfigs} today={todayInManila()} holidays={calendarHolidayMap} />
@@ -550,8 +547,8 @@ export default async function DashboardPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={approver ? 4 : 3} className="py-6 text-[var(--muted)] text-center">
-                    No leave activity yet.
+                  <td colSpan={approver ? 4 : 3}>
+                    <EmptyState icon="🗓️" title="No leave activity yet" hint={approver ? "Requests from the team will show up here as they come in." : "File a request from Leave Requests and it will show up here."} />
                   </td>
                 </tr>
               )}

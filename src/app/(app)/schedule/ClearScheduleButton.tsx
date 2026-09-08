@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 
 export default function ClearScheduleButton({ scheduleWeekId, weekStart }: { scheduleWeekId: string; weekStart: string }) {
   const [confirming, setConfirming] = useState(false);
@@ -37,13 +37,26 @@ export default function ClearScheduleButton({ scheduleWeekId, weekStart }: { sch
       <Button onClick={() => setConfirming(true)}>Clear schedule</Button>
 
       {confirming && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto" onClick={() => setConfirming(false)}>
-          <div
-            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in my-auto"
-            style={{ boxShadow: "var(--shadow-lg)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-serif text-xl text-[var(--ink)] m-0">Clear this week&apos;s schedule?</h2>
+        <Modal
+          onClose={() => setConfirming(false)}
+          title="Clear this week's schedule?"
+          size="sm"
+          footer={
+            <>
+              <Button disabled={pending} onClick={() => setConfirming(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                loading={pending}
+                disabled={pending}
+                onClick={clear}
+              >
+                {pending ? "Clearing…" : "Yes, clear it"}
+              </Button>
+            </>
+          }
+        >
             <p className="text-sm text-[var(--muted)] m-0">
               This permanently deletes every station assignment generated for the week of{" "}
               <strong className="text-[var(--ink)]">{weekStart}</strong>. This can&apos;t be undone — you&apos;ll need
@@ -52,21 +65,7 @@ export default function ClearScheduleButton({ scheduleWeekId, weekStart }: { sch
 
             {error && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{error}</p>}
 
-            <div className="flex justify-end gap-2 mt-1">
-              <Button style={{ padding: "7px 14px" }} disabled={pending} onClick={() => setConfirming(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                style={{ padding: "7px 14px", background: "var(--bad)", borderColor: "var(--bad)" }}
-                disabled={pending}
-                onClick={clear}
-              >
-                {pending ? "Clearing…" : "Yes, clear it"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

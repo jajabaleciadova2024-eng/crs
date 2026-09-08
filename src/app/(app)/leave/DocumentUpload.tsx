@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Button, IconButton } from "@/components/ui";
 import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 export default function DocumentUpload({
@@ -72,8 +72,9 @@ export default function DocumentUpload({
       <Button
         type="button"
         variant="primary"
-        style={{ padding: "5px 10px" }}
+        size="sm"
         onClick={() => inputRef.current?.click()}
+        loading={uploading}
         disabled={uploading}
       >
         {uploading ? "Uploading…" : hasDocument ? "Replace" : "Upload"}
@@ -126,13 +127,12 @@ export function DocumentLinks({
       {/* Same 28px square icon button as the Approve/Reject/Delete actions
           in LeaveQueueTable, so the Document and Actions columns read as one
           row of controls instead of a filled pill next to three outlines. */}
-      <button
-        type="button"
+      <IconButton
+        size="sm"
+        tone="accent"
         onClick={openModal}
         disabled={loading}
-        title={loading ? "Opening…" : "View document"}
-        aria-label={loading ? "Opening document" : "View document"}
-        className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--accent-strong)] transition-colors cursor-pointer hover:bg-[var(--accent-soft)] hover:border-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+        label={loading ? "Opening…" : "View document"}
       >
         {loading ? (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="animate-spin">
@@ -144,7 +144,7 @@ export function DocumentLinks({
             <circle cx="12" cy="12" r="3" />
           </svg>
         )}
-      </button>
+      </IconButton>
       {error && <span className="text-[11px] text-[var(--bad)]">{error}</span>}
 
       {links && (

@@ -1,6 +1,6 @@
 import { requireProfile, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, Pill, PageHeader } from "@/components/ui";
+import { Panel, Pill, PageHeader, EmptyState } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
 import ReviewForm from "./ReviewForm";
 import type { AccessRequestStatus } from "@/lib/database.types";
@@ -60,8 +60,8 @@ export default async function AccessRequestsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-4 text-[var(--muted)]">
-                    No pending requests.
+                  <td colSpan={6}>
+                    <EmptyState icon="✅" title="No pending requests" hint="New sign-up requests from the login page will appear here." />
                   </td>
                 </tr>
               )}
@@ -97,8 +97,8 @@ export default async function AccessRequestsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-4 text-[var(--muted)]">
-                    No decisions yet.
+                  <td colSpan={4}>
+                    <EmptyState title="No decisions yet" hint="Approved and rejected requests show up here." />
                   </td>
                 </tr>
               )}

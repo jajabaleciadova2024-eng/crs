@@ -93,15 +93,15 @@ function RotationRow({ member }: { member: Member }) {
       <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         {editing ? (
           <div className="flex gap-1.5">
-            <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pending} onClick={save}>
+            <Button variant="primary" size="sm" loading={pending} disabled={pending} onClick={save}>
               {pending ? "Saving…" : "Save"}
             </Button>
-            <Button style={{ padding: "5px 10px" }} onClick={() => setEditing(false)}>
+            <Button size="sm" onClick={() => setEditing(false)}>
               Cancel
             </Button>
           </div>
         ) : (
-          <Button style={{ padding: "5px 10px" }} onClick={() => setEditing(true)}>
+          <Button size="sm" onClick={() => setEditing(true)}>
             Edit
           </Button>
         )}

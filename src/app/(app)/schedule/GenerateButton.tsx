@@ -438,12 +438,12 @@ export default function GenerateButton({
             {error && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{error}</p>}
 
             <div className="flex justify-end gap-2">
-              <Button style={{ padding: "7px 14px" }} disabled={pending} onClick={() => setOpen(false)}>
+              <Button disabled={pending} onClick={() => setOpen(false)}>
                 Cancel
               </Button>
               <Button
                 variant="primary"
-                style={{ padding: "7px 14px" }}
+                loading={pending}
                 disabled={pending || unplacedImmune.length > 0 || immuneOverflow.length > 0}
                 onClick={generate}
               >

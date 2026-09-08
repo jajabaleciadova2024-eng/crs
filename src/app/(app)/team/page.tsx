@@ -1,6 +1,6 @@
 import { requireProfile, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, PageHeader } from "@/components/ui";
+import { Panel, PageHeader, EmptyState } from "@/components/ui";
 import AddMemberForm from "./AddMemberForm";
 import MemberRow from "./MemberRow";
 
@@ -46,8 +46,8 @@ export default async function TeamPage() {
                 members.map((m) => <MemberRow key={m.id} member={m} isSelf={m.id === profile.id} />)
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-4 text-[var(--muted)]">
-                    No members yet.
+                  <td colSpan={6}>
+                    <EmptyState icon="👥" title="No members yet" hint="Use “Add member” above — they’ll get an email invite to set their password." />
                   </td>
                 </tr>
               )}

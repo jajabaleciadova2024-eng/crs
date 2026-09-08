@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* Make Tailwind's `dark:` variant follow the SAME rule as the palette
+   below: an explicit data-theme wins, otherwise the OS preference. Without
+   this, `dark:` only listened to the OS and ignored the in-app toggle. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:not(:where([data-theme="light"], [data-theme="light"] *)) {
+      @slot;
+    }
+  }
+}
+
 :root {
   --ink: #22332c;
   --paper: #e6f2dd;

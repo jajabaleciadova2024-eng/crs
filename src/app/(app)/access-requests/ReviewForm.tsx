@@ -45,10 +45,10 @@ export default function ReviewForm({ requestId, suggestedPsid }: { requestId: st
   if (!approving) {
     return (
       <div className="flex gap-1.5">
-        <Button variant="primary" style={{ padding: "5px 10px" }} onClick={() => setApproving(true)}>
+        <Button variant="primary" size="sm" onClick={() => setApproving(true)}>
           Approve
         </Button>
-        <Button style={{ padding: "5px 10px" }} disabled={pending} onClick={reject}>
+        <Button size="sm" disabled={pending} onClick={reject}>
           Reject
         </Button>
       </div>
@@ -64,10 +64,10 @@ export default function ReviewForm({ requestId, suggestedPsid }: { requestId: st
           placeholder="PSID"
           className="w-24 text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
         />
-        <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pending} onClick={approve}>
+        <Button variant="primary" size="sm" loading={pending} disabled={pending} onClick={approve}>
           {pending ? "Inviting…" : "Confirm as Associate"}
         </Button>
-        <Button style={{ padding: "5px 10px" }} onClick={() => setApproving(false)}>
+        <Button size="sm" onClick={() => setApproving(false)}>
           Cancel
         </Button>
       </div>

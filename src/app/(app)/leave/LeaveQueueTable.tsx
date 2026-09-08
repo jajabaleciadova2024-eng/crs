@@ -322,10 +322,10 @@ export default function LeaveQueueTable({
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                   {isOwn && r.status === "pending" && !isEditing && (
                     <div className="flex gap-1.5">
-                      <Button style={{ padding: "5px 10px" }} onClick={() => setEditingId(r.id)}>
+                      <Button size="sm" onClick={() => setEditingId(r.id)}>
                         Edit
                       </Button>
-                      <Button style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => cancelRequest(r.id)}>
+                      <Button size="sm" disabled={pendingId === r.id} onClick={() => cancelRequest(r.id)}>
                         Cancel
                       </Button>
                     </div>
@@ -333,10 +333,10 @@ export default function LeaveQueueTable({
                   {isOwn && r.status === "rejected" && !r.final_rejection && !isEditing && (
                     <div className="flex flex-col gap-1 items-start">
                       <div className="flex gap-1.5">
-                        <Button style={{ padding: "5px 10px" }} onClick={() => setEditingId(r.id)}>
+                        <Button size="sm" onClick={() => setEditingId(r.id)}>
                           Edit
                         </Button>
-                        <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => resubmitRequest(r.id)}>
+                        <Button variant="primary" size="sm" disabled={pendingId === r.id} onClick={() => resubmitRequest(r.id)}>
                           Resubmit
                         </Button>
                       </div>
@@ -459,12 +459,12 @@ export default function LeaveQueueTable({
             )}
             {rejectError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{rejectError}</p>}
             <div className="flex justify-end gap-2 mt-1 flex-wrap">
-              <Button style={{ padding: "7px 14px" }} disabled={busy} onClick={() => setRejectingRequest(null)}>
+              <Button disabled={busy} onClick={() => setRejectingRequest(null)}>
                 Cancel
               </Button>
               <Button
-                variant="primary"
-                style={{ padding: "7px 14px", background: "var(--bad)", borderColor: "var(--bad)" }}
+                variant="danger"
+                loading={busy}
                 disabled={busy || !rejectNote.trim()}
                 onClick={() => submitReject(false)}
               >
@@ -472,8 +472,8 @@ export default function LeaveQueueTable({
               </Button>
               {isReopenableType && (
                 <Button
-                  variant="primary"
-                  style={{ padding: "7px 14px", background: "var(--bad-strong)", borderColor: "var(--bad-strong)" }}
+                  variant="danger"
+                  loading={busy}
                   disabled={busy || !rejectNote.trim()}
                   onClick={() => submitReject(true)}
                 >
@@ -519,10 +519,10 @@ export default function LeaveQueueTable({
             />
             {approveError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{approveError}</p>}
             <div className="flex justify-end gap-2 mt-1">
-              <Button style={{ padding: "7px 14px" }} disabled={busy} onClick={() => setApprovingRequest(null)}>
+              <Button disabled={busy} onClick={() => setApprovingRequest(null)}>
                 Cancel
               </Button>
-              <Button variant="primary" style={{ padding: "7px 14px" }} disabled={busy || !approveNote.trim()} onClick={submitApproveWithoutDocument}>
+              <Button variant="primary" loading={busy} disabled={busy || !approveNote.trim()} onClick={submitApproveWithoutDocument}>
                 {busy ? "Approving…" : "Approve anyway"}
               </Button>
             </div>
@@ -549,12 +549,12 @@ export default function LeaveQueueTable({
             </p>
             {deleteError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{deleteError}</p>}
             <div className="flex justify-end gap-2 mt-1">
-              <Button style={{ padding: "7px 14px" }} disabled={busy} onClick={() => setDeletingRequest(null)}>
+              <Button disabled={busy} onClick={() => setDeletingRequest(null)}>
                 Cancel
               </Button>
               <Button
-                variant="primary"
-                style={{ padding: "7px 14px", background: "var(--bad)", borderColor: "var(--bad)" }}
+                variant="danger"
+                loading={busy}
                 disabled={busy}
                 onClick={confirmDelete}
               >

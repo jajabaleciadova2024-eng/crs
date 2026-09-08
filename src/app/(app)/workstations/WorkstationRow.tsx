@@ -72,19 +72,19 @@ export default function WorkstationRow({
       <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         {editing ? (
           <div className="flex gap-1.5">
-            <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pending} onClick={save}>
+            <Button variant="primary" size="sm" disabled={pending} onClick={save}>
               Save
             </Button>
-            <Button style={{ padding: "5px 10px" }} onClick={() => setEditing(false)}>
+            <Button size="sm" onClick={() => setEditing(false)}>
               Cancel
             </Button>
           </div>
         ) : (
           <div className="flex gap-1.5">
-            <Button style={{ padding: "5px 10px" }} onClick={() => setEditing(true)}>
+            <Button size="sm" onClick={() => setEditing(true)}>
               Edit
             </Button>
-            <Button style={{ padding: "5px 10px" }} disabled={pending} onClick={toggleActive}>
+            <Button size="sm" disabled={pending} onClick={toggleActive}>
               {workstation.is_active ? "Retire" : "Reactivate"}
             </Button>
           </div>

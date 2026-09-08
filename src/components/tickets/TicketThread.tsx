@@ -341,7 +341,8 @@ export default function TicketThread({
             />
             <Button
               variant="primary"
-              style={{ padding: "8px 16px", alignSelf: "flex-end" }}
+              className="self-end"
+              loading={pending}
               disabled={pending || !draft.trim()}
               onClick={sendMessage}
             >
