@@ -79,7 +79,7 @@ export default function CredentialProofRow({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-1.5 sm:grid sm:grid-cols-[100px_150px_1fr_auto]">
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 py-1.5 ${priority ? "sm:grid sm:grid-cols-[100px_150px_1fr_auto]" : "sm:grid sm:grid-cols-[100px_1fr_auto]"}`}>
       <input
         ref={fileRef}
         type="file"
@@ -95,7 +95,7 @@ export default function CredentialProofRow({
       {/* min-width keeps MFA and Passkey lined up while wrapping on a
           phone, where the grid columns are off. */}
       <span className="min-w-[62px] sm:min-w-0 text-[12.5px] font-semibold text-[var(--ink)]">{label}</span>
-      <span className="hidden sm:block text-[11px] text-[var(--muted)]">{priority}</span>
+      {priority && <span className="hidden sm:block text-[11px] text-[var(--muted)]">{priority}</span>}
 
       <span className="sm:justify-self-start">
         {hasProof ? (
