@@ -176,7 +176,8 @@ export default function PostCard({
             <button
               type="button"
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 rounded-md hover:bg-[var(--paper)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+              aria-label="More options"
+              className="p-1.5 rounded-md hover:bg-[var(--paper)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="5" r="2" />
@@ -186,7 +187,7 @@ export default function PostCard({
             </button>
             {showMenu && (
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} aria-hidden="true" />
                 <div className="absolute right-0 top-8 z-40 bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg shadow-lg py-1 min-w-[120px] animate-fade-in-up">
                   {canEdit && (
                     <button
@@ -286,7 +287,8 @@ export default function PostCard({
             <button
               type="button"
               onClick={() => setImageExpanded(false)}
-              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[20px]"
+              aria-label="Close"
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[20px] cursor-pointer"
             >
               ×
             </button>

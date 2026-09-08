@@ -114,7 +114,8 @@ export default function AnnouncementCard({
             <button
               type="button"
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 rounded-md hover:bg-[var(--paper)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+              aria-label="More options"
+              className="p-1.5 rounded-md hover:bg-[var(--paper)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="5" r="2" />
@@ -124,7 +125,7 @@ export default function AnnouncementCard({
             </button>
             {showMenu && (
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} aria-hidden="true" />
                 <div className="absolute right-0 top-8 z-40 bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg shadow-lg py-1 min-w-[120px] animate-fade-in-up">
                   <button
                     type="button"

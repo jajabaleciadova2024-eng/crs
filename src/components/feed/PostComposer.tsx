@@ -215,7 +215,8 @@ export default function PostComposer({
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={removeImage}
-              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[14px]"
+              aria-label="Remove image"
+              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[14px] cursor-pointer"
             >
               ×
             </button>
