@@ -193,7 +193,7 @@ export default function MyCredentialPanel({
 
         {lastRejected && (
           <div className="rounded-lg border border-[var(--bad)]/40 bg-[var(--bad-soft)] px-3 py-2.5">
-            <div className="text-[11px] font-bold text-[var(--bad)] uppercase tracking-wider">
+            <div className="text-[11px] font-semibold text-[var(--bad)] uppercase tracking-wider">
               Your last report was rejected
             </div>
             {lastRejected.reviewNote && (

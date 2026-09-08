@@ -82,7 +82,7 @@ export default function ReassignForm({
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
-          className="text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
+          className="text-xs border border-[var(--line)] rounded-md px-1.5 py-1 bg-[var(--paper)] text-[var(--ink)]"
           aria-label={`Reassign ${workstationName}`}
         >
           <option value="">— Unassigned —</option>

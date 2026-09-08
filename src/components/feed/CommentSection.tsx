@@ -152,7 +152,7 @@ function CommentItem({
                 setEditContent(comment.content);
                 setEditing(true);
               }}
-              className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--accent-strong)] transition-colors"
+              className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--accent-strong)] transition-colors cursor-pointer"
             >
               Edit
             </button>
@@ -161,7 +161,7 @@ function CommentItem({
             <button
               type="button"
               onClick={() => onDelete(comment.id)}
-              className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors"
+              className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer"
             >
               Delete
             </button>
@@ -268,7 +268,7 @@ export default function CommentSection({
           onKeyDown={handleKeyDown}
           placeholder="Write a comment… (@ to mention)"
           maxLength={1000}
-          className="flex-1 bg-[var(--paper)] border border-[var(--line)] rounded-full px-4 py-2 text-[13px] text-[var(--ink)] placeholder:text-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors"
+          className="flex-1 bg-[var(--paper)] border border-[var(--line)] rounded-full px-4 py-2 text-[13px] text-[var(--ink)] placeholder:text-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors cursor-pointer"
         />
         <button
           type="button"

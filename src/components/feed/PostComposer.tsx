@@ -266,7 +266,7 @@ export default function PostComposer({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || !!imageUrl}
-              className="p-2 rounded-md text-[var(--muted)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-md text-[var(--muted)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               title="Add photo"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

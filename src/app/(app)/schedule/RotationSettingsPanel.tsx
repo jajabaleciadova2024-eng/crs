@@ -79,7 +79,7 @@ function RotationRow({ member }: { member: Member }) {
           <select
             value={tenureGroup}
             onChange={(e) => setTenureGroup(e.target.value as TenureGroup)}
-            className="text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
+            className="text-xs border border-[var(--line)] rounded-md px-1.5 py-1 bg-[var(--paper)] text-[var(--ink)]"
           >
             <option value="new_hire">New Hire</option>
             <option value="tenured">Tenured</option>

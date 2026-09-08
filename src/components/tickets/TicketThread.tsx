@@ -183,7 +183,7 @@ export default function TicketThread({
         <button
           type="button"
           onClick={onBack}
-          className="mt-1 shrink-0 w-8 h-8 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] flex items-center justify-center transition-colors"
+          className="mt-1 shrink-0 w-8 h-8 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] flex items-center justify-center transition-colors cursor-pointer"
           aria-label="Back"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -260,7 +260,7 @@ export default function TicketThread({
                       <img
                         src={att.file_path}
                         alt={att.file_name}
-                        className="w-20 h-20 object-cover rounded-lg border border-[var(--line)] hover:border-[var(--accent)] transition-colors"
+                        className="w-20 h-20 object-cover rounded-lg border border-[var(--line)] hover:border-[var(--accent)] transition-colors cursor-pointer"
                       />
                     </a>
                   ))}

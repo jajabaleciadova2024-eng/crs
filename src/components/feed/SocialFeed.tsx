@@ -294,17 +294,27 @@ export default function SocialFeed({
   }
 
   async function handleDeletePost(postId: string) {
-    setPosts((prev) => prev.filter((p) => p.id !== postId));
-    await fetch(`/api/feed/${postId}`, { method: "DELETE" });
+    const prev = posts;
+    setPosts((p) => p.filter((x) => x.id !== postId));
+    try {
+      await fetch(`/api/feed/${postId}`, { method: "DELETE" });
+    } catch {
+      setPosts(prev);
+    }
   }
 
   async function handleEditPost(postId: string, content: string) {
-    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, content } : p)));
-    await fetch(`/api/feed/${postId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    });
+    const prev = posts;
+    setPosts((p) => p.map((x) => (x.id === postId ? { ...x, content } : x)));
+    try {
+      await fetch(`/api/feed/${postId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+    } catch {
+      setPosts(prev);
+    }
   }
 
   async function handleReact(postId: string, reaction: ReactionType) {
@@ -329,11 +339,13 @@ export default function SocialFeed({
       })
     );
 
-    await fetch(`/api/feed/${postId}/reactions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reaction }),
-    });
+    try {
+      await fetch(`/api/feed/${postId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reaction }),
+      });
+    } catch { /* optimistic — reverts on next refresh */ }
   }
 
   async function handleAddComment(postId: string, content: string) {
@@ -355,27 +367,37 @@ export default function SocialFeed({
   }
 
   async function handleEditComment(postId: string, commentId: string, content: string) {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId
-          ? { ...p, post_comments: p.post_comments.map((c) => (c.id === commentId ? { ...c, content } : c)) }
-          : p
+    const prev = posts;
+    setPosts((p) =>
+      p.map((x) =>
+        x.id === postId
+          ? { ...x, post_comments: x.post_comments.map((c) => (c.id === commentId ? { ...c, content } : c)) }
+          : x
       )
     );
-    await fetch(`/api/feed/${postId}/comments/${commentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    });
+    try {
+      await fetch(`/api/feed/${postId}/comments/${commentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+    } catch {
+      setPosts(prev);
+    }
   }
 
   async function handleDeleteComment(postId: string, commentId: string) {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId ? { ...p, post_comments: p.post_comments.filter((c) => c.id !== commentId) } : p
+    const prev = posts;
+    setPosts((p) =>
+      p.map((x) =>
+        x.id === postId ? { ...x, post_comments: x.post_comments.filter((c) => c.id !== commentId) } : x
       )
     );
-    await fetch(`/api/feed/${postId}/comments/${commentId}`, { method: "DELETE" });
+    try {
+      await fetch(`/api/feed/${postId}/comments/${commentId}`, { method: "DELETE" });
+    } catch {
+      setPosts(prev);
+    }
   }
 
   async function loadMore() {
@@ -437,7 +459,7 @@ export default function SocialFeed({
         (viewAllHref ? (
           <Link
             href={viewAllHref}
-            className="block w-full text-center py-3 text-[13px] font-bold text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] transition-colors"
+            className="block w-full text-center py-3 text-[13px] font-bold text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] transition-colors cursor-pointer"
           >
             See all posts →
           </Link>
@@ -446,7 +468,7 @@ export default function SocialFeed({
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="w-full py-3 text-[13px] font-bold text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] transition-colors"
+            className="w-full py-3 text-[13px] font-bold text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] transition-colors cursor-pointer"
           >
             {loadingMore ? "Loading…" : "Load older posts"}
           </button>

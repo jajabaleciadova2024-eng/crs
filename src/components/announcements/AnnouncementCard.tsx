@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Announcement, ReactionType } from "./AnnouncementsFeed";
 import { Avatar, Pill, Button } from "@/components/ui";
 import CommentSection from "@/components/feed/CommentSection";
@@ -63,6 +63,15 @@ export default function AnnouncementCard({
   const [showComments, setShowComments] = useState(false);
   // Which attached image is open full-size, if any.
   const [lightbox, setLightbox] = useState<string | null>(null);
+
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") closeLightbox(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [lightbox, closeLightbox]);
 
   const isTeamLeader = currentUserRole === "team_leader";
   const wasEdited = ann.updated_at !== ann.created_at;
@@ -130,14 +139,14 @@ export default function AnnouncementCard({
                   <button
                     type="button"
                     onClick={() => { setShowMenu(false); setEditTitle(ann.title); setEditBody(ann.body); setEditing(true); }}
-                    className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--accent-soft)]/40 text-[var(--ink)] transition-colors"
+                    className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--accent-soft)]/40 text-[var(--ink)] transition-colors cursor-pointer"
                   >
                     ✏️ Edit
                   </button>
                   <button
                     type="button"
                     onClick={() => { setShowMenu(false); onDelete(ann.id); }}
-                    className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--bad-soft)]/40 text-[var(--bad)] transition-colors"
+                    className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--bad-soft)]/40 text-[var(--bad)] transition-colors cursor-pointer"
                   >
                     🗑️ Delete
                   </button>
@@ -157,7 +166,7 @@ export default function AnnouncementCard({
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
               maxLength={200}
-              className="w-full text-[16px] font-bold border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--paper)] text-[var(--ink)] outline-none focus:border-[var(--accent)] transition-colors"
+              className="w-full text-[16px] font-bold border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--paper)] text-[var(--ink)] outline-none focus:border-[var(--accent)] transition-colors cursor-pointer"
               autoFocus
             />
             <textarea
@@ -242,7 +251,7 @@ export default function AnnouncementCard({
             )}
           </div>
           {ann.announcement_comments.length > 0 && (
-            <button type="button" onClick={() => setShowComments(!showComments)} className="hover:underline hover:text-[var(--ink)] transition-colors">
+            <button type="button" onClick={() => setShowComments(!showComments)} className="hover:underline hover:text-[var(--ink)] transition-colors cursor-pointer">
               {ann.announcement_comments.length} comment{ann.announcement_comments.length !== 1 ? "s" : ""}
             </button>
           )}

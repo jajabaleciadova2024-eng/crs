@@ -173,17 +173,27 @@ export default function AnnouncementsFeed({
   }
 
   async function handleDelete(id: string) {
-    setItems((prev) => prev.filter((a) => a.id !== id));
-    await fetch(`/api/announcements/${id}`, { method: "DELETE" });
+    const prev = items;
+    setItems((p) => p.filter((a) => a.id !== id));
+    try {
+      await fetch(`/api/announcements/${id}`, { method: "DELETE" });
+    } catch {
+      setItems(prev);
+    }
   }
 
   async function handleEdit(id: string, title: string, body: string) {
-    setItems((prev) => prev.map((a) => (a.id === id ? { ...a, title, body } : a)));
-    await fetch(`/api/announcements/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body }),
-    });
+    const prev = items;
+    setItems((p) => p.map((a) => (a.id === id ? { ...a, title, body } : a)));
+    try {
+      await fetch(`/api/announcements/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body }),
+      });
+    } catch {
+      setItems(prev);
+    }
   }
 
   async function handleReact(id: string, reaction: ReactionType) {
@@ -198,40 +208,54 @@ export default function AnnouncementsFeed({
       }
       return { ...a, announcement_reactions: [...a.announcement_reactions, { id: `temp-${Date.now()}`, profile_id: userId, reaction }] };
     }));
-    await fetch(`/api/announcements/${id}/reactions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reaction }),
-    });
+    try {
+      await fetch(`/api/announcements/${id}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reaction }),
+      });
+    } catch { /* optimistic — reverts on next refresh */ }
   }
 
   async function handleAddComment(id: string, content: string) {
-    const res = await fetch(`/api/announcements/${id}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    });
-    if (!res.ok) return;
-    const { comment } = await res.json();
-    setItems((prev) => prev.map((a) => {
-      if (a.id !== id) return a;
-      if (a.announcement_comments.some((c) => c.id === comment.id)) return a;
-      return { ...a, announcement_comments: [...a.announcement_comments, comment] };
-    }));
+    try {
+      const res = await fetch(`/api/announcements/${id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) return;
+      const { comment } = await res.json();
+      setItems((prev) => prev.map((a) => {
+        if (a.id !== id) return a;
+        if (a.announcement_comments.some((c) => c.id === comment.id)) return a;
+        return { ...a, announcement_comments: [...a.announcement_comments, comment] };
+      }));
+    } catch { /* network error — silently fail */ }
   }
 
   async function handleEditComment(annId: string, commentId: string, content: string) {
-    setItems((prev) => prev.map((a) => a.id === annId ? { ...a, announcement_comments: a.announcement_comments.map((c) => c.id === commentId ? { ...c, content } : c) } : a));
-    await fetch(`/api/announcements/${annId}/comments/${commentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    });
+    const prev = items;
+    setItems((p) => p.map((a) => a.id === annId ? { ...a, announcement_comments: a.announcement_comments.map((c) => c.id === commentId ? { ...c, content } : c) } : a));
+    try {
+      await fetch(`/api/announcements/${annId}/comments/${commentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+    } catch {
+      setItems(prev);
+    }
   }
 
   async function handleDeleteComment(annId: string, commentId: string) {
-    setItems((prev) => prev.map((a) => a.id === annId ? { ...a, announcement_comments: a.announcement_comments.filter((c) => c.id !== commentId) } : a));
-    await fetch(`/api/announcements/${annId}/comments/${commentId}`, { method: "DELETE" });
+    const prev = items;
+    setItems((p) => p.map((a) => a.id === annId ? { ...a, announcement_comments: a.announcement_comments.filter((c) => c.id !== commentId) } : a));
+    try {
+      await fetch(`/api/announcements/${annId}/comments/${commentId}`, { method: "DELETE" });
+    } catch {
+      setItems(prev);
+    }
   }
 
   async function loadMore() {
@@ -287,7 +311,7 @@ export default function AnnouncementsFeed({
           type="button"
           onClick={loadMore}
           disabled={loadingMore}
-          className="w-full py-3 text-[13px] font-bold text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] transition-colors"
+          className="w-full py-3 text-[13px] font-bold text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 rounded-xl border border-[var(--line)] bg-[var(--paper-raised)] transition-colors cursor-pointer"
         >
           {loadingMore ? "Loading…" : "Load older announcements"}
         </button>

@@ -295,7 +295,7 @@ export default function GenerateButton({
                         <select
                           value={placement?.workstationId ?? ""}
                           onChange={(e) => updateImmuneStation(m.id, e.target.value)}
-                          className="text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)] min-w-[150px]"
+                          className="text-xs border border-[var(--line)] rounded-md px-2 py-1 bg-[var(--paper)] text-[var(--ink)] min-w-[150px]"
                         >
                           <option value="">Select a station…</option>
                           {workstations.map((w) => (

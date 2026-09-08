@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import type { Post, ReactionType } from "./SocialFeed";
 import { Avatar, Pill, Button } from "@/components/ui";
@@ -77,6 +77,23 @@ export default function PostCard({
     if (typeof window === "undefined") return;
     if (window.location.hash === `#post-${post.id}`) setShowComments(true);
   }, [post.id]);
+
+  const closeLightbox = useCallback(() => setImageExpanded(false), []);
+  const closeReactors = useCallback(() => setReactorFilter(null), []);
+
+  useEffect(() => {
+    if (!imageExpanded) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") closeLightbox(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [imageExpanded, closeLightbox]);
+
+  useEffect(() => {
+    if (reactorFilter === null) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") closeReactors(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [reactorFilter, closeReactors]);
 
   const isAuthor = post.author_id === userId;
   const isTeamLeader = currentUserRole === "team_leader";
@@ -197,7 +214,7 @@ export default function PostCard({
                         setEditContent(post.content);
                         setEditing(true);
                       }}
-                      className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--accent-soft)]/40 text-[var(--ink)] transition-colors"
+                      className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--accent-soft)]/40 text-[var(--ink)] transition-colors cursor-pointer"
                     >
                       ✏️ Edit
                     </button>
@@ -209,7 +226,7 @@ export default function PostCard({
                         setShowMenu(false);
                         onDelete(post.id);
                       }}
-                      className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--bad-soft)]/40 text-[var(--bad)] transition-colors"
+                      className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--bad-soft)]/40 text-[var(--bad)] transition-colors cursor-pointer"
                     >
                       🗑️ Delete
                     </button>
@@ -326,7 +343,7 @@ export default function PostCard({
             <button
               type="button"
               onClick={() => setShowComments(!showComments)}
-              className="hover:underline hover:text-[var(--ink)] transition-colors"
+              className="hover:underline hover:text-[var(--ink)] transition-colors cursor-pointer"
             >
               {post.post_comments.length} comment{post.post_comments.length !== 1 ? "s" : ""}
             </button>

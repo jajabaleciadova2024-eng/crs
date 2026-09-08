@@ -70,7 +70,7 @@ export default function UnseenAnnouncementModal() {
         <div className="bg-[var(--accent)] px-6 py-4 text-[var(--on-accent)] rounded-t-2xl sm:rounded-t-xl">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[20px]">📢</span>
-            <span className="text-[11px] font-bold uppercase tracking-wider opacity-80">New Announcement</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider opacity-80">New Announcement</span>
           </div>
           <h2 className="text-[20px] font-serif font-bold m-0 leading-tight">{announcement.title}</h2>
           <p className="text-[12px] opacity-75 m-0 mt-1">
