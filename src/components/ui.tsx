@@ -419,6 +419,7 @@ export function Modal({
   children,
   footer,
   zIndex = 50,
+  className = "",
 }: {
   open?: boolean;
   onClose: () => void;
@@ -430,6 +431,8 @@ export function Modal({
   /** Action row — wraps on narrow screens, right-aligned otherwise. */
   footer?: ReactNode;
   zIndex?: number;
+  /** Extra classes on the panel (e.g. remove padding for an edge-to-edge header). */
+  className?: string;
 }) {
   const generatedId = useId();
   const headingId = titleId ?? generatedId;
@@ -463,7 +466,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? headingId : undefined}
-        className={`sheet-panel ${width} sm:my-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl sm:rounded-xl p-5 sm:p-6 flex flex-col gap-3 animate-slide-up sm:animate-scale-in`}
+        className={`sheet-panel ${width} sm:my-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl sm:rounded-xl p-5 sm:p-6 flex flex-col gap-3 animate-slide-up sm:animate-scale-in ${className}`}
         style={{ boxShadow: "var(--shadow-xl)" }}
         onClick={(e) => e.stopPropagation()}
       >

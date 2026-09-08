@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Panel, Pill } from "@/components/ui";
+import { Panel, Pill, Button } from "@/components/ui";
 import ProofViewer from "@/components/ProofViewer";
 
 export type ReportRow = {
@@ -188,18 +188,19 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
                       <span className="text-[11px] text-[var(--good)] font-medium">All done</span>
                     )}
                     {owing.length > 0 && (
-                      <button
+                      <Button
                         type="button"
+                        size="sm"
+                        variant="primary"
                         onClick={() => poke(t.id, owing, t.id)}
-                        disabled={poking === t.id}
-                        className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[var(--accent)] text-[var(--on-accent)] hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                        loading={poking === t.id}
                       >
                         {poking === t.id
                           ? "Nudging…"
                           : poked[t.id]
                             ? `Nudged ${poked[t.id]}`
                             : `Nudge all ${owing.length}`}
-                      </button>
+                      </Button>
                     )}
                   </span>
                 );

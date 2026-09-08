@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Announcement, ReactionType } from "./AnnouncementsFeed";
-import { Avatar } from "@/components/ui";
+import { Avatar, Pill, Button } from "@/components/ui";
 import CommentSection from "@/components/feed/CommentSection";
 import type { Mentionable } from "@/components/feed/mentions";
 import Linkify from "@/components/Linkify";
@@ -90,9 +90,7 @@ export default function AnnouncementCard({
     >
       {/* Announcement badge */}
       <div className="px-4 pt-3 pb-0">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[var(--accent-soft)] text-[var(--accent-strong)]">
-          📢 Announcement
-        </span>
+        <Pill tone="accent" size="xs" dot={false}>📢 Announcement</Pill>
       </div>
 
       {/* Header */}
@@ -103,9 +101,7 @@ export default function AnnouncementCard({
             <span className="text-[13.5px] font-bold text-[var(--ink)] truncate">
               {toTitleCase(authorFirst)} {toTitleCase(authorLast)}
             </span>
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--warn-soft)] text-[var(--warn)]">
-              TL
-            </span>
+            <Pill tone="warn" size="xs" dot={false}>TL</Pill>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
             <span>{timeAgo(ann.created_at)}</span>
@@ -170,18 +166,13 @@ export default function AnnouncementCard({
               rows={4}
               className="w-full resize-none bg-[var(--paper)] border border-[var(--line)] rounded-lg px-3 py-2 text-[14px] text-[var(--ink)] outline-none focus:border-[var(--accent)] transition-colors leading-relaxed"
             />
-            <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] rounded-md hover:bg-[var(--paper)] transition-colors cursor-pointer">
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button type="button" size="sm" onClick={() => setEditing(false)}>
                 Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                disabled={!editTitle.trim() || !editBody.trim()}
-                className="px-3 py-1.5 text-[12px] font-bold bg-[var(--accent)] text-[var(--on-accent)] rounded-md hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors cursor-pointer"
-              >
+              </Button>
+              <Button type="button" size="sm" variant="primary" onClick={handleSaveEdit} disabled={!editTitle.trim() || !editBody.trim()}>
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         ) : (

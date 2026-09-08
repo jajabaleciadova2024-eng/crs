@@ -179,20 +179,20 @@ export default function CredentialOversight({
                           onChange={(e) => setNote(e.target.value)}
                           autoFocus
                           placeholder="What's wrong?"
-                          className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px] w-[140px]"
+                          className="min-h-[30px] px-2 py-1 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-[11.5px] w-[140px]"
                         />
                         <button
                           type="button"
                           disabled={!note.trim() || busy === r.lastProofResetId}
                           onClick={() => review(r.lastProofResetId!, "rejected", note.trim())}
-                          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-[var(--on-accent)] cursor-pointer disabled:opacity-40"
+                          className="inline-flex items-center justify-center min-h-[30px] px-2.5 py-1 rounded-md text-[11.5px] font-bold border bg-[var(--bad)] border-[var(--bad)] text-[var(--on-accent)] hover:bg-[var(--bad-strong)] hover:border-[var(--bad-strong)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Send
                         </button>
                         <button
                           type="button"
                           onClick={() => setRejecting(null)}
-                          className="text-[10.5px] font-bold text-[var(--muted)] cursor-pointer"
+                          className="inline-flex items-center justify-center min-h-[30px] px-2.5 py-1 rounded-md text-[11.5px] font-bold border bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -221,9 +221,9 @@ export default function CredentialOversight({
                           type="button"
                           onClick={() => { setRejecting(`proof-${r.lastProofResetId}`); setNote(""); }}
                           title="Reject — member re-uploads"
-                          className="inline-flex items-center justify-center w-6 h-6 rounded text-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-mdtext-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                           </svg>
                         </button>
@@ -262,20 +262,20 @@ export default function CredentialOversight({
                           onChange={(e) => setNote(e.target.value)}
                           autoFocus
                           placeholder="What's wrong?"
-                          className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px] w-[140px]"
+                          className="min-h-[30px] px-2 py-1 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-[11.5px] w-[140px]"
                         />
                         <button
                           type="button"
                           disabled={!note.trim() || busy === r.pendingResetId}
                           onClick={() => review(r.pendingResetId!, "rejected", note.trim())}
-                          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-[var(--on-accent)] cursor-pointer disabled:opacity-40"
+                          className="inline-flex items-center justify-center min-h-[30px] px-2.5 py-1 rounded-md text-[11.5px] font-bold border bg-[var(--bad)] border-[var(--bad)] text-[var(--on-accent)] hover:bg-[var(--bad-strong)] hover:border-[var(--bad-strong)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Send
                         </button>
                         <button
                           type="button"
                           onClick={() => setRejecting(null)}
-                          className="text-[10.5px] font-bold text-[var(--muted)] cursor-pointer"
+                          className="inline-flex items-center justify-center min-h-[30px] px-2.5 py-1 rounded-md text-[11.5px] font-bold border bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -303,9 +303,9 @@ export default function CredentialOversight({
                                 ? "Verify their MFA screenshot first"
                                 : "No MFA screenshot — they must upload first"
                           }
-                          className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--good)] text-[var(--on-accent)] hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-mdbg-[var(--good)] text-[var(--on-accent)] hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M20 6 9 17l-5-5" />
                           </svg>
                         </button>
@@ -313,9 +313,9 @@ export default function CredentialOversight({
                           type="button"
                           onClick={() => { setRejecting(r.pendingResetId); setNote(""); }}
                           title="Reject — member re-uploads"
-                          className="inline-flex items-center justify-center w-6 h-6 rounded text-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-mdtext-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                           </svg>
                         </button>
@@ -328,16 +328,16 @@ export default function CredentialOversight({
                         value={baselineDate}
                         max={new Date().toISOString().slice(0, 10)}
                         onChange={(e) => setBaselineDate(e.target.value)}
-                        className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px]"
+                        className="min-h-[30px] px-2 py-1 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-[11.5px]"
                       />
                       <button
                         type="button"
                         disabled={!baselineDate || busy === r.profileId}
                         onClick={() => saveBaseline(r.profileId)}
                         title="Save baseline"
-                        className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--accent)] text-[var(--on-accent)] cursor-pointer disabled:opacity-40"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-mdbg-[var(--accent)] text-[var(--on-accent)] cursor-pointer disabled:opacity-40"
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M20 6 9 17l-5-5" />
                         </svg>
                       </button>
@@ -345,9 +345,9 @@ export default function CredentialOversight({
                         type="button"
                         onClick={() => setBaselineFor(null)}
                         title="Cancel"
-                        className="inline-flex items-center justify-center w-6 h-6 rounded text-[var(--muted)] hover:bg-[var(--paper-raised)] transition-colors cursor-pointer"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-mdtext-[var(--muted)] hover:bg-[var(--paper-raised)] transition-colors cursor-pointer"
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                       </button>

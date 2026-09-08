@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Panel, Pill } from "@/components/ui";
+import { Panel, Pill, Button } from "@/components/ui";
 import PasswordCountdown from "@/components/PasswordCountdown";
 import { expiryState, expiryFrom, BLOCK_WITHIN_DAYS, PASSWORD_VALID_DAYS } from "@/lib/passwordExpiry";
 import ProofViewer from "@/components/ProofViewer";
@@ -386,15 +386,17 @@ export default function MyCredentialPanel({
                 )}
 
                 <div>
-                  <button
+                  <Button
                     type="button"
+                    variant="primary"
                     onClick={submit}
-                    disabled={busy || (!isTeamLeader && (!proof || !mfaVerified))}
+                    loading={busy}
+                    disabled={!isTeamLeader && (!proof || !mfaVerified)}
                     title={blockers.length > 0 ? blockers.join(" · ") : undefined}
-                    className="px-3.5 py-2 rounded-md text-[12.5px] font-bold bg-[var(--accent)] text-[var(--on-accent)] hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+                    className="w-full sm:w-auto"
                   >
                     {busy ? "Submitting…" : "Password Reset Complete"}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -413,7 +415,7 @@ export default function MyCredentialPanel({
             <div className="flex flex-col gap-0.5">
               <div className="hidden sm:grid sm:grid-cols-[110px_120px_1fr_auto] gap-x-3 pb-1 border-b border-[var(--line)]">
                 {["Reset on", "Status", isTeamLeader ? "Review note" : "Team Leader's note", ""].map((h, i) => (
-                  <span key={h || i} className="text-[9.5px] uppercase tracking-wider text-[var(--muted)] font-semibold">{h}</span>
+                  <span key={h || i} className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">{h}</span>
                 ))}
               </div>
               {history.map((h) => (

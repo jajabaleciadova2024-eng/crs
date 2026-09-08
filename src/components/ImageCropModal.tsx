@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Modal } from "@/components/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // Square crop viewport shown to the user, in CSS pixels.
@@ -143,16 +144,8 @@ export default function ImageCropModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-[60] animate-fade-in overflow-y-auto" onClick={onCancel}>
-      <div
-        className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl p-5 sm:p-6 flex flex-col gap-4 animate-scale-in my-auto"
-        style={{ boxShadow: "var(--shadow-xl)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div>
-          <h2 className="font-serif text-xl text-[var(--ink)] m-0 leading-tight">Adjust photo</h2>
-          <p className="text-[12px] text-[var(--muted)] m-0 mt-0.5">Drag to reposition. Scroll or use the slider to zoom.</p>
-        </div>
+    <Modal zIndex={60} onClose={onCancel} title="Adjust photo">
+        <p className="text-[12px] text-[var(--muted)] m-0 -mt-2">Drag to reposition. Scroll or use the slider to zoom.</p>
 
         <div className="relative mx-auto" style={{ width: VIEW, height: VIEW }}>
           {/* Dimmed square backdrop behind the circular crop, like
@@ -224,24 +217,13 @@ export default function ImageCropModal({
         </div>
 
         <div className="flex gap-2 mt-1">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={saving}
-            className="flex-1 min-h-[38px] px-3.5 py-2 rounded-lg text-[13px] font-bold border bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] disabled:opacity-50"
-          >
+          <Button type="button" size="lg" className="flex-1" onClick={onCancel} disabled={saving}>
             Cancel
-          </button>
-          <button
-            type="button"
-            onClick={save}
-            disabled={saving || !imgUrl}
-            className="flex-1 min-h-[38px] px-3.5 py-2 rounded-lg text-[13px] font-bold border bg-[var(--accent)] border-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)] disabled:opacity-50 shadow-sm hover:shadow"
-          >
+          </Button>
+          <Button type="button" size="lg" variant="primary" className="flex-1" onClick={save} loading={saving} disabled={!imgUrl}>
             {saving ? "Saving…" : "Save photo"}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

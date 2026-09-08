@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Modal } from "@/components/ui";
 import { useRef, useState } from "react";
 import { shrinkImagesForUpload } from "@/lib/imageUpload";
 
@@ -112,26 +113,54 @@ export default function AnnouncementComposer({
       </button>
 
       {open && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto"
-          onClick={() => {
+        <Modal
+          size="md"
+          title="New Announcement"
+          onClose={() => {
             if (submitting) return;
             reset();
             setOpen(false);
           }}
+          footer={
+            <>
+              <Button
+                type="button"
+                onClick={() => {
+                  reset();
+                  setOpen(false);
+                }}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleSubmit}
+                loading={submitting}
+                disabled={!title.trim() || !body.trim() || submitting}
+              >
+                {submitting ? (
+                  "Publishing…"
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                    Publish
+                  </>
+                )}
+              </Button>
+            </>
+          }
         >
-          <div
-            className="w-full max-w-lg bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl p-6 flex flex-col gap-4 animate-scale-in my-auto"
-            style={{ boxShadow: "var(--shadow-lg)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-serif text-xl text-[var(--ink)] m-0">New Announcement</h2>
             <p className="text-[12.5px] text-[var(--muted)] m-0 -mt-2">
               This will notify all team members via bell &amp; email.
             </p>
 
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold">Title</span>
+              <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Title</span>
               <input
                 type="text"
                 value={title}
@@ -144,7 +173,7 @@ export default function AnnouncementComposer({
             </label>
 
             <label className="block">
-              <span className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold">Description</span>
+              <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">Description</span>
               <textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
@@ -161,7 +190,7 @@ export default function AnnouncementComposer({
             <div>
               {/* block, not inline: an inline label sat on the same line as
                   the button below it, unlike every other field here. */}
-              <span className="block text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">
+              <span className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">
                 Images (optional)
               </span>
               <input
@@ -195,7 +224,7 @@ export default function AnnouncementComposer({
                         }
                         disabled={submitting}
                         aria-label={`Remove ${p.file.name}`}
-                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white text-[13px] leading-none flex items-center justify-center hover:bg-black cursor-pointer"
+                        className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/70 text-white text-[14px] leading-none flex items-center justify-center hover:bg-black cursor-pointer"
                       >
                         ×
                       </button>
@@ -232,43 +261,7 @@ export default function AnnouncementComposer({
                 {submitError}
               </p>
             )}
-
-            <div className="flex justify-end gap-2 mt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  reset();
-                  setOpen(false);
-                }}
-                disabled={submitting}
-                className="px-4 py-2 text-[12.5px] font-bold text-[var(--muted)] hover:text-[var(--ink)] rounded-lg hover:bg-[var(--paper)] border border-[var(--line)] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={!title.trim() || !body.trim() || submitting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12.5px] font-bold bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
-              >
-                {submitting ? (
-                  <>
-                    <span className="w-3 h-3 border-2 border-[var(--on-accent)]/30 border-t-[var(--on-accent)] rounded-full animate-spin" />
-                    Publishing…
-                  </>
-                ) : (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="22" y1="2" x2="11" y2="13" />
-                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                    </svg>
-                    Publish
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

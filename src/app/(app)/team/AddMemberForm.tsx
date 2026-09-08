@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 import type { AppRole } from "@/lib/database.types";
 
 const EMPTY = {
@@ -59,9 +59,7 @@ export default function AddMemberForm() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center z-50 px-4 py-6 overflow-y-auto">
-      <div className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-md w-full max-w-md p-5 my-auto">
-        <h2 className="text-sm font-bold mb-4">Add member</h2>
+    <Modal size="md" onClose={() => setOpen(false)} title="Add member">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="PSID" value={form.psid} onChange={(v) => update("psid", v)} />
           <Field label="Role">
@@ -79,31 +77,30 @@ export default function AddMemberForm() {
           <Field label="Middle name (optional)" value={form.middle_name} onChange={(v) => update("middle_name", v)} required={false} />
           <Field label="Last name" value={form.last_name} onChange={(v) => update("last_name", v)} />
           <Field label="Mobile number" value={form.mobile_number} onChange={(v) => update("mobile_number", v)} required={false} />
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <Field label="Email address" value={form.email} onChange={(v) => update("email", v)} type="email" />
           </div>
 
           {error && (
-            <p role="alert" className="col-span-2 text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
+            <p role="alert" className="sm:col-span-2 text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
               {error}
             </p>
           )}
 
-          <p className="col-span-2 text-xs text-[var(--muted)]">
+          <p className="sm:col-span-2 text-xs text-[var(--muted)]">
             They&rsquo;ll receive an email invite to set their own password.
           </p>
 
-          <div className="col-span-2 flex justify-end gap-2 mt-1">
+          <div className="sm:col-span-2 flex flex-wrap justify-end gap-2 mt-1">
             <Button type="button" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
+            <Button type="submit" variant="primary" loading={submitting}>
               {submitting ? "Adding…" : "Add member"}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

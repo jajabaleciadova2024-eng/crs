@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Post, ReactionType } from "./SocialFeed";
-import { Avatar } from "@/components/ui";
+import { Avatar, Pill, Button } from "@/components/ui";
 import CommentSection from "./CommentSection";
 import { renderTextWithMentions, type Mentionable } from "./mentions";
 
@@ -158,14 +158,10 @@ export default function PostCard({
               {toTitleCase(authorFirst)} {toTitleCase(authorLast)}
             </span>
             {authorRole === "team_leader" && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--warn-soft)] text-[var(--warn)]">
-                TL
-              </span>
+              <Pill tone="warn" size="xs" dot={false}>TL</Pill>
             )}
             {authorRole === "oic" && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--warn-soft)] text-[var(--warn)]">
-                OIC
-              </span>
+              <Pill tone="warn" size="xs" dot={false}>OIC</Pill>
             )}
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
@@ -236,22 +232,13 @@ export default function PostCard({
               rows={3}
               autoFocus
             />
-            <div className="flex gap-2 justify-end">
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="px-3 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] rounded-md hover:bg-[var(--paper)] transition-colors cursor-pointer"
-              >
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button type="button" size="sm" onClick={() => setEditing(false)}>
                 Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                disabled={!editContent.trim()}
-                className="px-3 py-1.5 text-[12px] font-bold bg-[var(--accent)] text-[var(--on-accent)] rounded-md hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors cursor-pointer"
-              >
+              </Button>
+              <Button type="button" size="sm" variant="primary" onClick={handleSaveEdit} disabled={!editContent.trim()}>
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
