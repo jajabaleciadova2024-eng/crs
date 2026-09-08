@@ -5,7 +5,7 @@ import { Button } from "@/components/ui";
 import { AuthNotice } from "@/components/AuthShell";
 
 const FIELD = "w-full px-3 py-2 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm";
-const LABEL = "block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5";
+const LABEL = "block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5";
 
 export default function RequestAccessModal({ onClose }: { onClose: () => void }) {
   const [psid, setPsid] = useState("");

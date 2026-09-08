@@ -164,7 +164,7 @@ export default function TaskModal({
               value={form.description}
               onChange={(e) => update("description", e.target.value)}
               rows={3}
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-y"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm resize-y"
             />
           </div>
           <Section title="Who it's for">
@@ -175,7 +175,7 @@ export default function TaskModal({
             <select
               value={form.assign_to}
               onChange={(e) => update("assign_to", e.target.value)}
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
             >
               <option value="all">All Members</option>
               {members.map((m) => (
@@ -255,7 +255,7 @@ export default function TaskModal({
                   type="date"
                   value={form.deadline}
                   onChange={(e) => update("deadline", e.target.value)}
-                  className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+                  className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
                 />
               </div>
               {form.deadline && (
@@ -410,7 +410,7 @@ function Field({
         required={type !== "number"}
         min={type === "number" ? 0 : undefined}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+        className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
       />
     </div>
   );

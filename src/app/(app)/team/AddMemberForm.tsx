@@ -66,7 +66,7 @@ export default function AddMemberForm() {
             <select
               value={form.role}
               onChange={(e) => update("role", e.target.value as AppRole)}
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
             >
               <option value="associate">Associate</option>
               <option value="oic">OIC</option>
@@ -121,14 +121,14 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">{label}</label>
+      <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">{label}</label>
       {children ?? (
         <input
           type={type}
           value={value}
           required={required}
           onChange={(e) => onChange?.(e.target.value)}
-          className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+          className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
         />
       )}
     </div>

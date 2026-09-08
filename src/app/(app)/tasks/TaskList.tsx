@@ -112,7 +112,7 @@ export default function TaskList({
 
       {approved.length > 0 && (
         <>
-          <h3 className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-2 mt-4">
+          <h3 className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-2 mt-4">
             Completed ({approved.length})
           </h3>
           <div className="flex flex-col gap-2">{renderCards(approved)}</div>

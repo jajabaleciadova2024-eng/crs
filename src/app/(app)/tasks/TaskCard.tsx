@@ -1131,7 +1131,7 @@ export default function TaskCard({
                         rows={2}
                         autoFocus
                         placeholder="Why are you declining? The member will see this."
-                        className="w-full max-w-[380px] px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper)] text-[12px]"
+                        className="w-full max-w-[380px] px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-[12px]"
                       />
                       <div className="flex items-center gap-1.5">
                         <Button

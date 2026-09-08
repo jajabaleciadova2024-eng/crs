@@ -319,12 +319,12 @@ export default function Sidebar({
               a tool people are mid-task in, and taking over the tab would
               lose whatever they were doing. */}
           <a
-            href="https://hirejps.com"
+            href="https://builder.hirejps.com/"
             target="_blank"
             rel="noopener noreferrer"
             className="block text-[9.5px] text-[var(--muted)] mt-1 hover:text-[var(--accent-strong)] transition-colors"
           >
-            Developer: <span className="font-semibold">HireJPS.com</span>
+            Developer: <span className="font-semibold">builder.hirejps.com</span>
           </a>
         </div>
       </div>

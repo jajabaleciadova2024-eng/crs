@@ -221,7 +221,7 @@ export default function CredentialOversight({
                           type="button"
                           onClick={() => { setRejecting(`proof-${r.lastProofResetId}`); setNote(""); }}
                           title="Reject — member re-uploads"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-mdtext-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -303,7 +303,7 @@ export default function CredentialOversight({
                                 ? "Verify their MFA screenshot first"
                                 : "No MFA screenshot — they must upload first"
                           }
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-mdbg-[var(--good)] text-[var(--on-accent)] hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--good)] text-[var(--on-accent)] hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M20 6 9 17l-5-5" />
@@ -313,7 +313,7 @@ export default function CredentialOversight({
                           type="button"
                           onClick={() => { setRejecting(r.pendingResetId); setNote(""); }}
                           title="Reject — member re-uploads"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-mdtext-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -335,7 +335,7 @@ export default function CredentialOversight({
                         disabled={!baselineDate || busy === r.profileId}
                         onClick={() => saveBaseline(r.profileId)}
                         title="Save baseline"
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-mdbg-[var(--accent)] text-[var(--on-accent)] cursor-pointer disabled:opacity-40"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--accent)] text-[var(--on-accent)] cursor-pointer disabled:opacity-40"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M20 6 9 17l-5-5" />
@@ -345,7 +345,7 @@ export default function CredentialOversight({
                         type="button"
                         onClick={() => setBaselineFor(null)}
                         title="Cancel"
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-mdtext-[var(--muted)] hover:bg-[var(--paper-raised)] transition-colors cursor-pointer"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[var(--muted)] hover:bg-[var(--paper-raised)] transition-colors cursor-pointer"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />

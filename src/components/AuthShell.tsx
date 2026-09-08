@@ -58,7 +58,7 @@ export default function AuthShell({
 /** Uppercase field label used on every auth form. */
 export function AuthLabel({ htmlFor, children }: { htmlFor?: string; children: ReactNode }) {
   return (
-    <label htmlFor={htmlFor} className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+    <label htmlFor={htmlFor} className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
       {children}
     </label>
   );

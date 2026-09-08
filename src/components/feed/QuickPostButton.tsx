@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { Modal } from "@/components/ui";
 import PostComposer from "./PostComposer";
 import type { Mentionable } from "./mentions";
 
@@ -16,21 +17,6 @@ export default function QuickPostButton({ mentionable }: { mentionable: Mentiona
 
   // Portal target only exists on the client.
   useEffect(() => setMounted(true), []);
-
-  // Close on Escape, and lock background scroll while open.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [open]);
 
   async function handleSubmit(content: string, imageUrl?: string | null) {
     const res = await fetch("/api/feed", {
@@ -48,35 +34,11 @@ export default function QuickPostButton({ mentionable }: { mentionable: Mentiona
   // `fixed` WITH `backdrop-blur`, and both establish a stacking context —
   // so a modal rendered inline here would be trapped inside the header
   // band instead of covering the viewport, however high its z-index.
+  // Modal handles Escape, backdrop click and the body scroll lock.
   const modal = (
-    <div
-      className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
-      onClick={() => setOpen(false)}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Create a post"
-    >
-      <div
-        className="bg-[var(--paper)] border border-[var(--line)] rounded-xl w-full max-w-lg p-4 my-auto animate-scale-in"
-        style={{ boxShadow: "var(--shadow-lg, 0 10px 25px rgba(0,0,0,0.25))" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold text-[var(--ink)]">Create a post</h2>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-label="Close"
-            className="p-1 rounded text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--accent-soft)] transition-colors cursor-pointer"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <PostComposer onSubmit={handleSubmit} mentionable={mentionable} />
-      </div>
-    </div>
+    <Modal size="md" zIndex={100} onClose={() => setOpen(false)} title="Create a post">
+      <PostComposer onSubmit={handleSubmit} mentionable={mentionable} />
+    </Modal>
   );
 
   return (

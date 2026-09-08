@@ -198,7 +198,7 @@ export default function LeaveRequestForm({
         </Button>
       </div>
 
-      <div className="col-span-2">
+      <div className="sm:col-span-2">
         <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
           Reason {requireReason ? "" : "(optional)"}
         </label>
@@ -212,14 +212,14 @@ export default function LeaveRequestForm({
       </div>
 
       {selectedConfig?.behavior === "vacation_conflict" && conflict && (
-        <p className="col-span-2 text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
+        <p className="sm:col-span-2 text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
           One or more of these dates already has another Vacation-type leave request on record. You can still submit
           — it&apos;ll be flagged for review — but it&apos;s more likely to be rejected.
         </p>
       )}
 
       {selectedConfig?.behavior === "auto_approve_document" && (
-        <div className="col-span-2 flex flex-col gap-2">
+        <div className="sm:col-span-2 flex flex-col gap-2">
           <p className="text-sm text-[var(--muted)] bg-[var(--accent-soft)] rounded px-3 py-2 m-0">
             {halfDay ? (
               <>
@@ -249,19 +249,19 @@ export default function LeaveRequestForm({
       )}
 
       {submitted && !error && (
-        <p role="status" className="col-span-2 text-sm text-[var(--good)] bg-[var(--good-soft)] rounded px-3 py-2">
+        <p role="status" className="sm:col-span-2 text-sm text-[var(--good)] bg-[var(--good-soft)] rounded px-3 py-2">
           Request submitted — see it in the queue below.
         </p>
       )}
 
       {error && (
-        <p role="alert" className="col-span-2 text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
+        <p role="alert" className="sm:col-span-2 text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
           {error}
         </p>
       )}
 
-      <div className="col-span-2 flex justify-end gap-2 mt-1">
-        <Button type="submit" variant="primary" disabled={submitting}>
+      <div className="sm:col-span-2 flex justify-end gap-2 mt-1">
+        <Button type="submit" variant="primary" loading={submitting}>
           {submitting ? "Submitting…" : "Submit request"}
         </Button>
       </div>

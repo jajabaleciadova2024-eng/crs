@@ -268,7 +268,7 @@ export default function GenerateButton({
 
             <div className="overflow-y-auto flex-1 flex flex-col gap-3 py-1">
             <div>
-              <label className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Week</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">Week</label>
               <input
                 type="date"
                 value={weekStart}
@@ -283,7 +283,7 @@ export default function GenerateButton({
 
             {immuneMembers.length > 0 && (
               <div>
-                <h3 className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Immune members — place them first (required)
                 </h3>
                 <div className="flex flex-col gap-2">
@@ -355,10 +355,10 @@ export default function GenerateButton({
               <table className="w-full text-[13px] border-collapse">
                 <thead>
                   <tr>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Station</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Headcount</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Tenured</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">New Hire</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Station</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Headcount</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Tenured</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">New Hire</th>
                   </tr>
                 </thead>
                 <tbody>

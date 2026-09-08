@@ -441,7 +441,7 @@ export default function LeaveQueueTable({
               onChange={(e) => setRejectNote(e.target.value)}
               rows={3}
               placeholder="e.g. Overlaps another approved Vacation request"
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-none"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm resize-none"
               autoFocus
             />
             {isReopenableType && (
@@ -489,7 +489,7 @@ export default function LeaveQueueTable({
               onChange={(e) => setApproveNote(e.target.value)}
               rows={3}
               placeholder={isConflictApproval ? "e.g. Checked with the team, coverage is fine" : "e.g. Verbally confirmed, document to follow"}
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-none"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm resize-none"
               autoFocus
             />
             {approveError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{approveError}</p>}

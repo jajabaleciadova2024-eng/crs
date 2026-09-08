@@ -116,7 +116,7 @@ export default function EditLeaveRequestForm({
           <select
             value={leaveType}
             onChange={(e) => setLeaveType(e.target.value)}
-            className="w-full px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm"
+            className="w-full px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] text-sm"
           >
             {leaveTypeConfigs.map((t) => (
               <option key={t.key} value={t.key}>
@@ -142,7 +142,7 @@ export default function EditLeaveRequestForm({
                 value={r.start_date}
                 onChange={(e) => updateRange(i, "start_date", e.target.value)}
                 {...datePickerOnlyProps}
-                className="flex-1 min-w-0 px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm cursor-pointer"
+                className="flex-1 min-w-0 px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] text-sm cursor-pointer"
               />
               <span className="text-[var(--muted)] text-xs">to</span>
               <input
@@ -150,7 +150,7 @@ export default function EditLeaveRequestForm({
                 value={r.end_date}
                 onChange={(e) => updateRange(i, "end_date", e.target.value)}
                 {...datePickerOnlyProps}
-                className="flex-1 min-w-0 px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm cursor-pointer"
+                className="flex-1 min-w-0 px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] text-sm cursor-pointer"
               />
               {ranges.length > 1 && (
                 <button type="button" onClick={() => removeRange(i)} aria-label="Remove date range" className="text-[var(--muted)] text-lg leading-none px-1">
@@ -172,7 +172,7 @@ export default function EditLeaveRequestForm({
         <input
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          className="w-full px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm"
+          className="w-full px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] text-sm"
         />
       </div>
 
