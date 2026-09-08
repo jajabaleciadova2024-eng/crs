@@ -305,11 +305,11 @@ export default function PostComposer({
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleSubmit}
             disabled={!canPost}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12.5px] font-bold bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:-translate-y-[0.5px] active:translate-y-0 shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12.5px] font-bold bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:-translate-y-[0.5px] active:translate-y-0 shadow-sm"
           >
             {submitting ? (
               <>
-                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="w-3 h-3 border-2 border-[var(--on-accent)]/30 border-t-[var(--on-accent)] rounded-full animate-spin" />
                 Posting…
               </>
             ) : (

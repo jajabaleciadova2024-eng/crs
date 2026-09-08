@@ -192,7 +192,7 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
                         type="button"
                         onClick={() => poke(t.id, owing, t.id)}
                         disabled={poking === t.id}
-                        className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                        className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[var(--accent)] text-[var(--on-accent)] hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                       >
                         {poking === t.id
                           ? "Nudging…"

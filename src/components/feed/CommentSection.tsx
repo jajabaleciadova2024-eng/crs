@@ -274,10 +274,10 @@ export default function CommentSection({
           type="button"
           onClick={handleSubmit}
           disabled={!newComment.trim() || submitting}
-          className="shrink-0 p-2 rounded-full bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
+          className="shrink-0 p-2 rounded-full bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)] disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
         >
           {submitting ? (
-            <span className="w-4 h-4 block border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span className="w-4 h-4 block border-2 border-[var(--on-accent)]/30 border-t-[var(--on-accent)] rounded-full animate-spin" />
           ) : (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13" />

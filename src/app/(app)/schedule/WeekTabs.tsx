@@ -14,17 +14,17 @@ export default function WeekTabs({ current, next }: { current: ReactNode; next: 
   // Equal halves, corner to corner — flex-1 on each button instead of
   // left-aligned auto-width tabs, so the divider between them always sits
   // exactly at the frame's midpoint regardless of label length.
-  const tabBase = "flex-1 py-2.5 text-[13px] font-bold border-b-2 transition-colors text-center";
+  const tabBase = "flex-1 min-h-[42px] py-2.5 text-[13px] font-bold border-b-2 transition-colors text-center cursor-pointer";
   const activeTab = "border-[var(--accent)] text-[var(--accent-strong)]";
   const inactiveTab = "border-transparent text-[var(--muted)] hover:text-[var(--ink)]";
 
   return (
     <div>
-      <div className="flex border-b border-[var(--line)] mb-4">
-        <button type="button" className={`${tabBase} ${tab === "current" ? activeTab : inactiveTab}`} onClick={() => setTab("current")}>
+      <div className="flex border-b border-[var(--line)] mb-4" role="tablist" aria-label="Week">
+        <button type="button" role="tab" aria-selected={tab === "current"} className={`${tabBase} ${tab === "current" ? activeTab : inactiveTab}`} onClick={() => setTab("current")}>
           Current Week
         </button>
-        <button type="button" className={`${tabBase} ${tab === "next" ? activeTab : inactiveTab}`} onClick={() => setTab("next")}>
+        <button type="button" role="tab" aria-selected={tab === "next"} className={`${tabBase} ${tab === "next" ? activeTab : inactiveTab}`} onClick={() => setTab("next")}>
           Next Week
         </button>
       </div>

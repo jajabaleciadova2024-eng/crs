@@ -185,7 +185,7 @@ export default function CredentialOversight({
                           type="button"
                           disabled={!note.trim() || busy === r.lastProofResetId}
                           onClick={() => review(r.lastProofResetId!, "rejected", note.trim())}
-                          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white cursor-pointer disabled:opacity-40"
+                          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-[var(--on-accent)] cursor-pointer disabled:opacity-40"
                         >
                           Send
                         </button>
@@ -268,7 +268,7 @@ export default function CredentialOversight({
                           type="button"
                           disabled={!note.trim() || busy === r.pendingResetId}
                           onClick={() => review(r.pendingResetId!, "rejected", note.trim())}
-                          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white cursor-pointer disabled:opacity-40"
+                          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-[var(--on-accent)] cursor-pointer disabled:opacity-40"
                         >
                           Send
                         </button>
@@ -303,7 +303,7 @@ export default function CredentialOversight({
                                 ? "Verify their MFA screenshot first"
                                 : "No MFA screenshot — they must upload first"
                           }
-                          className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--good)] text-white hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--good)] text-[var(--on-accent)] hover:opacity-90 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M20 6 9 17l-5-5" />
@@ -335,7 +335,7 @@ export default function CredentialOversight({
                         disabled={!baselineDate || busy === r.profileId}
                         onClick={() => saveBaseline(r.profileId)}
                         title="Save baseline"
-                        className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--accent)] text-white cursor-pointer disabled:opacity-40"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--accent)] text-[var(--on-accent)] cursor-pointer disabled:opacity-40"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M20 6 9 17l-5-5" />

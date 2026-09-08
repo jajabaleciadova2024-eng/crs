@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Pill } from "@/components/ui";
+import { Button, Pill, Eyebrow, EmptyState } from "@/components/ui";
 
 type Holiday = { date: string; name: string };
 
@@ -64,7 +64,7 @@ export default function HolidayManager({ holidays: initial }: { holidays: Holida
       {/* Add form */}
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="block text-xs font-medium text-[var(--muted)] mb-1">Date</label>
+          <label className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">Date</label>
           <input
             type="date"
             value={date}
@@ -73,7 +73,7 @@ export default function HolidayManager({ holidays: initial }: { holidays: Holida
           />
         </div>
         <div className="flex-1 min-w-[160px]">
-          <label className="block text-xs font-medium text-[var(--muted)] mb-1">Holiday name</label>
+          <label className="block text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">Holiday name</label>
           <input
             type="text"
             value={name}
@@ -82,21 +82,21 @@ export default function HolidayManager({ holidays: initial }: { holidays: Holida
             className="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-sm bg-[var(--paper)] text-[var(--ink)]"
           />
         </div>
-        <Button onClick={addHoliday} disabled={pending}>Add Holiday</Button>
+        <Button variant="primary" onClick={addHoliday} disabled={pending}>Add holiday</Button>
       </div>
-      {error && <p className="text-sm text-[var(--bad)]">{error}</p>}
+      {error && <p className="text-sm text-[var(--bad)] m-0">{error}</p>}
 
       {/* List */}
       {holidays.length === 0 ? (
-        <p className="text-sm text-[var(--muted)] italic">No holidays set yet.</p>
+        <EmptyState icon="🎉" title="No holidays set yet" hint="Add one above — assignments and breaks on that date are cleared, and every calendar shows it." />
       ) : (
         <div className="space-y-4">
           {Array.from(byYear.entries()).map(([year, list]) => (
             <div key={year}>
-              <h4 className="text-xs font-bold text-[var(--muted)] uppercase tracking-wider mb-2">{year}</h4>
+              <Eyebrow className="mb-2">{year}</Eyebrow>
               <div className="space-y-1.5">
                 {list.map((h) => (
-                  <div key={h.date} className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--line)]">
+                  <div key={h.date} className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--line)]">
                     <div className="flex items-center gap-3 min-w-0">
                       <Pill tone="warn">{formatDate(h.date)}</Pill>
                       <span className="text-sm text-[var(--ink)] truncate">{h.name}</span>

@@ -380,7 +380,7 @@ export default async function SchedulePage() {
         subtitle="Monday–Friday (Philippine time), regenerated every week — station headcount is fixed on Workstations"
         action={
           canManage && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button href="/schedule/history">History →</Button>
               <GenerateButton
                 workstations={sortedWorkstations}
@@ -396,7 +396,7 @@ export default async function SchedulePage() {
       />
 
       {canManage && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
           <Card label="Total headcount" value={String(totalMembers)} sub="Team Leader, OIC & associates" />
           <Card label="Tenured associates" value={String(totalTenured)} sub="Available to assign" />
           <Card label="New Hire associates" value={String(totalNewHire)} sub="Available to assign" />

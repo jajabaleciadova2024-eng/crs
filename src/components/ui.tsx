@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import Link from "next/link";
 
 // Title bar pinned to the top of every page inside the app shell — stays
@@ -184,12 +184,25 @@ const PILL_STYLES: Record<string, string> = {
   muted: "bg-[var(--paper)] text-[var(--muted)]",
 };
 
-export function Pill({ tone = "muted", children }: { tone?: keyof typeof PILL_STYLES; children: ReactNode }) {
+export function Pill({
+  tone = "muted",
+  size = "md",
+  dot = true,
+  children,
+}: {
+  tone?: keyof typeof PILL_STYLES;
+  /** xs = compact role badge next to a name; md = status pill in a table. */
+  size?: "xs" | "md";
+  /** Leading status dot — off for identity badges (TL / OIC) that aren't a state. */
+  dot?: boolean;
+  children: ReactNode;
+}) {
+  const dims = size === "xs" ? "px-1.5 py-px text-[9.5px] gap-1 uppercase" : "px-2.5 py-0.5 text-[11px] gap-1.5";
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide leading-relaxed whitespace-nowrap ${PILL_STYLES[tone]}`}
+      className={`inline-flex items-center rounded-full font-bold tracking-wide leading-relaxed whitespace-nowrap ${dims} ${PILL_STYLES[tone]}`}
     >
-      <span className="w-[5px] h-[5px] rounded-full bg-current opacity-80" />
+      {dot && <span className="w-[5px] h-[5px] rounded-full bg-current opacity-80" />}
       {children}
     </span>
   );
@@ -288,11 +301,11 @@ export function Avatar({
 
 const BUTTON_VARIANTS = {
   primary:
-    "bg-[var(--accent)] border-[var(--accent)] text-white hover:bg-[var(--accent-strong)] hover:border-[var(--accent-strong)] hover:-translate-y-[0.5px] active:translate-y-0 disabled:hover:transform-none shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)]",
+    "bg-[var(--accent)] border-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)] hover:border-[var(--accent-strong)] hover:-translate-y-[0.5px] active:translate-y-0 disabled:hover:transform-none shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)]",
   ghost:
     "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 hover:shadow-[var(--shadow-xs)]",
   danger:
-    "bg-[var(--bad)] border-[var(--bad)] text-white hover:bg-[var(--bad-strong)] hover:border-[var(--bad-strong)] hover:-translate-y-[0.5px] active:translate-y-0 disabled:hover:transform-none shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)]",
+    "bg-[var(--bad)] border-[var(--bad)] text-[var(--on-accent)] hover:bg-[var(--bad-strong)] hover:border-[var(--bad-strong)] hover:-translate-y-[0.5px] active:translate-y-0 disabled:hover:transform-none shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)]",
   "danger-ghost":
     "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--bad)] hover:border-[var(--bad)] hover:bg-[var(--bad-soft)]/60 hover:shadow-[var(--shadow-xs)]",
 } as const;
@@ -388,6 +401,82 @@ export function IconButton({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * One dialog shell for the whole app. Backdrop click / Escape close it; the
+ * page behind stops scrolling while it is open; on phones it rises from
+ * the bottom as a sheet with a grab handle, on larger screens it is a
+ * centred card. `size` only changes the max width.
+ */
+export function Modal({
+  open = true,
+  onClose,
+  title,
+  titleId,
+  size = "sm",
+  children,
+  footer,
+  zIndex = 50,
+}: {
+  open?: boolean;
+  onClose: () => void;
+  /** Rendered as the dialog heading — omit when the body supplies its own. */
+  title?: ReactNode;
+  titleId?: string;
+  size?: "sm" | "md" | "lg";
+  children: ReactNode;
+  /** Action row — wraps on narrow screens, right-aligned otherwise. */
+  footer?: ReactNode;
+  zIndex?: number;
+}) {
+  const generatedId = useId();
+  const headingId = titleId ?? generatedId;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const width = size === "lg" ? "sm:max-w-2xl" : size === "md" ? "sm:max-w-md" : "sm:max-w-sm";
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-end sm:items-start justify-center sm:px-4 sm:py-6 animate-fade-in overflow-y-auto"
+      style={{ zIndex }}
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? headingId : undefined}
+        className={`sheet-panel ${width} sm:my-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl sm:rounded-xl p-5 sm:p-6 flex flex-col gap-3 animate-slide-up sm:animate-scale-in`}
+        style={{ boxShadow: "var(--shadow-xl)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div aria-hidden="true" className="sm:hidden mx-auto -mt-1 mb-1 h-1 w-10 rounded-full bg-[var(--line-strong)]/60" />
+        {title && (
+          <h2 id={headingId} className="font-serif text-xl text-[var(--ink)] m-0 leading-tight">
+            {title}
+          </h2>
+        )}
+        {children}
+        {footer && <div className="flex flex-wrap justify-end gap-2 mt-1">{footer}</div>}
+      </div>
+    </div>
   );
 }
 

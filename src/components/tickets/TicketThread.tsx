@@ -293,7 +293,7 @@ export default function TicketThread({
               <div
                 className={`rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
                   isMe
-                    ? "bg-[var(--accent)] text-white rounded-br-sm"
+                    ? "bg-[var(--accent)] text-[var(--on-accent)] rounded-br-sm"
                     : "bg-[var(--paper-raised)] border border-[var(--line)] text-[var(--ink)] rounded-bl-sm"
                 }`}
               >

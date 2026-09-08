@@ -391,7 +391,7 @@ export default function MyCredentialPanel({
                     onClick={submit}
                     disabled={busy || (!isTeamLeader && (!proof || !mfaVerified))}
                     title={blockers.length > 0 ? blockers.join(" · ") : undefined}
-                    className="px-3.5 py-2 rounded-md text-[12.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+                    className="px-3.5 py-2 rounded-md text-[12.5px] font-bold bg-[var(--accent)] text-[var(--on-accent)] hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
                   >
                     {busy ? "Submitting…" : "Password Reset Complete"}
                   </button>

@@ -236,7 +236,7 @@ export default function ImageCropModal({
             type="button"
             onClick={save}
             disabled={saving || !imgUrl}
-            className="flex-1 min-h-[38px] px-3.5 py-2 rounded-lg text-[13px] font-bold border bg-[var(--accent)] border-[var(--accent)] text-white hover:bg-[var(--accent-strong)] disabled:opacity-50 shadow-sm hover:shadow"
+            className="flex-1 min-h-[38px] px-3.5 py-2 rounded-lg text-[13px] font-bold border bg-[var(--accent)] border-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)] disabled:opacity-50 shadow-sm hover:shadow"
           >
             {saving ? "Saving…" : "Save photo"}
           </button>

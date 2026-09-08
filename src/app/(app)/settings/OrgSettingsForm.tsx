@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui";
+import { Button, Eyebrow } from "@/components/ui";
 import type { OrgSettings, ScheduleCadence } from "@/lib/database.types";
 import { BEHAVIOR_LABEL, slugifyLeaveTypeKey, type LeaveTypeBehavior, type LeaveTypeConfig } from "@/lib/leaveTypes";
 
@@ -48,38 +48,45 @@ export default function OrgSettingsForm({ settings }: { settings: OrgSettings })
 
   return (
     <div className="flex flex-col gap-4">
-      <table className="w-full text-[13px] border-collapse">
-        <tbody>
-          <tr>
-            <td className="py-2.5 border-b border-[var(--line)]">Schedule generation cadence</td>
-            <td className="py-2.5 border-b border-[var(--line)] text-right">
-              <select
-                value={cadence}
-                onChange={(e) => setCadence(e.target.value as ScheduleCadence)}
-                className="text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)]"
-              >
-                <option value="weekly">Weekly</option>
-                <option value="biweekly">Bi-weekly</option>
-              </select>
-            </td>
-          </tr>
-          <tr>
-            <td className="py-2.5 border-b border-[var(--line)]">Require reason on leave requests</td>
-            <td className="py-2.5 border-b border-[var(--line)] text-right">
-              <input type="checkbox" checked={requireReason} onChange={(e) => setRequireReason(e.target.checked)} />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div className="overflow-x-auto scroll-shadow-x">
+        <table className="w-full text-[13px] border-collapse min-w-[320px]">
+          <tbody>
+            <tr>
+              <td className="py-2.5 border-b border-[var(--line)]">
+                <label htmlFor="org-cadence">Schedule generation cadence</label>
+              </td>
+              <td className="py-2.5 border-b border-[var(--line)] text-right">
+                <select
+                  id="org-cadence"
+                  value={cadence}
+                  onChange={(e) => setCadence(e.target.value as ScheduleCadence)}
+                  className="text-xs border border-[var(--line)] rounded-md px-2 py-1.5 bg-[var(--paper)] text-[var(--ink)]"
+                >
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-weekly</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td className="py-2.5 border-b border-[var(--line)]">
+                <label htmlFor="org-require-reason">Require reason on leave requests</label>
+              </td>
+              <td className="py-2.5 border-b border-[var(--line)] text-right">
+                <input id="org-require-reason" type="checkbox" checked={requireReason} onChange={(e) => setRequireReason(e.target.checked)} className="w-4 h-4 accent-[var(--accent)]" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <div>
-        <div className="text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2">Leave types</div>
+        <Eyebrow className="mb-2">Leave types</Eyebrow>
         <div className="overflow-x-auto scroll-shadow-x">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr>
-                <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2 border-b border-[var(--line)] whitespace-nowrap">Label</th>
-                <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2 border-b border-[var(--line)] whitespace-nowrap">Behavior</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2 border-b border-[var(--line)] whitespace-nowrap">Label</th>
+                <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2 border-b border-[var(--line)] whitespace-nowrap">Behavior</th>
                 <th className="px-2 sm:px-3 py-2 border-b border-[var(--line)]" />
               </tr>
             </thead>
@@ -90,14 +97,14 @@ export default function OrgSettingsForm({ settings }: { settings: OrgSettings })
                     <input
                       value={t.label}
                       onChange={(e) => updateType(i, "label", e.target.value)}
-                      className="w-full sm:min-w-[110px] text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)]"
+                      className="w-full sm:min-w-[110px] text-xs border border-[var(--line)] rounded-md px-2 py-1.5 bg-[var(--paper)] text-[var(--ink)]"
                     />
                   </td>
                   <td className="px-2 sm:px-3 py-2 border-b border-[var(--line)]">
                     <select
                       value={t.behavior}
                       onChange={(e) => updateType(i, "behavior", e.target.value)}
-                      className="w-full sm:w-auto sm:min-w-[220px] text-xs border border-[var(--line)] rounded px-2 py-1.5 bg-[var(--paper)]"
+                      className="w-full sm:w-auto sm:min-w-[220px] text-xs border border-[var(--line)] rounded-md px-2 py-1.5 bg-[var(--paper)] text-[var(--ink)]"
                     >
                       {(Object.keys(BEHAVIOR_LABEL) as LeaveTypeBehavior[]).map((b) => (
                         <option key={b} value={b}>
@@ -107,7 +114,7 @@ export default function OrgSettingsForm({ settings }: { settings: OrgSettings })
                     </select>
                   </td>
                   <td className="px-2 sm:px-3 py-2 border-b border-[var(--line)]">
-                    <Button style={{ padding: "5px 10px" }} onClick={() => removeType(i)}>
+                    <Button size="sm" variant="danger-ghost" onClick={() => removeType(i)}>
                       Remove
                     </Button>
                   </td>
@@ -116,13 +123,13 @@ export default function OrgSettingsForm({ settings }: { settings: OrgSettings })
             </tbody>
           </table>
         </div>
-        <button type="button" onClick={addType} className="text-xs font-bold text-[var(--accent-strong)] mt-2">
+        <Button size="sm" onClick={addType} className="mt-2">
           + Add leave type
-        </button>
+        </Button>
       </div>
 
       <div className="flex justify-end">
-        <Button variant="primary" disabled={pending} onClick={save}>
+        <Button variant="primary" loading={pending} onClick={save}>
           {pending ? "Saving…" : "Save organization settings"}
         </Button>
       </div>

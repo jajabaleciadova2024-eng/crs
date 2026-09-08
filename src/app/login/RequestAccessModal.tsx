@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Button } from "@/components/ui";
+import { AuthNotice } from "@/components/AuthShell";
+
+const FIELD = "w-full px-3 py-2 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm";
+const LABEL = "block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5";
 
 export default function RequestAccessModal({ onClose }: { onClose: () => void }) {
   const [psid, setPsid] = useState("");
@@ -13,6 +18,20 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Escape closes; background stays put while the sheet is open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -49,31 +68,42 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:px-4 sm:py-6 z-50 animate-fade-in"
+      onClick={onClose}
+      role="presentation"
+    >
       <div
-        className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl p-5 sm:p-6 my-auto animate-scale-in"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="request-access-title"
+        className="sheet-panel sm:max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl p-5 sm:p-6 animate-slide-up sm:animate-scale-in"
         style={{ boxShadow: "var(--shadow-xl)" }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Grab handle — signals "this is a sheet you can dismiss" on phones. */}
+        <div aria-hidden="true" className="sm:hidden mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--line-strong)]/60" />
+
         {sent ? (
           <div className="flex flex-col gap-4 text-center">
-            <h2 className="font-serif text-xl text-[var(--ink)]">Request sent</h2>
-            <p className="text-sm text-[var(--muted)]">
+            <div className="mx-auto w-12 h-12 rounded-full bg-[var(--good-soft)] text-[var(--good)] flex items-center justify-center">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+            <h2 id="request-access-title" className="font-serif text-xl text-[var(--ink)] m-0">Request sent</h2>
+            <p className="text-sm text-[var(--muted)] m-0">
               Your Team Leader will review it. If approved, you&apos;ll get the same invite email as any new
               member — check your inbox once they&apos;ve accepted.
             </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full py-2.5 rounded bg-[var(--accent)] text-white text-sm font-bold hover:bg-[var(--accent-strong)]"
-            >
+            <Button type="button" variant="primary" size="lg" block onClick={onClose}>
               Close
-            </button>
+            </Button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="font-serif text-xl text-[var(--ink)] m-0">Request access</h2>
+              <h2 id="request-access-title" className="font-serif text-xl text-[var(--ink)] m-0">Request access</h2>
               <button
                 type="button"
                 onClick={onClose}
@@ -90,93 +120,50 @@ export default function RequestAccessModal({ onClose }: { onClose: () => void })
             </p>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">PSID</label>
-              <input
-                required
-                value={psid}
-                onChange={(e) => setPsid(e.target.value)}
-                className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              />
+              <label htmlFor="ra-psid" className={LABEL}>PSID</label>
+              <input id="ra-psid" required inputMode="numeric" autoComplete="off" value={psid} onChange={(e) => setPsid(e.target.value)} className={FIELD} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">First name</label>
-                <input
-                  required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                />
+                <label htmlFor="ra-first" className={LABEL}>First name</label>
+                <input id="ra-first" required autoComplete="given-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={FIELD} />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+                <label htmlFor="ra-middle" className={LABEL}>
                   Middle name <span className="normal-case font-normal">(optional)</span>
                 </label>
-                <input
-                  value={middleName}
-                  onChange={(e) => setMiddleName(e.target.value)}
-                  className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                />
+                <input id="ra-middle" autoComplete="additional-name" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className={FIELD} />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Last name</label>
-              <input
-                required
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              />
+              <label htmlFor="ra-last" className={LABEL}>Last name</label>
+              <input id="ra-last" required autoComplete="family-name" value={lastName} onChange={(e) => setLastName(e.target.value)} className={FIELD} />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Email</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              />
+              <label htmlFor="ra-email" className={LABEL}>Email</label>
+              <input id="ra-email" type="email" required autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} className={FIELD} />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Mobile number</label>
-              <input
-                required
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
-                className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              />
+              <label htmlFor="ra-mobile" className={LABEL}>Mobile number</label>
+              <input id="ra-mobile" required type="tel" autoComplete="tel" inputMode="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} className={FIELD} />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+              <label htmlFor="ra-note" className={LABEL}>
                 Note to your Team Leader <span className="normal-case font-normal">(optional)</span>
               </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] resize-none"
-              />
+              <textarea id="ra-note" value={message} onChange={(e) => setMessage(e.target.value)} rows={2} className={`${FIELD} resize-none`} />
             </div>
 
-            {error && (
-              <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
-                {error}
-              </p>
-            )}
+            {error && <AuthNotice>{error}</AuthNotice>}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-1 w-full py-2.5 rounded bg-[var(--accent)] text-white text-sm font-bold hover:bg-[var(--accent-strong)] disabled:opacity-50"
-            >
+            <Button type="submit" variant="primary" size="lg" block loading={submitting} className="mt-1">
               {submitting ? "Sending…" : "Send request"}
-            </button>
+            </Button>
           </form>
         )}
       </div>

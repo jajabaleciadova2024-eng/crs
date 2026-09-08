@@ -212,7 +212,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 z-10 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--bad)] text-white text-[10px] font-bold flex items-center justify-center animate-badge-pulse">
+          <span className="absolute -top-1 -right-1 z-10 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--bad)] text-[var(--on-accent)] text-[10px] font-bold flex items-center justify-center animate-badge-pulse">
             {unread > 99 ? "99+" : unread}
           </span>
         )}

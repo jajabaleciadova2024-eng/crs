@@ -51,12 +51,13 @@ export default function LeaveCalendar({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <Button style={{ padding: "6px 12px" }} onClick={() => shiftMonth(-1)}>
-          ← Prev
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <Button size="sm" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+          <span aria-hidden="true">←</span>
+          <span className="hidden sm:inline">Prev</span>
         </Button>
-        <div className="flex items-center gap-3">
-          <span className="font-serif text-lg tracking-tight">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="font-serif text-lg tracking-tight truncate" aria-live="polite">
             {MONTH_LABEL[month - 1]} {year}
           </span>
           <button
@@ -66,17 +67,18 @@ export default function LeaveCalendar({
               setMonth(Number(today.slice(5, 7)));
               setSelectedDate(null);
             }}
-            className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline"
+            className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline shrink-0 px-1.5 py-1 -my-1 rounded"
           >
             Today
           </button>
         </div>
-        <Button style={{ padding: "6px 12px" }} onClick={() => shiftMonth(1)}>
-          Next →
+        <Button size="sm" onClick={() => shiftMonth(1)} aria-label="Next month">
+          <span className="hidden sm:inline">Next</span>
+          <span aria-hidden="true">→</span>
         </Button>
       </div>
 
-      <div className="flex items-center gap-4 mb-4 text-[11px] text-[var(--muted)]">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-4 text-[11px] text-[var(--muted)]">
         <span className="inline-flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--warn)" }} /> Pending
         </span>
@@ -121,7 +123,7 @@ export default function LeaveCalendar({
               <span
                 className={`text-[11.5px] leading-none ${
                   isToday
-                    ? "font-bold text-white bg-[var(--accent)] w-[20px] h-[20px] sm:w-[22px] sm:h-[22px] rounded-full flex items-center justify-center"
+                    ? "font-bold text-[var(--on-accent)] bg-[var(--accent)] w-[20px] h-[20px] sm:w-[22px] sm:h-[22px] rounded-full flex items-center justify-center"
                     : "text-[var(--muted)]"
                 }`}
               >

@@ -103,7 +103,7 @@ export default function SidebarShell({ children }: { children: React.ReactNode }
         style={{ paddingTop: "var(--safe-top)" }}
       >
         <span className="flex items-center gap-2 font-serif text-[17px] font-bold text-[var(--ink)] tracking-tight">
-          <span className="inline-flex w-7 h-7 rounded-md bg-[var(--accent)] text-white items-center justify-center text-[11px] font-bold shadow-sm">
+          <span className="inline-flex w-7 h-7 rounded-md bg-[var(--accent)] text-[var(--on-accent)] items-center justify-center text-[11px] font-bold shadow-sm">
             CN
           </span>
           CRS Naga

@@ -248,7 +248,7 @@ export default function PostCard({
                 type="button"
                 onClick={handleSaveEdit}
                 disabled={!editContent.trim()}
-                className="px-3 py-1.5 text-[12px] font-bold bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors cursor-pointer"
+                className="px-3 py-1.5 text-[12px] font-bold bg-[var(--accent)] text-[var(--on-accent)] rounded-md hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors cursor-pointer"
               >
                 Save
               </button>

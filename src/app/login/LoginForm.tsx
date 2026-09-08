@@ -4,6 +4,8 @@ import { useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui";
+import AuthShell, { AuthLabel, AuthNotice, AUTH_INPUT_CLASS } from "@/components/AuthShell";
 import RequestAccessModal from "./RequestAccessModal";
 
 export default function LoginForm() {
@@ -11,6 +13,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showRequestAccess, setShowRequestAccess] = useState(false);
@@ -55,95 +58,86 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-[var(--paper)] via-[var(--paper)] to-[var(--accent-soft)]/40 px-4 py-8 relative overflow-hidden">
-      {/* Soft radial decoration — never intrusive, but gives the page
-          some warmth on wider viewports. */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 pointer-events-none opacity-60"
-        style={{
-          background:
-            "radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 40%), radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 40%)",
-        }}
-      />
-
-      <div className="w-full max-w-sm animate-fade-in-up relative">
-        <div className="mb-7 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--accent)] text-white mb-3 shadow-lg">
-            <span className="font-serif font-bold text-2xl leading-none">CN</span>
-          </div>
-          <h1 className="font-serif text-[28px] text-[var(--ink)] tracking-tight leading-none">CRS Naga</h1>
-          <p className="text-[13px] text-[var(--muted)] mt-1.5 font-medium tracking-wide">Field Operations</p>
+    <AuthShell tagline="Field Operations">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div>
+          <AuthLabel htmlFor="identifier">PSID or Email</AuthLabel>
+          <input
+            id="identifier"
+            type="text"
+            required
+            autoFocus
+            autoComplete="username"
+            inputMode="email"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            className={AUTH_INPUT_CLASS}
+          />
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl p-6 sm:p-7 flex flex-col gap-4"
-          style={{ boxShadow: "var(--shadow-lg)" }}
-        >
-          <div>
-            <label htmlFor="identifier" className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-              PSID or Email
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label htmlFor="password" className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)]">
+              Password
             </label>
-            <input
-              id="identifier"
-              type="text"
-              required
-              autoFocus
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder=""
-              className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
-            />
+            <Link href="/forgot-password" className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline">
+              Forgot password?
+            </Link>
           </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label htmlFor="password" className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                Password
-              </label>
-              <Link href="/forgot-password" className="text-[11px] font-bold text-[var(--accent-strong)] hover:underline">
-                Forgot password?
-              </Link>
-            </div>
+          <div className="relative">
             <input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
+              className={`${AUTH_INPUT_CLASS} pr-11`}
             />
-          </div>
-
-          {error && (
-            <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-lg px-3 py-2.5 animate-fade-in-up border border-[var(--bad)]/20">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-1 w-full py-2.5 rounded-lg bg-[var(--accent)] text-white text-sm font-bold hover:bg-[var(--accent-strong)] disabled:opacity-50 shadow-sm hover:shadow"
-          >
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-
-          <p className="text-xs text-[var(--muted)] text-center pt-1">
-            New here?{" "}
+            {/* Show/hide — typing a password blind on a phone keyboard is
+                the #1 cause of "wrong password" on the login page. */}
             <button
               type="button"
-              onClick={() => setShowRequestAccess(true)}
-              className="font-bold text-[var(--accent-strong)] hover:underline"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-8 h-8 rounded-md text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--accent-soft)]/50"
             >
-              Request access
+              {showPassword ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-4.06 5.34" />
+                  <path d="M1 1l22 22" />
+                  <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
             </button>
-          </p>
-        </form>
-      </div>
+          </div>
+        </div>
+
+        {error && <AuthNotice>{error}</AuthNotice>}
+
+        <Button type="submit" variant="primary" size="lg" block loading={loading} className="mt-1">
+          {loading ? "Signing in…" : "Sign in"}
+        </Button>
+
+        <p className="text-xs text-[var(--muted)] text-center pt-1 m-0">
+          New here?{" "}
+          <button
+            type="button"
+            onClick={() => setShowRequestAccess(true)}
+            className="font-bold text-[var(--accent-strong)] hover:underline"
+          >
+            Request access
+          </button>
+        </p>
+      </form>
 
       {showRequestAccess && <RequestAccessModal onClose={() => setShowRequestAccess(false)} />}
-    </div>
+    </AuthShell>
   );
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button, Spinner } from "@/components/ui";
+import AuthShell, { AuthLabel, AuthNotice, AUTH_INPUT_CLASS } from "@/components/AuthShell";
 
 // Reached via the link in either the "reset password" OR "invite" email —
 // both land here. Supabase's browser client auto-detects the token in the
@@ -80,84 +82,65 @@ export default function ResetPasswordForm() {
     }, 1500);
   }
 
+  // Live strength hint — the two rules we actually enforce, shown before
+  // the submit button rejects them.
+  const longEnough = password.length >= 8;
+  const matches = confirm.length > 0 && password === confirm;
+
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-[var(--paper)] via-[var(--paper)] to-[var(--accent-soft)]/40 px-4 py-8 relative overflow-hidden">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 pointer-events-none opacity-60"
-        style={{
-          background:
-            "radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 40%), radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 40%)",
-        }}
-      />
-
-      <div className="w-full max-w-sm animate-fade-in-up relative">
-        <div className="mb-7 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--accent)] text-white mb-3 shadow-lg">
-            <span className="font-serif font-bold text-2xl leading-none">CN</span>
+    <AuthShell tagline="Set a new password">
+      {invalid ? (
+        <AuthNotice>This reset link is invalid or has expired. Request a new one from the sign-in page.</AuthNotice>
+      ) : !ready ? (
+        <p className="text-sm text-[var(--muted)] text-center py-2 m-0 inline-flex items-center justify-center gap-2">
+          <Spinner /> Verifying your reset link…
+        </p>
+      ) : done ? (
+        <AuthNotice tone="good">Password updated. Redirecting to sign in…</AuthNotice>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div>
+            <AuthLabel htmlFor="password">New password</AuthLabel>
+            <input
+              id="password"
+              type="password"
+              required
+              autoFocus
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={AUTH_INPUT_CLASS}
+            />
           </div>
-          <h1 className="font-serif text-[28px] text-[var(--ink)] tracking-tight leading-none">CRS Naga</h1>
-          <p className="text-[13px] text-[var(--muted)] mt-1.5 font-medium tracking-wide">Set a new password</p>
-        </div>
+          <div>
+            <AuthLabel htmlFor="confirm">Confirm password</AuthLabel>
+            <input
+              id="confirm"
+              type="password"
+              required
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className={AUTH_INPUT_CLASS}
+            />
+          </div>
 
-        <div className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl p-6 sm:p-7 flex flex-col gap-4" style={{ boxShadow: "var(--shadow-lg)" }}>
-          {invalid ? (
-            <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-lg px-3 py-2.5 border border-[var(--bad)]/20">
-              This reset link is invalid or has expired. Request a new one from the sign-in page.
-            </p>
-          ) : !ready ? (
-            <p className="text-sm text-[var(--muted)] text-center py-2">Verifying your reset link…</p>
-          ) : done ? (
-            <p className="text-sm text-[var(--good)] bg-[var(--good-soft)] rounded-lg px-3 py-2.5 border border-[var(--good)]/20">
-              Password updated. Redirecting to sign in…
-            </p>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div>
-                <label htmlFor="password" className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                  New password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  autoFocus
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
-                />
-              </div>
-              <div>
-                <label htmlFor="confirm" className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                  Confirm password
-                </label>
-                <input
-                  id="confirm"
-                  type="password"
-                  required
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
-                />
-              </div>
+          <ul className="m-0 p-0 list-none flex flex-col gap-1 text-[11.5px]">
+            <li className={`flex items-center gap-1.5 ${longEnough ? "text-[var(--good)]" : "text-[var(--muted)]"}`}>
+              <span aria-hidden="true">{longEnough ? "✓" : "•"}</span> At least 8 characters
+            </li>
+            <li className={`flex items-center gap-1.5 ${matches ? "text-[var(--good)]" : "text-[var(--muted)]"}`}>
+              <span aria-hidden="true">{matches ? "✓" : "•"}</span> Both entries match
+            </li>
+          </ul>
 
-              {error && (
-                <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-lg px-3 py-2.5 border border-[var(--bad)]/20">
-                  {error}
-                </p>
-              )}
+          {error && <AuthNotice>{error}</AuthNotice>}
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="mt-1 w-full py-2.5 rounded-lg bg-[var(--accent)] text-white text-sm font-bold hover:bg-[var(--accent-strong)] disabled:opacity-50 shadow-sm hover:shadow"
-              >
-                {saving ? "Saving…" : "Set new password"}
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-    </div>
+          <Button type="submit" variant="primary" size="lg" block loading={saving} className="mt-1">
+            {saving ? "Saving…" : "Set new password"}
+          </Button>
+        </form>
+      )}
+    </AuthShell>
   );
 }

@@ -75,7 +75,7 @@ export default function ProofVerify({
           type="button"
           disabled={!note.trim() || busy}
           onClick={() => send(false, note.trim())}
-          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white cursor-pointer disabled:opacity-40"
+          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-[var(--on-accent)] cursor-pointer disabled:opacity-40"
         >
           Send
         </button>
@@ -117,7 +117,7 @@ export default function ProofVerify({
           disabled={busy}
           onClick={() => send(true)}
           title="Verify this screenshot"
-          className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--good)] text-white hover:opacity-90 cursor-pointer disabled:opacity-50"
+          className="inline-flex items-center justify-center w-6 h-6 rounded bg-[var(--good)] text-[var(--on-accent)] hover:opacity-90 cursor-pointer disabled:opacity-50"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6 9 17l-5-5" />

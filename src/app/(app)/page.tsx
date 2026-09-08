@@ -362,7 +362,7 @@ export default async function DashboardPage() {
             have to go looking for is a number nobody looks at. */}
         <a
           href="/account"
-          className="border rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] transition-colors block xl:flex-auto xl:min-w-0"
+          className="lift border rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] block xl:flex-auto xl:min-w-0"
           style={{
             borderColor:
               credState === "expired" || credState === "blocking" || credState === "unset"
@@ -426,7 +426,7 @@ export default async function DashboardPage() {
           // width an itinerary needs.
           <a
             href="/schedule"
-            className="min-[400px]:col-span-2 xl:flex-[2_1_auto] xl:min-w-0 border border-[var(--line)] rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] transition-colors block"
+            className="lift min-[400px]:col-span-2 xl:flex-[2_1_auto] xl:min-w-0 border border-[var(--line)] rounded-xl bg-[var(--paper-raised)] px-4 py-4 hover:border-[var(--accent)] block"
           >
             <div className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-1.5">Station</div>
 

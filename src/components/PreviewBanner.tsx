@@ -25,7 +25,7 @@ export default function PreviewBanner({ label }: { label: string }) {
         type="button"
         onClick={exitPreview}
         disabled={pending}
-        className="px-2.5 py-1 rounded bg-white/20 hover:bg-white/30 font-bold disabled:opacity-50"
+        className="px-2.5 py-1 rounded-md bg-[var(--on-accent)]/15 hover:bg-[var(--on-accent)]/25 font-bold disabled:opacity-50 whitespace-nowrap self-start sm:self-auto"
       >
         {pending ? "Exiting…" : "Exit preview"}
       </button>
@@ -42,7 +42,7 @@ export default function PreviewBanner({ label }: { label: string }) {
       <div aria-hidden="true" className="invisible px-4 md:px-10 py-2 mb-6 flex flex-col sm:flex-row gap-1.5 sm:gap-0 text-[12.5px]">
         {content}
       </div>
-      <div className="fixed z-[25] top-14 md:top-0 left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] px-4 md:px-10 py-2 bg-[var(--warn)] text-white text-[12.5px] font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-0 transition-[left,width] duration-200 ease-out">
+      <div className="fixed z-[25] top-[calc(56px+var(--safe-top))] md:top-0 left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] px-4 md:px-10 py-2 bg-[var(--warn)] text-[var(--on-accent)] text-[12.5px] font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-0 transition-[left,width] duration-200 ease-out">
         {content}
       </div>
     </>

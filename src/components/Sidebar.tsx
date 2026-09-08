@@ -307,7 +307,7 @@ export default function Sidebar({
   return (
     <aside className="px-3 pt-5 pb-4 flex flex-col gap-5 h-full w-full overflow-y-auto overflow-x-hidden shrink-0 bg-[var(--paper)]">
       <div className="px-1 flex items-center gap-2.5 md:group-data-[collapsed=true]/sidebar:justify-center md:group-data-[collapsed=true]/sidebar:px-0">
-        <span className="hidden md:group-data-[collapsed=true]/sidebar:flex w-9 h-9 rounded-lg bg-[var(--accent)] text-white items-center justify-center font-serif font-bold text-sm shrink-0 shadow-sm">
+        <span className="hidden md:group-data-[collapsed=true]/sidebar:flex w-9 h-9 rounded-lg bg-[var(--accent)] text-[var(--on-accent)] items-center justify-center font-serif font-bold text-sm shrink-0 shadow-sm">
           CN
         </span>
         <div className="md:group-data-[collapsed=true]/sidebar:hidden min-w-0">

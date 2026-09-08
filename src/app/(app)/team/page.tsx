@@ -30,7 +30,7 @@ export default async function TeamPage() {
         footnote="New members receive an email invite to set their own password. Login accepts PSID or email. Immune and Tenure are managed from Weekly Schedule now, alongside the other rotation/generate settings that use them."
       >
         <div className="overflow-x-auto scroll-shadow-x">
-          <table className="w-full text-[13px] border-collapse">
+          <table className="w-full text-[13px] border-collapse min-w-[640px]">
             <thead>
               <tr>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">PSID</th>

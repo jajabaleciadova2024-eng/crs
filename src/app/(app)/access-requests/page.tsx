@@ -31,7 +31,7 @@ export default async function AccessRequestsPage() {
         footnote="Approving always creates an Associate account and invites the person by email, same as adding a member from Team & Roles — just assign a PSID. Need to add a Team Leader or OIC instead? Use Team & Roles directly."
       >
         <div className="overflow-x-auto scroll-shadow-x">
-          <table className="w-full text-[13px] border-collapse">
+          <table className="w-full text-[13px] border-collapse min-w-[640px]">
             <thead>
               <tr>
                 <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">PSID</th>

@@ -78,7 +78,7 @@ export default function UnseenAnnouncementModal() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header banner */}
-        <div className="bg-[var(--accent)] px-6 py-4 text-white">
+        <div className="bg-[var(--accent)] px-6 py-4 text-[var(--on-accent)]">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[20px]">📢</span>
             <span className="text-[11px] font-bold uppercase tracking-wider opacity-80">New Announcement</span>
@@ -128,7 +128,7 @@ export default function UnseenAnnouncementModal() {
           <button
             type="button"
             onClick={dismiss}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-[13px] font-bold bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-[13px] font-bold bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)] transition-colors shadow-sm"
           >
             Got it
           </button>

@@ -842,7 +842,7 @@ export default function TaskCard({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+                      className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-[var(--on-accent)] hover:opacity-90 active:scale-95 transition-all cursor-pointer"
                     >
                       Choose photos
                     </button>
@@ -898,7 +898,7 @@ export default function TaskCard({
                         type="button"
                         onClick={() => handleSubmit(photos.map((p) => p.file))}
                         disabled={toggling}
-                        className="ml-auto shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                        className="ml-auto shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-[var(--on-accent)] hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                       >
                         {preparing ? "Preparing…" : toggling ? "Submitting…" : "Submit"}
                       </button>
@@ -1088,7 +1088,7 @@ export default function TaskCard({
                                       type="button"
                                       onClick={() => handleReview(c.id, "approved")}
                                       disabled={reviewing === c.id}
-                                      className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                                      className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--good)] text-[var(--on-accent)] hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
                                     >
                                       Approve
                                     </button>
@@ -1099,7 +1099,7 @@ export default function TaskCard({
                                         setDeclineNote("");
                                       }}
                                       disabled={reviewing === c.id}
-                                      className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                                      className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-[var(--on-accent)] hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
                                     >
                                       Decline
                                     </button>
@@ -1138,7 +1138,7 @@ export default function TaskCard({
                           type="button"
                           onClick={() => handleReview(r.completion!.id, "rejected", declineNote.trim())}
                           disabled={reviewing === r.completion.id || !declineNote.trim()}
-                          className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-[var(--on-accent)] hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Confirm decline
                         </button>

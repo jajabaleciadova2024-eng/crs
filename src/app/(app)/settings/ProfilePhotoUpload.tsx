@@ -67,17 +67,17 @@ export default function ProfilePhotoUpload({
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center gap-4">
       <Avatar firstName={firstName} lastName={lastName} avatarUrl={avatarUrl} size="lg" />
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 min-w-0">
         <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}>
             {uploading ? "Working…" : avatarUrl ? "Change photo" : "Upload photo"}
           </Button>
           {avatarUrl && (
-            <Button type="button" onClick={handleRemove} disabled={uploading}>
+            <Button type="button" variant="danger-ghost" onClick={handleRemove} disabled={uploading}>
               Remove photo
             </Button>
           )}
