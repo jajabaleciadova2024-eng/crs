@@ -13,6 +13,11 @@ import type { LeaveTypeConfig } from "@/lib/leaveTypes";
 // One array, rendered once, is what keeps the two from drifting apart again.
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+function isWeekend(dateStr: string): boolean {
+  const day = new Date(`${dateStr}T00:00:00Z`).getUTCDay();
+  return day === 0 || day === 6;
+}
+
 export default function LeaveCalendar({
   dayMap,
   leaveTypeConfigs,
@@ -42,7 +47,7 @@ export default function LeaveCalendar({
     return leaveTypeConfigs.find((c) => c.key === key)?.label ?? key;
   }
 
-  const selectedEntries = selectedDate ? (dayMap[selectedDate] ?? []) : [];
+  const selectedEntries = selectedDate && !isWeekend(selectedDate) ? (dayMap[selectedDate] ?? []) : [];
 
   return (
     <div>
@@ -93,7 +98,8 @@ export default function LeaveCalendar({
           </div>
         ))}
         {dates.map((date) => {
-          const entries = dayMap[date] ?? [];
+          const weekend = isWeekend(date);
+          const entries = weekend ? [] : (dayMap[date] ?? []);
           const inMonth = date.slice(0, 7) === monthKey;
           const isToday = date === today;
           const isSelected = date === selectedDate;
@@ -108,7 +114,7 @@ export default function LeaveCalendar({
               disabled={!hasContent}
               className={`flex flex-col items-start gap-1 rounded-lg border px-1.5 sm:px-2 py-1.5 sm:py-2 min-h-[56px] sm:min-h-[68px] text-left transition-all ${
                 isSelected ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-sm" : "border-[var(--line)]"
-              } ${inMonth ? "bg-[var(--paper)]" : "bg-[var(--paper-raised)] opacity-40"} ${
+              } ${!inMonth || (weekend && !holiday) ? "bg-[var(--paper-raised)] opacity-40" : "bg-[var(--paper)]"} ${
                 hasContent ? "cursor-pointer hover:border-[var(--accent)] hover:shadow-sm active:scale-95" : "cursor-default"
               }`}
             >
