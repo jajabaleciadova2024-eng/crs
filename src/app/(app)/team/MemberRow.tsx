@@ -47,7 +47,7 @@ function IconButton({
 
 function Icon({ children }: { children: ReactNode }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       {children}
     </svg>
   );
@@ -145,16 +145,16 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
   return (
     <>
       <tr className={member.is_active ? "" : "opacity-50"}>
-        <td className="py-2.5 border-b border-[var(--line)]">
+        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
           <code className="bg-[var(--accent-soft)] text-[var(--accent-strong)] px-1.5 py-0.5 rounded text-[11.5px]">{member.psid}</code>
         </td>
-        <td className="py-2.5 border-b border-[var(--line)]">{formatFullName(member.first_name, member.last_name)}</td>
-        <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.email}</td>
-        <td className="py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.mobile_number ?? "—"}</td>
-        <td className="py-2.5 border-b border-[var(--line)]">
+        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">{formatFullName(member.first_name, member.last_name)}</td>
+        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.email}</td>
+        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.mobile_number ?? "—"}</td>
+        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
           <Pill tone={ROLE_TONE[member.role]}>{ROLE_LABEL[member.role]}</Pill>
         </td>
-        <td className="py-2.5 border-b border-[var(--line)]">
+        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
           <div className="flex gap-1.5">
             <IconButton label="Edit" onClick={startEdit}>
               <Icon>

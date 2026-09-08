@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { AppRole } from "@/lib/database.types";
+import { Pill } from "@/components/ui";
 import TicketComposer from "./TicketComposer";
 import TicketThread from "./TicketThread";
 
@@ -92,7 +93,7 @@ export default function TicketList({
       <TicketComposer onCreated={fetchTickets} />
 
       {/* Filter tabs */}
-      <div className="flex gap-1 bg-[var(--paper)] rounded-lg p-1 border border-[var(--line)] w-fit">
+      <div className="flex flex-wrap items-center gap-1.5">
         {(["all", "open", "closed"] as const).map((f) => {
           const count = f === "all" ? allTickets.length : f === "open" ? openCount : closedCount;
           return (
@@ -100,10 +101,10 @@ export default function TicketList({
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors capitalize ${
+              className={`px-2.5 py-1.5 rounded-md text-[11.5px] font-bold transition-colors cursor-pointer capitalize ${
                 filter === f
-                  ? "bg-[var(--accent)] text-white"
-                  : "text-[var(--muted)] hover:text-[var(--ink)]"
+                  ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+                  : "text-[var(--muted)] hover:bg-[var(--paper-raised)] hover:text-[var(--ink)]"
               }`}
             >
               {f} {count > 0 && <span className="ml-0.5 opacity-70">({count})</span>}
@@ -132,15 +133,7 @@ export default function TicketList({
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span
-                      className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${
-                        t.status === "open"
-                          ? "bg-[var(--good-soft)] text-[var(--good-strong)]"
-                          : "bg-[var(--muted)]/15 text-[var(--muted)]"
-                      }`}
-                    >
-                      {t.status}
-                    </span>
+                    <Pill tone={t.status === "open" ? "good" : "muted"}>{t.status === "open" ? "Open" : "Closed"}</Pill>
                     {t.ticket_attachments.length > 0 && (
                       <span className="text-[10px] text-[var(--muted)]">
                         📎 {t.ticket_attachments.length}

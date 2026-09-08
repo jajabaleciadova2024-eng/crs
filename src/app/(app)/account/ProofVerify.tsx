@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Pill } from "@/components/ui";
 import ProofViewer from "@/components/ProofViewer";
 
 // Verify / reject one member's MFA or passkey screenshot.
@@ -31,29 +32,28 @@ export default function ProofVerify({
   const [rejecting, setRejecting] = useState(false);
   const [note, setNote] = useState("");
 
+  const [error, setError] = useState<string | null>(null);
+
   async function send(ok: boolean, reviewNote?: string) {
     setBusy(true);
-    await fetch("/api/account/verify-proof", {
+    setError(null);
+    const res = await fetch("/api/account/verify-proof", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ profile_id: profileId, kind, verified: ok, review_note: reviewNote ?? null }),
     });
     setBusy(false);
+    if (!res.ok) {
+      setError((await res.json().catch(() => ({}))).error ?? "Couldn't save that.");
+      return;
+    }
     setRejecting(false);
     setNote("");
     router.refresh();
   }
 
   if (!hasProof) {
-    return (
-      <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-          required ? "bg-[var(--bad-soft)] text-[var(--bad)]" : "bg-[var(--paper)] text-[var(--muted)]"
-        }`}
-      >
-        {required ? "Missing" : "None"}
-      </span>
-    );
+    return <Pill tone={required ? "bad" : "muted"}>{required ? "Missing" : "None"}</Pill>;
   }
 
   if (rejecting) {
@@ -70,7 +70,7 @@ export default function ProofVerify({
           type="button"
           disabled={!note.trim() || busy}
           onClick={() => send(false, note.trim())}
-          className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white cursor-pointer disabled:opacity-40"
+          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white cursor-pointer disabled:opacity-40"
         >
           Send
         </button>
@@ -88,9 +88,9 @@ export default function ProofVerify({
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
       {verified ? (
-        <span className="text-[var(--good)] font-bold text-[11px]">✓ Verified</span>
+        <Pill tone="good">Verified</Pill>
       ) : (
-        <span className="text-[11px] font-bold text-[var(--warn)]">Needs check</span>
+        <Pill tone="warn">Needs check</Pill>
       )}
       <ProofViewer
         fetchUrl={`/api/account/credential-proof?kind=${kind}${profileId ? `&profile_id=${profileId}` : ""}`}
@@ -102,7 +102,7 @@ export default function ProofVerify({
           type="button"
           disabled={busy}
           onClick={() => send(true)}
-          className="px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 cursor-pointer disabled:opacity-50"
+          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 cursor-pointer disabled:opacity-50"
         >
           Verify
         </button>
@@ -115,6 +115,7 @@ export default function ProofVerify({
       >
         ✕
       </button>
+      {error && <span className="text-[11px] text-[var(--bad)]">{error}</span>}
     </span>
   );
 }

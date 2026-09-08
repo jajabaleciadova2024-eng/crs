@@ -21,7 +21,7 @@ export default function ProofExample() {
       </button>
 
       {open && (
-        <div className="mt-2 rounded-lg border border-[var(--line)] bg-white p-3 overflow-x-auto">
+        <div className="mt-2 rounded-lg border border-[var(--line)] bg-[var(--paper-raised)] p-3 overflow-x-auto">
           <div className="min-w-[300px] text-[#201f1e]" style={{ fontFamily: "system-ui, sans-serif" }}>
             <div className="text-[15px] font-semibold mb-0.5">Security info</div>
             <div className="text-[10.5px] text-[#605e5c] mb-2.5">
