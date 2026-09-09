@@ -7,6 +7,7 @@ import { formatLeaveRanges } from "@/lib/leaveFormat";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, type LeaveTypeConfig } from "@/lib/leaveTypes";
 import { formatFullName } from "@/lib/format";
 import { DocumentLinks } from "../DocumentUpload";
+import DeleteLeaveButton from "./DeleteLeaveButton";
 import type { LeaveStatus } from "@/lib/database.types";
 
 const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
@@ -20,9 +21,10 @@ export default async function LeaveHistoryPage() {
   // Same visibility split as the Queue: Team Leader + OIC see everyone's
   // history, an associate sees only their own.
   const canViewAll = isApprover(profile.role);
+  const isTL = profile.role === "team_leader";
   // Download (inside the document popup) is Team Leader only, narrower
   // than canViewAll -- OIC and the owner themselves can still View.
-  const canDownload = profile.role === "team_leader";
+  const canDownload = isTL;
 
   const supabase = await createClient();
   // History shows approved and finally-rejected requests. Non-final
@@ -94,6 +96,7 @@ export default async function LeaveHistoryPage() {
                     <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Status</th>
                     <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Document</th>
                     <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Decided on</th>
+                    {isTL && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap"><span className="sr-only">Actions</span></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -148,6 +151,11 @@ export default async function LeaveHistoryPage() {
                         <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
                           {r.reviewed_at ? new Date(r.reviewed_at).toISOString().slice(0, 10) : "—"}
                         </td>
+                        {isTL && (
+                          <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
+                            <DeleteLeaveButton id={r.id} label={formatFullName(p?.first_name, p?.last_name)} />
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
