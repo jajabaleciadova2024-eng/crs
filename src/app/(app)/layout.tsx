@@ -135,6 +135,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     if (!cred?.mfa_proof_path || !cred?.mfa_verified) accountAlerts += 1;
   }
 
+  // Active members for chat @mention autocomplete
+  const { data: activeMemberRows } = await admin
+    .from("profiles")
+    .select("id, first_name, last_name")
+    .eq("is_active", true);
+  const activeMembers = (activeMemberRows ?? []).map((m: { id: string; first_name: string; last_name: string }) => ({
+    id: m.id,
+    first_name: m.first_name,
+    last_name: m.last_name,
+  }));
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       <SidebarShell>
@@ -166,7 +177,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <NotificationBell userId={profile.id} />
       </div>
       <UnseenAnnouncementModal />
-      <GroupChat userId={profile.id} currentUserRole={profile.role} />
+      <GroupChat userId={profile.id} currentUserRole={profile.role} members={activeMembers} />
       <AutoLogout />
     </div>
   );

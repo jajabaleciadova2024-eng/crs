@@ -16,7 +16,7 @@ type Notification = {
     | "task_submitted" | "task_reviewed" | "task_assigned" | "task_poke" | "password_reset_submitted" | "password_reset_reviewed" | "password_expiring" | "schedule_changed" | "leave_updated" | "credential_proof_submitted" | "credential_proof_reviewed"
     | "leave_submitted" | "leave_reviewed" | "schedule_published"
     | "post_new"
-    | "chat_reply" | "chat_reaction";
+    | "chat_reply" | "chat_reaction" | "chat_mention";
   post_id: string | null;
   comment_id: string | null;
   reaction: string | null;
@@ -83,6 +83,7 @@ function describe(n: Notification): string {
   if (n.type === "post_new") return `${name} shared a new post`;
   if (n.type === "chat_reply") return `${name} replied to your message`;
   if (n.type === "chat_reaction") return `${name} reacted to your message`;
+  if (n.type === "chat_mention") return `${name} mentioned you in chat`;
   return "";
 }
 
@@ -261,7 +262,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
               items.map((n) => (
                 <Link
                   key={n.id}
-                  href={n.type === "chat_reply" || n.type === "chat_reaction" ? "#open-chat" : n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" || n.type === "task_poke" ? "/tasks" : n.type === "password_reset_submitted" || n.type === "password_reset_reviewed" || n.type === "password_expiring" || n.type === "credential_proof_submitted" || n.type === "credential_proof_reviewed" ? "/account" : n.type === "leave_submitted" || n.type === "leave_reviewed" || n.type === "leave_updated" ? "/leave" : n.type === "schedule_published" || n.type === "schedule_changed" ? "/schedule" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
+                  href={n.type === "chat_reply" || n.type === "chat_reaction" || n.type === "chat_mention" ? "#open-chat" : n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" || n.type === "task_poke" ? "/tasks" : n.type === "password_reset_submitted" || n.type === "password_reset_reviewed" || n.type === "password_expiring" || n.type === "credential_proof_submitted" || n.type === "credential_proof_reviewed" ? "/account" : n.type === "leave_submitted" || n.type === "leave_reviewed" || n.type === "leave_updated" ? "/leave" : n.type === "schedule_published" || n.type === "schedule_changed" ? "/schedule" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
                   onClick={() => {
                     if (!n.read) markOneRead(n.id);
                     setOpen(false);

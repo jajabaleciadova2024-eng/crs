@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { toTitleCase } from "@/lib/format";
 import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
+import { useMentionAutocomplete, MentionDropdown, type Mentionable } from "@/components/feed/mentions";
 import ChatMessage from "./ChatMessage";
 
 export type ChatMsg = {
@@ -38,9 +39,11 @@ const POLL_INTERVAL = 5000;
 export default function GroupChat({
   userId,
   currentUserRole,
+  members,
 }: {
   userId: string;
   currentUserRole: string;
+  members: Mentionable[];
 }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -55,6 +58,14 @@ export default function GroupChat({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  const isTL = currentUserRole === "team_leader";
+  const mentionable = useMemo(() => {
+    const list = members.filter((m) => m.id !== userId);
+    if (isTL) list.push({ id: "__everyone__", first_name: "everyone", last_name: "" });
+    return list;
+  }, [members, userId, isTL]);
+  const mention = useMentionAutocomplete(mentionable);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -270,6 +281,22 @@ export default function GroupChat({
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
+    const consumed = mention.handleKeyDown(e, (name) => {
+      const result = mention.applyMention(content, name);
+      if (result) {
+        setContent(result.text);
+        mention.reset();
+        requestAnimationFrame(() => {
+          const ta = textareaRef.current;
+          if (ta) {
+            ta.selectionStart = ta.selectionEnd = result.cursor;
+            ta.style.height = "auto";
+            ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
+          }
+        });
+      }
+    });
+    if (consumed) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -278,6 +305,7 @@ export default function GroupChat({
 
   function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
     setContent(e.target.value);
+    mention.onChange(e.target);
     const ta = e.target;
     ta.style.height = "auto";
     ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
@@ -454,6 +482,7 @@ export default function GroupChat({
                       fetchMessages();
                     }}
                     reactionEmojis={REACTION_EMOJIS}
+                    mentionable={members}
                   />
                 );
               })
@@ -509,6 +538,28 @@ export default function GroupChat({
           )}
           {uploadError && (
             <div className="px-4 pb-1 text-[11px] text-[var(--bad)] font-medium">{uploadError}</div>
+          )}
+
+          {/* Mention autocomplete */}
+          {mention.suggestions.length > 0 && (
+            <MentionDropdown
+              suggestions={mention.suggestions}
+              activeIndex={mention.activeIndex}
+              onPick={(name) => {
+                const result = mention.applyMention(content, name);
+                if (result) {
+                  setContent(result.text);
+                  mention.reset();
+                  requestAnimationFrame(() => {
+                    const ta = textareaRef.current;
+                    if (ta) {
+                      ta.selectionStart = ta.selectionEnd = result.cursor;
+                      ta.focus();
+                    }
+                  });
+                }
+              }}
+            />
           )}
 
           {/* Compose bar */}

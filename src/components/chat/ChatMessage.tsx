@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Avatar, Pill } from "@/components/ui";
 import { toTitleCase } from "@/lib/format";
 import type { ChatMsg } from "./GroupChat";
 import Linkify from "@/components/Linkify";
+import type { Mentionable } from "@/components/feed/mentions";
 
 const ROLE_LABEL: Record<string, string> = {
   team_leader: "TL",
@@ -31,6 +32,25 @@ function dateStr(dateStr: string): string {
   return d.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
 }
 
+function ChatContent({ text, mentionable }: { text: string; mentionable: Mentionable[] }) {
+  const names = new Set(mentionable.map((m) => toTitleCase(m.first_name).toLowerCase()));
+  const parts = text.split(/(@[A-Za-z][A-Za-z'-]*)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("@") && names.has(part.slice(1).toLowerCase())) {
+          return (
+            <span key={i} className="text-[var(--accent-strong)] font-bold">
+              {part}
+            </span>
+          );
+        }
+        return <Linkify key={i} text={part} />;
+      })}
+    </>
+  );
+}
+
 export default function ChatMessage({
   message: msg,
   isOwn,
@@ -44,6 +64,7 @@ export default function ChatMessage({
   onEdit,
   onDelete,
   reactionEmojis,
+  mentionable,
 }: {
   message: ChatMsg;
   isOwn: boolean;
@@ -57,7 +78,17 @@ export default function ChatMessage({
   onEdit: (content: string) => void;
   onDelete: () => void;
   reactionEmojis: string[];
+  mentionable?: Mentionable[];
 }) {
+  const mentionableWithEveryone = useMemo(() => {
+    if (!mentionable) return [];
+    const list = [...mentionable];
+    if (!list.some((m) => m.first_name.toLowerCase() === "everyone")) {
+      list.push({ id: "__everyone__", first_name: "everyone", last_name: "" });
+    }
+    return list;
+  }, [mentionable]);
+
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -220,7 +251,7 @@ export default function ChatMessage({
                   )}
                   {msg.content && (
                     <p className="text-[13px] leading-relaxed whitespace-pre-wrap m-0">
-                      <Linkify text={msg.content} />
+                      <ChatContent text={msg.content} mentionable={mentionableWithEveryone} />
                     </p>
                   )}
                   {isEdited && (

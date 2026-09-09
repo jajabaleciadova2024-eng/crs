@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { bellNotify } from "@/lib/bellNotify";
+import { bellNotify, allActiveMemberIds } from "@/lib/bellNotify";
 
 const PAGE_SIZE = 50;
 
@@ -99,7 +99,43 @@ export async function POST(request: Request) {
       .eq("id", replyToId)
       .single();
     if (original && original.author_id !== user.id) {
-      bellNotify([original.author_id], user.id, "chat_reply" as any, null, enriched.id);
+      bellNotify([original.author_id], user.id, "chat_reply", null, enriched.id);
+    }
+  }
+
+  // Parse @mentions and notify
+  if (content) {
+    const mentionTokens = content.match(/@[A-Za-z][A-Za-z'-]*/g);
+    if (mentionTokens) {
+      const lowerTokens = mentionTokens.map((t: string) => t.slice(1).toLowerCase());
+      const hasEveryone = lowerTokens.includes("everyone");
+
+      if (hasEveryone) {
+        const { data: senderProfile } = await admin
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        if (senderProfile?.role === "team_leader") {
+          const allIds = await allActiveMemberIds();
+          bellNotify(allIds, user.id, "chat_mention", null, enriched.id);
+        }
+      }
+
+      if (!hasEveryone || lowerTokens.length > 1) {
+        const { data: mentioned } = await admin
+          .from("profiles")
+          .select("id, first_name")
+          .eq("is_active", true);
+        if (mentioned) {
+          const ids = mentioned
+            .filter((p: { first_name: string }) => lowerTokens.includes(p.first_name.toLowerCase()))
+            .map((p: { id: string }) => p.id);
+          if (ids.length > 0) {
+            bellNotify(ids, user.id, "chat_mention", null, enriched.id);
+          }
+        }
+      }
     }
   }
 

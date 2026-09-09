@@ -23,7 +23,8 @@ export type BellType =
   | "credential_proof_submitted"
   | "credential_proof_reviewed"
   | "chat_reply"
-  | "chat_reaction";
+  | "chat_reaction"
+  | "chat_mention";
 
 export async function bellNotify(
   recipientIds: string[],
