@@ -91,31 +91,31 @@ export default function LeaveHistoryRow({
         </td>
 
         {canViewAll && (
-          <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap font-medium">
+          <td className="px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap font-medium">
             {memberName}
           </td>
         )}
 
-        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap capitalize">
+        <td className="px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap capitalize">
           <div className="flex items-center gap-1.5">
             <span>{typeConfig?.label ?? r.leave_type}</span>
             {r.is_half_day && <Pill>½ day</Pill>}
           </div>
         </td>
 
-        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
+        <td className="px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
           <span className="whitespace-nowrap">
             {formatLeaveRanges({ start_date: r.start_date, end_date: r.end_date }, r.leave_request_ranges ?? [])}
           </span>
         </td>
 
-        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
+        <td className="px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
           <Pill tone={STATUS_TONE[r.status as LeaveStatus]}>
             {r.status[0].toUpperCase() + r.status.slice(1)}
           </Pill>
         </td>
 
-        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap text-[var(--muted)]">
+        <td className="px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap text-[var(--muted)]">
           {r.reviewed_at
             ? new Date(r.reviewed_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })
             : "—"}

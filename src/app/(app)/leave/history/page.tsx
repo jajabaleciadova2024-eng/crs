@@ -7,7 +7,7 @@ import { DEFAULT_LEAVE_TYPE_CONFIGS, type LeaveTypeConfig } from "@/lib/leaveTyp
 import LeaveHistoryRow from "./LeaveHistoryRow";
 
 const TH =
-  "text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap";
+  "text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap";
 
 export default async function LeaveHistoryPage() {
   const profile = await requireProfile();
@@ -41,8 +41,7 @@ export default async function LeaveHistoryPage() {
     periods.get(period.key)!.rows.push(r);
   }
 
-  // Chevron + Type + Dates + Status + Decided = 5 fixed columns
-  // + Associate (canViewAll) + Actions (isTL)
+  // Column count for colSpan in expanded rows
   const colCount = 5 + (canViewAll ? 1 : 0) + (isTL ? 1 : 0);
 
   return (
@@ -66,17 +65,27 @@ export default async function LeaveHistoryPage() {
       ) : (
         Array.from(periods.entries()).map(([key, { label, rows }]) => (
           <Panel key={key} title={label} hint={`${rows.length} decided`}>
-            <div className="overflow-x-auto scroll-shadow-x -mx-4 sm:-mx-5 px-4 sm:px-5">
-              <table className="w-full text-[13px] border-collapse min-w-[480px]">
+            <div className="overflow-x-auto scroll-shadow-x -mx-4 sm:-mx-5">
+              <table className="w-full text-[13px] border-collapse min-w-[540px]">
+                {/* Explicit column widths prevent random browser distribution */}
+                <colgroup>
+                  <col style={{ width: 36 }} />
+                  {canViewAll && <col style={{ width: "22%" }} />}
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: canViewAll ? "28%" : "36%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "12%" }} />
+                  {isTL && <col style={{ width: 40 }} />}
+                </colgroup>
                 <thead>
                   <tr>
-                    <th className={`${TH} w-0 px-2`}><span className="sr-only">Expand</span></th>
+                    <th className={`${TH} px-2`}><span className="sr-only">Expand</span></th>
                     {canViewAll && <th className={TH}>Associate</th>}
                     <th className={TH}>Type</th>
                     <th className={TH}>Dates</th>
                     <th className={TH}>Status</th>
                     <th className={TH}>Decided</th>
-                    {isTL && <th className={`${TH} w-0 px-2`}><span className="sr-only">Actions</span></th>}
+                    {isTL && <th className={`${TH} px-2`}><span className="sr-only">Actions</span></th>}
                   </tr>
                 </thead>
                 <tbody>
