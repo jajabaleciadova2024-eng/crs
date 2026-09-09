@@ -63,7 +63,7 @@ export default function ClearScheduleButton({ scheduleWeekId, weekStart }: { sch
               to generate it again from scratch.
             </p>
 
-            {error && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{error}</p>}
+            {error && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-md px-3 py-2 m-0">{error}</p>}
 
         </Modal>
       )}

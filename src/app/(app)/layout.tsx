@@ -7,6 +7,7 @@ import PreviewBanner from "@/components/PreviewBanner";
 import NotificationBell from "@/components/NotificationBell";
 import UnseenAnnouncementModal from "@/components/announcements/UnseenAnnouncementModal";
 import AutoLogout from "@/components/AutoLogout";
+import GroupChat from "@/components/chat/GroupChat";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPasswordBlocking } from "@/lib/passwordExpiry";
 import { taskAppliesTo } from "@/lib/taskAssignment";
@@ -165,6 +166,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <NotificationBell userId={profile.id} />
       </div>
       <UnseenAnnouncementModal />
+      <GroupChat userId={profile.id} currentUserRole={profile.role} />
       <AutoLogout />
     </div>
   );

@@ -382,7 +382,7 @@ export default function TaskModal({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <fieldset className="rounded-lg border border-[var(--line)] bg-[var(--paper)]/40 px-3.5 py-3 m-0 flex flex-col gap-3">
-      <legend className="px-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--accent-strong)]">
+      <legend className="px-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-strong)]">
         {title}
       </legend>
       {children}

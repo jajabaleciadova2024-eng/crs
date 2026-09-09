@@ -273,7 +273,7 @@ export default function GenerateButton({
                 type="date"
                 value={weekStart}
                 onChange={(e) => handleWeekChange(e.target.value)}
-                className="text-sm border border-[var(--line)] rounded px-2.5 py-1.5 bg-[var(--paper)]"
+                className="text-sm border border-[var(--line)] rounded-md px-2.5 py-1.5 bg-[var(--paper)]"
               />
               <p className="text-[11px] text-[var(--muted)] mt-1 m-0">
                 Defaults to the next open week — pick any date and it snaps to that week&apos;s Monday. Generating fails
@@ -306,7 +306,7 @@ export default function GenerateButton({
                         </select>
                         <div className="flex flex-wrap gap-1.5">
                           <label
-                            className="flex items-center gap-1 text-[11px] font-bold border border-[var(--line)] rounded px-1.5 py-0.5 cursor-pointer select-none bg-[var(--paper-raised)] text-[var(--accent-strong)]"
+                            className="flex items-center gap-1 text-[11px] font-bold border border-[var(--line)] rounded-md px-1.5 py-0.5 cursor-pointer select-none bg-[var(--paper-raised)] text-[var(--accent-strong)]"
                             title="Pin this member Mon–Fri"
                           >
                             <input
@@ -327,7 +327,7 @@ export default function GenerateButton({
                           {workDates.map((date) => (
                             <label
                               key={date}
-                              className="flex items-center gap-1 text-[11px] border border-[var(--line)] rounded px-1.5 py-0.5 cursor-pointer select-none bg-[var(--paper)]"
+                              className="flex items-center gap-1 text-[11px] border border-[var(--line)] rounded-md px-1.5 py-0.5 cursor-pointer select-none bg-[var(--paper)]"
                             >
                               <input
                                 type="checkbox"
@@ -380,7 +380,7 @@ export default function GenerateButton({
                             min={0}
                             value={rows[w.id]?.tenured ?? 0}
                             onChange={(e) => updateRow(w.id, "tenured", Number(e.target.value))}
-                            className="w-16 text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)]"
+                            className="w-16 text-xs border border-[var(--line)] rounded-md px-2 py-1 bg-[var(--paper)]"
                           />
                         </td>
                         <td className="py-1.5 border-b border-[var(--line)]">
@@ -389,7 +389,7 @@ export default function GenerateButton({
                             min={0}
                             value={rows[w.id]?.newHire ?? 0}
                             onChange={(e) => updateRow(w.id, "newHire", Number(e.target.value))}
-                            className="w-16 text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)]"
+                            className="w-16 text-xs border border-[var(--line)] rounded-md px-2 py-1 bg-[var(--paper)]"
                           />
                         </td>
                       </tr>
@@ -421,7 +421,7 @@ export default function GenerateButton({
             </div>
 
             {fixedHeadcount > totalMembers && (
-              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
+              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded-md px-3 py-2 m-0">
                 Fixed headcount across all stations ({fixedHeadcount}) is {fixedHeadcount - totalMembers} more than
                 your total active headcount ({totalMembers}) — every day, {fixedHeadcount - totalMembers === 1 ? "one seat" : `${fixedHeadcount - totalMembers} seats`}{" "}
                 somewhere will go unfilled, and it&apos;ll be a different station each time (whoever the random fill
@@ -432,14 +432,14 @@ export default function GenerateButton({
             )}
 
             {unplacedImmune.length > 0 && (
-              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
+              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded-md px-3 py-2 m-0">
                 {unplacedImmune.length} immune member{unplacedImmune.length > 1 ? "s" : ""} still need a station and
                 at least one day checked before you can generate.
               </p>
             )}
 
             {immuneOverflow.length > 0 && (
-              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
+              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded-md px-3 py-2 m-0">
                 Too many immune members at one station on the same day —{" "}
                 {immuneOverflow
                   .map((o) => `${o.name} on ${weekdayShortLabel(o.date)}: ${o.placed} placed, only ${o.headcount} seat${o.headcount === 1 ? "" : "s"}`)
@@ -448,7 +448,7 @@ export default function GenerateButton({
               </p>
             )}
 
-            {error && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{error}</p>}
+            {error && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-md px-3 py-2 m-0">{error}</p>}
             </div>
         </Modal>,
         document.body
