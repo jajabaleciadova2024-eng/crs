@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bellNotify, resolveBellNotices } from "@/lib/bellNotify";
+import { deleteResetProof } from "@/lib/credentialStorage";
 
 const KINDS = ["mfa", "passkey"] as const;
 type Kind = (typeof KINDS)[number];
@@ -49,15 +50,27 @@ export async function POST(request: Request) {
   }
 
   const now = new Date().toISOString();
+
+  // On rejection, delete the old proof from storage and clear the path so
+  // the member sees an empty upload slot and can resubmit a new screenshot.
+  if (!verified) {
+    await deleteResetProof(path);
+  }
+
   const patch =
     kind === "mfa"
-      ? { mfa_verified: verified, mfa_verified_by: user.id, mfa_verified_at: now, mfa_review_note: review_note }
-      : {
-          passkey_verified: verified,
-          passkey_verified_by: user.id,
-          passkey_verified_at: now,
-          passkey_review_note: review_note,
-        };
+      ? verified
+        ? { mfa_verified: true, mfa_verified_by: user.id, mfa_verified_at: now, mfa_review_note: review_note }
+        : {
+            mfa_proof_path: null, mfa_configured: false, mfa_confirmed_at: null,
+            mfa_verified: false, mfa_verified_by: user.id, mfa_verified_at: now, mfa_review_note: review_note,
+          }
+      : verified
+        ? { passkey_verified: true, passkey_verified_by: user.id, passkey_verified_at: now, passkey_review_note: review_note }
+        : {
+            passkey_proof_path: null, passkey_configured: false, passkey_confirmed_at: null,
+            passkey_verified: false, passkey_verified_by: user.id, passkey_verified_at: now, passkey_review_note: review_note,
+          };
 
   const { error } = await admin
     .from("credential_status")

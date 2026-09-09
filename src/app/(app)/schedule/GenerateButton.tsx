@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Button, Pill } from "@/components/ui";
+import { Button, Modal, Pill } from "@/components/ui";
 import { startOfWorkWeek, formatWeekRange, workDatesForWeek, weekdayShortLabel } from "@/lib/scheduleDates";
 
 type Workstation = { id: string; name: string; headcount: number };
@@ -231,17 +231,30 @@ export default function GenerateButton({
         // containing block for `position: fixed` descendants, so without
         // the portal this modal would be clipped/positioned relative to
         // that skinny header bar instead of the viewport.
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in" onClick={() => setOpen(false)}>
-          <div
-            className="w-full max-w-4xl max-h-[96vh] bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg flex flex-col animate-scale-in overflow-hidden"
-            style={{ boxShadow: "var(--shadow-lg)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Sticky so the title/subtitle stay in view while the long
-                form below scrolls underneath — the modal itself no longer
-                scrolls as a whole, only this inner body does. */}
-            <div className="shrink-0 sticky top-0 z-10 bg-[var(--paper-raised)] border-b border-[var(--line)] px-5 pt-5 pb-3">
-              <h2 className="font-serif text-xl text-[var(--ink)] m-0 mb-1">Plan coverage — {formatWeekRange(weekStart)}</h2>
+        <Modal
+          onClose={() => setOpen(false)}
+          title={`Plan coverage — ${formatWeekRange(weekStart)}`}
+          size="lg"
+          footer={
+            <>
+              <Button disabled={pending} onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                loading={pending}
+                disabled={pending || unplacedImmune.length > 0 || immuneOverflow.length > 0}
+                onClick={generate}
+              >
+                {pending ? "Generating…" : "Generate"}
+              </Button>
+            </>
+          }
+        >
+            {/* Kept outside the inner scroller so the intro stays in view
+                while the long form below scrolls underneath — only the
+                body scrolls, not the modal as a whole. */}
+            <div className="shrink-0 border-b border-[var(--line)] pb-3">
               <p className="text-sm text-[var(--muted)] m-0">
                 Generates a fresh, independent shuffle for each work day (Mon–Fri) — the same station can (and
                 usually will) have a different person each day. Headcount per station is fixed (set on Workstations)
@@ -253,14 +266,14 @@ export default function GenerateButton({
               </p>
             </div>
 
-            <div className="overflow-y-auto flex-1 flex flex-col gap-3 px-5 py-4">
+            <div className="overflow-y-auto flex-1 flex flex-col gap-3 py-1">
             <div>
-              <label className="block text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Week</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">Week</label>
               <input
                 type="date"
                 value={weekStart}
                 onChange={(e) => handleWeekChange(e.target.value)}
-                className="text-sm border border-[var(--line)] rounded px-2.5 py-1.5 bg-[var(--paper)]"
+                className="text-sm border border-[var(--line)] rounded-md px-2.5 py-1.5 bg-[var(--paper)]"
               />
               <p className="text-[11px] text-[var(--muted)] mt-1 m-0">
                 Defaults to the next open week — pick any date and it snaps to that week&apos;s Monday. Generating fails
@@ -270,7 +283,7 @@ export default function GenerateButton({
 
             {immuneMembers.length > 0 && (
               <div>
-                <h3 className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Immune members — place them first (required)
                 </h3>
                 <div className="flex flex-col gap-2">
@@ -282,7 +295,7 @@ export default function GenerateButton({
                         <select
                           value={placement?.workstationId ?? ""}
                           onChange={(e) => updateImmuneStation(m.id, e.target.value)}
-                          className="text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)] min-w-[150px]"
+                          className="text-xs border border-[var(--line)] rounded-md px-2 py-1 bg-[var(--paper)] text-[var(--ink)] min-w-[150px]"
                         >
                           <option value="">Select a station…</option>
                           {workstations.map((w) => (
@@ -293,7 +306,7 @@ export default function GenerateButton({
                         </select>
                         <div className="flex flex-wrap gap-1.5">
                           <label
-                            className="flex items-center gap-1 text-[11px] font-bold border border-[var(--line)] rounded px-1.5 py-0.5 cursor-pointer select-none bg-[var(--paper-raised)] text-[var(--accent-strong)]"
+                            className="flex items-center gap-1 text-[11px] font-bold border border-[var(--line)] rounded-md px-1.5 py-0.5 cursor-pointer select-none bg-[var(--paper-raised)] text-[var(--accent-strong)]"
                             title="Pin this member Mon–Fri"
                           >
                             <input
@@ -314,7 +327,7 @@ export default function GenerateButton({
                           {workDates.map((date) => (
                             <label
                               key={date}
-                              className="flex items-center gap-1 text-[11px] border border-[var(--line)] rounded px-1.5 py-0.5 cursor-pointer select-none bg-[var(--paper)]"
+                              className="flex items-center gap-1 text-[11px] border border-[var(--line)] rounded-md px-1.5 py-0.5 cursor-pointer select-none bg-[var(--paper)]"
                             >
                               <input
                                 type="checkbox"
@@ -342,10 +355,10 @@ export default function GenerateButton({
               <table className="w-full text-[13px] border-collapse">
                 <thead>
                   <tr>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Station</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Headcount</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Tenured</th>
-                    <th className="text-left text-[10.5px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">New Hire</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Station</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Headcount</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">Tenured</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold py-1.5 border-b border-[var(--line)]">New Hire</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -367,7 +380,7 @@ export default function GenerateButton({
                             min={0}
                             value={rows[w.id]?.tenured ?? 0}
                             onChange={(e) => updateRow(w.id, "tenured", Number(e.target.value))}
-                            className="w-16 text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)]"
+                            className="w-16 text-xs border border-[var(--line)] rounded-md px-2 py-1 bg-[var(--paper)]"
                           />
                         </td>
                         <td className="py-1.5 border-b border-[var(--line)]">
@@ -376,7 +389,7 @@ export default function GenerateButton({
                             min={0}
                             value={rows[w.id]?.newHire ?? 0}
                             onChange={(e) => updateRow(w.id, "newHire", Number(e.target.value))}
-                            className="w-16 text-xs border border-[var(--line)] rounded px-2 py-1 bg-[var(--paper)]"
+                            className="w-16 text-xs border border-[var(--line)] rounded-md px-2 py-1 bg-[var(--paper)]"
                           />
                         </td>
                       </tr>
@@ -408,7 +421,7 @@ export default function GenerateButton({
             </div>
 
             {fixedHeadcount > totalMembers && (
-              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
+              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded-md px-3 py-2 m-0">
                 Fixed headcount across all stations ({fixedHeadcount}) is {fixedHeadcount - totalMembers} more than
                 your total active headcount ({totalMembers}) — every day, {fixedHeadcount - totalMembers === 1 ? "one seat" : `${fixedHeadcount - totalMembers} seats`}{" "}
                 somewhere will go unfilled, and it&apos;ll be a different station each time (whoever the random fill
@@ -419,14 +432,14 @@ export default function GenerateButton({
             )}
 
             {unplacedImmune.length > 0 && (
-              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
+              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded-md px-3 py-2 m-0">
                 {unplacedImmune.length} immune member{unplacedImmune.length > 1 ? "s" : ""} still need a station and
                 at least one day checked before you can generate.
               </p>
             )}
 
             {immuneOverflow.length > 0 && (
-              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded px-3 py-2 m-0">
+              <p className="text-sm text-[var(--warn)] bg-[var(--warn-soft)] rounded-md px-3 py-2 m-0">
                 Too many immune members at one station on the same day —{" "}
                 {immuneOverflow
                   .map((o) => `${o.name} on ${weekdayShortLabel(o.date)}: ${o.placed} placed, only ${o.headcount} seat${o.headcount === 1 ? "" : "s"}`)
@@ -435,24 +448,9 @@ export default function GenerateButton({
               </p>
             )}
 
-            {error && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{error}</p>}
-
-            <div className="flex justify-end gap-2">
-              <Button style={{ padding: "7px 14px" }} disabled={pending} onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                style={{ padding: "7px 14px" }}
-                disabled={pending || unplacedImmune.length > 0 || immuneOverflow.length > 0}
-                onClick={generate}
-              >
-                {pending ? "Generating…" : "Generate"}
-              </Button>
+            {error && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-md px-3 py-2 m-0">{error}</p>}
             </div>
-            </div>
-          </div>
-        </div>,
+        </Modal>,
         document.body
       )}
     </>

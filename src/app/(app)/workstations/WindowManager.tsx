@@ -117,10 +117,10 @@ export default function WindowManager({
               placeholder="e.g. 27"
               className="w-20 text-[12px] border border-[var(--line)] rounded px-1.5 py-0.5 bg-[var(--paper)]"
             />
-            <Button type="button" variant="primary" style={{ padding: "3px 8px" }} disabled={pending} onClick={addWindow}>
+            <Button type="button" variant="primary" size="sm" disabled={pending} onClick={addWindow}>
               Add
             </Button>
-            <Button type="button" style={{ padding: "3px 8px" }} onClick={() => { setAdding(false); setLabel(""); setError(null); }}>
+            <Button type="button" size="sm" onClick={() => { setAdding(false); setLabel(""); setError(null); }}>
               Cancel
             </Button>
           </span>

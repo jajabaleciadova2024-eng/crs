@@ -2,14 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pill } from "@/components/ui";
 import ProofViewer from "@/components/ProofViewer";
 
-// Verify / reject one member's MFA or passkey screenshot.
-//
-// A tick has to mean the Team Leader looked at it. Until then the proof sits
-// as "needs check" — which, for MFA, also holds up confirming that member's
-// password reset.
 export default function ProofVerify({
   kind,
   profileId,
@@ -23,15 +17,12 @@ export default function ProofVerify({
   hasProof: boolean;
   verified: boolean;
   required: boolean;
-  /** Whose screenshot it is — named in the viewer, so verifying a row means
-      checking a proof you can see belongs to that person. */
   memberName?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [note, setNote] = useState("");
-
   const [error, setError] = useState<string | null>(null);
 
   async function send(ok: boolean, reviewNote?: string) {
@@ -52,10 +43,24 @@ export default function ProofVerify({
     router.refresh();
   }
 
+  // No proof uploaded
   if (!hasProof) {
-    return <Pill tone={required ? "bad" : "muted"}>{required ? "Missing" : "None"}</Pill>;
+    return (
+      <span className="inline-flex items-center justify-center" title={required ? "Missing — required" : "None uploaded"}>
+        {required ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </svg>
+        ) : (
+          <span className="text-[var(--muted)]">—</span>
+        )}
+      </span>
+    );
   }
 
+  // Rejecting — inline form
   if (rejecting) {
     return (
       <span className="inline-flex flex-wrap items-center gap-1">
@@ -63,21 +68,21 @@ export default function ProofVerify({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           autoFocus
-          placeholder="What's wrong with it?"
-          className="px-2 py-1 rounded border border-[var(--line)] bg-[var(--paper)] text-[11.5px] w-[170px]"
+          placeholder="What's wrong?"
+          className="min-h-[30px] px-2 py-1 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-[11.5px] w-[140px]"
         />
         <button
           type="button"
           disabled={!note.trim() || busy}
           onClick={() => send(false, note.trim())}
-          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white cursor-pointer disabled:opacity-40"
+          className="inline-flex items-center justify-center min-h-[30px] px-2.5 py-1 rounded-md text-[11.5px] font-bold border bg-[var(--bad)] border-[var(--bad)] text-[var(--on-accent)] hover:bg-[var(--bad-strong)] hover:border-[var(--bad-strong)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Send
         </button>
         <button
           type="button"
           onClick={() => setRejecting(false)}
-          className="text-[10.5px] font-bold text-[var(--muted)] cursor-pointer"
+          className="inline-flex items-center justify-center min-h-[30px] px-2.5 py-1 rounded-md text-[11.5px] font-bold border bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] cursor-pointer"
         >
           Cancel
         </button>
@@ -86,34 +91,49 @@ export default function ProofVerify({
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+    <span className="inline-flex items-center gap-1">
+      {/* Status icon */}
       {verified ? (
-        <Pill tone="good">Verified</Pill>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--good)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
       ) : (
-        <Pill tone="warn">Needs check</Pill>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
       )}
+      {/* View proof */}
       <ProofViewer
         fetchUrl={`/api/account/credential-proof?kind=${kind}${profileId ? `&profile_id=${profileId}` : ""}`}
         title={kind === "mfa" ? "MFA screenshot" : "Passkey screenshot"}
         subtitle={memberName}
       />
+      {/* Verify / reject actions (only when not yet verified) */}
       {!verified && (
         <button
           type="button"
           disabled={busy}
           onClick={() => send(true)}
-          className="px-2 py-1 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 cursor-pointer disabled:opacity-50"
+          title="Verify this screenshot"
+          className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--good)] text-[var(--on-accent)] hover:opacity-90 cursor-pointer disabled:opacity-50"
         >
-          Verify
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
         </button>
       )}
       <button
         type="button"
         onClick={() => setRejecting(true)}
-        title="Reject with a reason — the member re-uploads"
-        className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer"
+        title={verified ? "Reject — member re-uploads" : "Reject with a reason"}
+        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[var(--muted)] hover:bg-[var(--bad-soft)] hover:text-[var(--bad)] transition-colors cursor-pointer"
       >
-        ✕
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
       </button>
       {error && <span className="text-[11px] text-[var(--bad)]">{error}</span>}
     </span>

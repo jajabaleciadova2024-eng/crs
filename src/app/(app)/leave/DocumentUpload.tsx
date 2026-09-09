@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Button, IconButton, Modal } from "@/components/ui";
 import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 export default function DocumentUpload({
@@ -72,8 +72,9 @@ export default function DocumentUpload({
       <Button
         type="button"
         variant="primary"
-        style={{ padding: "5px 10px" }}
+        size="sm"
         onClick={() => inputRef.current?.click()}
+        loading={uploading}
         disabled={uploading}
       >
         {uploading ? "Uploading…" : hasDocument ? "Replace" : "Upload"}
@@ -126,13 +127,12 @@ export function DocumentLinks({
       {/* Same 28px square icon button as the Approve/Reject/Delete actions
           in LeaveQueueTable, so the Document and Actions columns read as one
           row of controls instead of a filled pill next to three outlines. */}
-      <button
-        type="button"
+      <IconButton
+        size="sm"
+        tone="accent"
         onClick={openModal}
         disabled={loading}
-        title={loading ? "Opening…" : "View document"}
-        aria-label={loading ? "Opening document" : "View document"}
-        className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--accent-strong)] transition-colors cursor-pointer hover:bg-[var(--accent-soft)] hover:border-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+        label={loading ? "Opening…" : "View document"}
       >
         {loading ? (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="animate-spin">
@@ -144,68 +144,42 @@ export function DocumentLinks({
             <circle cx="12" cy="12" r="3" />
           </svg>
         )}
-      </button>
+      </IconButton>
       {error && <span className="text-[11px] text-[var(--bad)]">{error}</span>}
 
       {links && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center p-4 z-50 animate-fade-in overflow-y-auto" onClick={() => setLinks(null)}>
-          <div
-            className="w-full max-w-3xl h-[85vh] bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg flex flex-col overflow-hidden animate-scale-in my-auto"
-            style={{ boxShadow: "var(--shadow-lg)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Same header as the proof viewer: what you are looking at on
-                the left, icon-only download and close on the right. It used
-                to be a filled green Download button beside an outlined
-                Close, which read as the primary action on a screen whose
-                whole purpose is reading the document. */}
-            <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-[var(--line)] shrink-0">
-              <div className="min-w-0">
-                <div className="text-[12.5px] font-semibold text-[var(--ink)] truncate">Supporting document</div>
-                {(memberName || links.fileName) && (
-                  <div className="text-[11px] text-[var(--muted)] truncate">
-                    {memberName ?? links.fileName}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                {canDownload && (
-                  <a
-                    href={links.downloadUrl}
-                    download={links.fileName || undefined}
-                    title="Download"
-                    aria-label="Download this document"
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors cursor-pointer"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <path d="M7 10l5 5 5-5M12 15V3" />
-                    </svg>
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setLinks(null)}
-                  title="Close"
-                  aria-label="Close"
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] transition-colors cursor-pointer"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 6 6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+        <Modal size="lg" onClose={() => setLinks(null)} title="Supporting document" className="p-0 sm:p-0 gap-0">
+          {(memberName || links.fileName) && (
+            <div className="text-[11px] text-[var(--muted)] truncate px-5 -mt-1">
+              {memberName ?? links.fileName}
             </div>
-            <div className="flex-1 w-full overflow-hidden flex items-center justify-center bg-[var(--paper)]">
-              {isImage ? (
-                // eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URL, not a static asset next/image can optimize
-                <img src={links.viewUrl} alt="Supporting document" className="max-w-full max-h-full object-contain" />
-              ) : (
-                <iframe src={links.viewUrl} title="Supporting document" className="w-full h-full border-0 bg-white" />
-              )}
+          )}
+          {canDownload && (
+            <div className="flex justify-end px-5 pt-1">
+              <a
+                href={links.downloadUrl}
+                download={links.fileName || undefined}
+                title="Download"
+                aria-label="Download this document"
+                className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--accent-strong)] hover:underline"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <path d="M7 10l5 5 5-5M12 15V3" />
+                </svg>
+                Download
+              </a>
             </div>
+          )}
+          <div className="w-full flex items-center justify-center bg-[var(--paper)] min-h-[60vh]">
+            {isImage ? (
+              // eslint-disable-next-line @next/next/no-img-element -- signed Supabase Storage URL, not a static asset next/image can optimize
+              <img src={links.viewUrl} alt="Supporting document" className="max-w-full max-h-full object-contain" />
+            ) : (
+              <iframe src={links.viewUrl} title="Supporting document" className="w-full min-h-[60vh] border-0 bg-[var(--paper)]" />
+            )}
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 
 export default function AddWorkstationForm() {
   const [open, setOpen] = useState(false);
@@ -50,26 +50,24 @@ export default function AddWorkstationForm() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center z-50 px-4 py-6 overflow-y-auto">
-      <div className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-md w-full max-w-sm p-5 my-auto">
-        <h2 className="text-sm font-bold mb-4">Add workstation</h2>
+    <Modal onClose={() => setOpen(false)} title="Add workstation">
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Name</label>
+            <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">Name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
             />
           </div>
           <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Headcount</label>
+            <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">Headcount</label>
             <input
               type="number"
               min={1}
               value={headcount}
               onChange={(e) => setHeadcount(Math.max(1, Number(e.target.value)))}
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
             />
             <p className="text-xs text-[var(--muted)] mt-1 m-0">
               Fixed seats at this station — the &quot;Generate next week&quot; modal uses this as a guide, not an editable number.
@@ -82,16 +80,15 @@ export default function AddWorkstationForm() {
             </p>
           )}
 
-          <div className="flex justify-end gap-2 mt-1">
+          <div className="flex flex-wrap justify-end gap-2 mt-1">
             <Button type="button" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
+            <Button type="submit" variant="primary" loading={submitting}>
               {submitting ? "Adding…" : "Add station"}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

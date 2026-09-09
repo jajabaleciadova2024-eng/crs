@@ -3,8 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireProfile, canManageOperations } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Panel, PageHeader } from "@/components/ui";
-import Link from "next/link";
+import { Panel, PageHeader, Button } from "@/components/ui";
 import TaskList from "./TaskList";
 import { taskAppliesTo } from "@/lib/taskAssignment";
 import { withMissingColumnFallback } from "@/lib/schemaCompat";
@@ -134,9 +133,7 @@ export default async function TasksPage() {
         subtitle="Required tasks that must be completed — pending tasks block viewing future schedules"
         action={
           canManage ? (
-            <Link href="/tasks/report" className="text-xs font-bold text-[var(--accent-strong)]">
-              Full report →
-            </Link>
+            <Button href="/tasks/report">Full report →</Button>
           ) : undefined
         }
       />

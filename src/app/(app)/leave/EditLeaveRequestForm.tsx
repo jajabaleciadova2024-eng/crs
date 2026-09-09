@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Button, IconButton } from "@/components/ui";
 import { datePickerOnlyProps } from "@/lib/dateInputGuards";
 import type { LeaveTypeConfig } from "@/lib/leaveTypes";
 
@@ -112,11 +112,11 @@ export default function EditLeaveRequestForm({
     <div className="flex flex-col gap-2.5 bg-[var(--paper)] rounded-md p-3 border border-[var(--line)]">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">Leave type</label>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">Leave type</label>
           <select
             value={leaveType}
             onChange={(e) => setLeaveType(e.target.value)}
-            className="w-full px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm"
+            className="w-full px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] text-sm"
           >
             {leaveTypeConfigs.map((t) => (
               <option key={t.key} value={t.key}>
@@ -142,7 +142,7 @@ export default function EditLeaveRequestForm({
                 value={r.start_date}
                 onChange={(e) => updateRange(i, "start_date", e.target.value)}
                 {...datePickerOnlyProps}
-                className="flex-1 min-w-0 px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm cursor-pointer"
+                className="flex-1 min-w-0 px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] text-sm cursor-pointer"
               />
               <span className="text-[var(--muted)] text-xs">to</span>
               <input
@@ -150,29 +150,31 @@ export default function EditLeaveRequestForm({
                 value={r.end_date}
                 onChange={(e) => updateRange(i, "end_date", e.target.value)}
                 {...datePickerOnlyProps}
-                className="flex-1 min-w-0 px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm cursor-pointer"
+                className="flex-1 min-w-0 px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] text-sm cursor-pointer"
               />
               {ranges.length > 1 && (
-                <button type="button" onClick={() => removeRange(i)} aria-label="Remove date range" className="text-[var(--muted)] text-lg leading-none px-1">
-                  ×
-                </button>
+                <IconButton tone="bad" size="sm" label="Remove date range" onClick={() => removeRange(i)} className="shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </IconButton>
               )}
             </div>
           ))}
-          <button type="button" onClick={addRange} className="text-xs font-bold text-[var(--accent-strong)] self-start">
+          <Button type="button" size="sm" onClick={addRange} className="self-start">
             + Add another date range
-          </button>
+          </Button>
         </div>
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
           Reason {requireReason ? "" : "(optional)"}
         </label>
         <input
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          className="w-full px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper-raised)] text-sm"
+          className="w-full px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--ink)] text-sm"
         />
       </div>
 
@@ -185,10 +187,10 @@ export default function EditLeaveRequestForm({
       {error && <p className="text-xs text-[var(--bad)] bg-[var(--bad-soft)] rounded px-2.5 py-1.5 m-0">{error}</p>}
 
       <div className="flex justify-end gap-1.5">
-        <Button variant="primary" style={{ padding: "5px 10px" }} disabled={saving} onClick={save}>
+        <Button variant="primary" size="sm" loading={saving} disabled={saving} onClick={save}>
           {saving ? "Saving…" : "Save"}
         </Button>
-        <Button style={{ padding: "5px 10px" }} onClick={onCancel}>
+        <Button size="sm" onClick={onCancel}>
           Cancel
         </Button>
       </div>

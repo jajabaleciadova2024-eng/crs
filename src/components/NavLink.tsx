@@ -55,7 +55,7 @@ export default function NavLink({
       <span className="flex-1 truncate md:group-data-[collapsed=true]/sidebar:hidden">{label}</span>
       {badgeCount > 0 && (
         <span
-          className="inline-flex items-center justify-center min-w-[19px] h-[19px] px-1.5 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold tabular-nums md:group-data-[collapsed=true]/sidebar:absolute md:group-data-[collapsed=true]/sidebar:-top-1 md:group-data-[collapsed=true]/sidebar:-right-1 md:group-data-[collapsed=true]/sidebar:min-w-[16px] md:group-data-[collapsed=true]/sidebar:h-[16px] md:group-data-[collapsed=true]/sidebar:text-[9px] md:group-data-[collapsed=true]/sidebar:px-0 md:group-data-[collapsed=true]/sidebar:ring-2 md:group-data-[collapsed=true]/sidebar:ring-[var(--paper)]"
+          className="inline-flex items-center justify-center min-w-[19px] h-[19px] px-1.5 rounded-full bg-[var(--accent)] text-[var(--on-accent)] text-[10px] font-bold tabular-nums md:group-data-[collapsed=true]/sidebar:absolute md:group-data-[collapsed=true]/sidebar:-top-1 md:group-data-[collapsed=true]/sidebar:-right-1 md:group-data-[collapsed=true]/sidebar:min-w-[16px] md:group-data-[collapsed=true]/sidebar:h-[16px] md:group-data-[collapsed=true]/sidebar:text-[9px] md:group-data-[collapsed=true]/sidebar:px-0 md:group-data-[collapsed=true]/sidebar:ring-2 md:group-data-[collapsed=true]/sidebar:ring-[var(--paper)]"
           style={{ boxShadow: "var(--shadow-xs)" }}
         >
           {badgeCount}

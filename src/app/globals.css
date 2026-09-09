@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* Make Tailwind's `dark:` variant follow the SAME rule as the palette
+   below: an explicit data-theme wins, otherwise the OS preference. Without
+   this, `dark:` only listened to the OS and ignored the in-app toggle. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:not(:where([data-theme="light"], [data-theme="light"] *)) {
+      @slot;
+    }
+  }
+}
+
 :root {
   --ink: #22332c;
   --paper: #e6f2dd;
@@ -17,6 +31,10 @@
   --bad-strong: #6e2020;
   --good: #659287;
   --good-soft: #d3e6da;
+  /* Text/icon colour placed ON a solid accent/good/bad/warn surface. White
+     in light mode; in dark mode those surfaces are pale (mint, pink, amber)
+     so white on them fails contrast — the dark ink is used instead. */
+  --on-accent: #ffffff;
   --radius: 6px;
   --shadow-xs: 0 1px 2px rgba(34,51,44,0.04);
   --shadow-sm: 0 1px 3px rgba(34,51,44,0.06), 0 1px 2px rgba(34,51,44,0.04);
@@ -26,10 +44,17 @@
   --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.4, 1);
+  /* Tells the browser which palette native widgets (date pickers, select
+     menus, scrollbars, form controls) should use, so they never show up
+     as a bright white box inside a dark page or vice-versa. Overridden
+     below alongside the palette in each mode. */
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --on-accent: #12201b;
     --ink: #e6f2dd;
     --paper: #12201b;
     --paper-raised: #1a2b23;
@@ -55,6 +80,8 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
+  --on-accent: #12201b;
   --ink: #e6f2dd;
   --paper: #12201b;
   --paper-raised: #1a2b23;
@@ -79,6 +106,8 @@
 }
 
 :root[data-theme="light"] {
+  color-scheme: light;
+  --on-accent: #ffffff;
   --ink: #22332c;
   --paper: #e6f2dd;
   --paper-raised: #ffffff;
@@ -140,10 +169,113 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Stop iOS/Android from "helpfully" inflating text in landscape. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   /* Custom, subtle tap highlight instead of the default translucent
      black rectangle Chrome/Android draws on every tap. Our own :active
      scale animation on buttons provides better feedback. */
   -webkit-tap-highlight-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  /* Cross-fade the palette when someone flips the theme toggle instead of
+     snapping — cheap, and it makes the switch feel deliberate. Disabled
+     under prefers-reduced-motion further down. */
+  transition: background-color 0.25s var(--ease-out), color 0.25s var(--ease-out);
+}
+
+/* Safe-area padding for notched phones (viewport-fit=cover in layout.tsx).
+   These vars are 0 everywhere else, so desktop is unaffected. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* Remove the 300ms tap delay and accidental double-tap zoom on every
+   interactive control — the single biggest "feels sluggish on a phone"
+   fix there is. */
+button,
+a,
+[role="button"],
+input,
+select,
+textarea,
+label {
+  touch-action: manipulation;
+}
+
+/* ── Utilities ──────────────────────────────────────────────────── */
+
+/* Horizontal tab strips / chip rows: scroll sideways on a phone without a
+   visible scrollbar, and snap so a tab never sits half-cut at the edge. */
+.scroll-x-tabs {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroll-x-tabs::-webkit-scrollbar {
+  display: none;
+}
+.scroll-x-tabs > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Frosted-glass surface for floating chrome (headers, sheets). */
+.glass {
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(160%) blur(14px);
+}
+
+/* Bottom-sheet on phones, centred dialog on larger screens — shared by
+   every modal so they all behave the same way. Pair with .sheet-panel on
+   the inner box. */
+.sheet-panel {
+  width: 100%;
+  max-height: calc(100dvh - 24px - var(--safe-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 639px) {
+  .sheet-panel {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    padding-bottom: calc(1.25rem + var(--safe-bottom));
+  }
+}
+
+/* Subtle lift for interactive cards on pointer devices only — a hover
+   effect on a touch screen just sticks after you tap. */
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+}
+.lift {
+  transition: transform 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out), border-color 0.18s var(--ease-out);
+}
+
+/* Skeleton shimmer for loading placeholders. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  border-radius: 6px;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--paper-raised) 70%, transparent), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
 }
 
 /* At wider desktop widths, bump the base a hair for readability — same
@@ -391,6 +523,16 @@ tbody tr {
   button:active:not(:disabled),
   [role="button"]:active:not(:disabled) {
     transform: none;
+  }
+  .lift:hover {
+    transform: none;
+  }
+}
+
+/* Smooth in-page anchor jumps (feed deep links, "back to top"). */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
 }
 

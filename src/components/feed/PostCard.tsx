@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import type { Post, ReactionType } from "./SocialFeed";
-import { Avatar } from "@/components/ui";
+import { Avatar, Pill, Button } from "@/components/ui";
 import CommentSection from "./CommentSection";
 import { renderTextWithMentions, type Mentionable } from "./mentions";
 
@@ -77,6 +77,23 @@ export default function PostCard({
     if (typeof window === "undefined") return;
     if (window.location.hash === `#post-${post.id}`) setShowComments(true);
   }, [post.id]);
+
+  const closeLightbox = useCallback(() => setImageExpanded(false), []);
+  const closeReactors = useCallback(() => setReactorFilter(null), []);
+
+  useEffect(() => {
+    if (!imageExpanded) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") closeLightbox(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [imageExpanded, closeLightbox]);
+
+  useEffect(() => {
+    if (reactorFilter === null) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") closeReactors(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [reactorFilter, closeReactors]);
 
   const isAuthor = post.author_id === userId;
   const isTeamLeader = currentUserRole === "team_leader";
@@ -158,14 +175,10 @@ export default function PostCard({
               {toTitleCase(authorFirst)} {toTitleCase(authorLast)}
             </span>
             {authorRole === "team_leader" && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--warn-soft)] text-[var(--warn)]">
-                TL
-              </span>
+              <Pill tone="warn" size="xs" dot={false}>TL</Pill>
             )}
             {authorRole === "oic" && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--warn-soft)] text-[var(--warn)]">
-                OIC
-              </span>
+              <Pill tone="warn" size="xs" dot={false}>OIC</Pill>
             )}
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
@@ -180,7 +193,8 @@ export default function PostCard({
             <button
               type="button"
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 rounded-md hover:bg-[var(--paper)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+              aria-label="More options"
+              className="p-1.5 rounded-md hover:bg-[var(--paper)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="5" r="2" />
@@ -190,7 +204,7 @@ export default function PostCard({
             </button>
             {showMenu && (
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} aria-hidden="true" />
                 <div className="absolute right-0 top-8 z-40 bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg shadow-lg py-1 min-w-[120px] animate-fade-in-up">
                   {canEdit && (
                     <button
@@ -200,7 +214,7 @@ export default function PostCard({
                         setEditContent(post.content);
                         setEditing(true);
                       }}
-                      className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--accent-soft)]/40 text-[var(--ink)] transition-colors"
+                      className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--accent-soft)]/40 text-[var(--ink)] transition-colors cursor-pointer"
                     >
                       ✏️ Edit
                     </button>
@@ -212,7 +226,7 @@ export default function PostCard({
                         setShowMenu(false);
                         onDelete(post.id);
                       }}
-                      className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--bad-soft)]/40 text-[var(--bad)] transition-colors"
+                      className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--bad-soft)]/40 text-[var(--bad)] transition-colors cursor-pointer"
                     >
                       🗑️ Delete
                     </button>
@@ -236,22 +250,13 @@ export default function PostCard({
               rows={3}
               autoFocus
             />
-            <div className="flex gap-2 justify-end">
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="px-3 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] rounded-md hover:bg-[var(--paper)] transition-colors cursor-pointer"
-              >
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button type="button" size="sm" onClick={() => setEditing(false)}>
                 Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                disabled={!editContent.trim()}
-                className="px-3 py-1.5 text-[12px] font-bold bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors cursor-pointer"
-              >
+              </Button>
+              <Button type="button" size="sm" variant="primary" onClick={handleSaveEdit} disabled={!editContent.trim()}>
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -299,7 +304,8 @@ export default function PostCard({
             <button
               type="button"
               onClick={() => setImageExpanded(false)}
-              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[20px]"
+              aria-label="Close"
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[20px] cursor-pointer"
             >
               ×
             </button>
@@ -337,7 +343,7 @@ export default function PostCard({
             <button
               type="button"
               onClick={() => setShowComments(!showComments)}
-              className="hover:underline hover:text-[var(--ink)] transition-colors"
+              className="hover:underline hover:text-[var(--ink)] transition-colors cursor-pointer"
             >
               {post.post_comments.length} comment{post.post_comments.length !== 1 ? "s" : ""}
             </button>

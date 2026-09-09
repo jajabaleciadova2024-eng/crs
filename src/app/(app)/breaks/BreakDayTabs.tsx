@@ -15,13 +15,15 @@ export default function BreakDayTabs({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-1 overflow-x-auto pb-1">
+      <div className="scroll-x-tabs gap-1.5 -mx-1 px-1 pb-1" role="tablist" aria-label="Day">
         {days.map((d, i) => (
           <button
             key={d.date}
             type="button"
+            role="tab"
+            aria-selected={i === active}
             onClick={() => setActive(i)}
-            className={`shrink-0 px-3 py-1.5 rounded-md text-[12.5px] font-semibold transition-colors cursor-pointer border ${
+            className={`min-h-[34px] px-3.5 py-1.5 rounded-lg text-[12.5px] font-semibold transition-colors cursor-pointer border ${
               i === active
                 ? "bg-[var(--accent-soft)] text-[var(--accent-strong)] border-[var(--accent)]"
                 : "text-[var(--muted)] border-[var(--line)] hover:text-[var(--ink)] hover:border-[var(--accent)]"

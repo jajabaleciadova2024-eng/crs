@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Announcement, ReactionType } from "./AnnouncementsFeed";
-import { Avatar } from "@/components/ui";
+import { Avatar, Pill, Button } from "@/components/ui";
 import CommentSection from "@/components/feed/CommentSection";
 import type { Mentionable } from "@/components/feed/mentions";
 import Linkify from "@/components/Linkify";
@@ -64,6 +64,15 @@ export default function AnnouncementCard({
   // Which attached image is open full-size, if any.
   const [lightbox, setLightbox] = useState<string | null>(null);
 
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") closeLightbox(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [lightbox, closeLightbox]);
+
   const isTeamLeader = currentUserRole === "team_leader";
   const wasEdited = ann.updated_at !== ann.created_at;
   const authorFirst = ann.profiles?.first_name ?? "";
@@ -90,9 +99,7 @@ export default function AnnouncementCard({
     >
       {/* Announcement badge */}
       <div className="px-4 pt-3 pb-0">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[var(--accent-soft)] text-[var(--accent-strong)]">
-          📢 Announcement
-        </span>
+        <Pill tone="accent" size="xs" dot={false}>📢 Announcement</Pill>
       </div>
 
       {/* Header */}
@@ -103,9 +110,7 @@ export default function AnnouncementCard({
             <span className="text-[13.5px] font-bold text-[var(--ink)] truncate">
               {toTitleCase(authorFirst)} {toTitleCase(authorLast)}
             </span>
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[var(--accent-soft)] text-[var(--accent-strong)]">
-              TL
-            </span>
+            <Pill tone="warn" size="xs" dot={false}>TL</Pill>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
             <span>{timeAgo(ann.created_at)}</span>
@@ -118,7 +123,8 @@ export default function AnnouncementCard({
             <button
               type="button"
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 rounded-md hover:bg-[var(--paper)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+              aria-label="More options"
+              className="p-1.5 rounded-md hover:bg-[var(--paper)] text-[var(--muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="5" r="2" />
@@ -128,19 +134,19 @@ export default function AnnouncementCard({
             </button>
             {showMenu && (
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} aria-hidden="true" />
                 <div className="absolute right-0 top-8 z-40 bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg shadow-lg py-1 min-w-[120px] animate-fade-in-up">
                   <button
                     type="button"
                     onClick={() => { setShowMenu(false); setEditTitle(ann.title); setEditBody(ann.body); setEditing(true); }}
-                    className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--accent-soft)]/40 text-[var(--ink)] transition-colors"
+                    className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--accent-soft)]/40 text-[var(--ink)] transition-colors cursor-pointer"
                   >
                     ✏️ Edit
                   </button>
                   <button
                     type="button"
                     onClick={() => { setShowMenu(false); onDelete(ann.id); }}
-                    className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--bad-soft)]/40 text-[var(--bad)] transition-colors"
+                    className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-[var(--bad-soft)]/40 text-[var(--bad)] transition-colors cursor-pointer"
                   >
                     🗑️ Delete
                   </button>
@@ -160,7 +166,7 @@ export default function AnnouncementCard({
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
               maxLength={200}
-              className="w-full text-[16px] font-bold border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--paper)] text-[var(--ink)] outline-none focus:border-[var(--accent)] transition-colors"
+              className="w-full text-[16px] font-bold border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--paper)] text-[var(--ink)] outline-none focus:border-[var(--accent)] transition-colors cursor-pointer"
               autoFocus
             />
             <textarea
@@ -170,18 +176,13 @@ export default function AnnouncementCard({
               rows={4}
               className="w-full resize-none bg-[var(--paper)] border border-[var(--line)] rounded-lg px-3 py-2 text-[14px] text-[var(--ink)] outline-none focus:border-[var(--accent)] transition-colors leading-relaxed"
             />
-            <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-[12px] font-bold text-[var(--muted)] hover:text-[var(--ink)] rounded-md hover:bg-[var(--paper)] transition-colors">
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button type="button" size="sm" onClick={() => setEditing(false)}>
                 Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                disabled={!editTitle.trim() || !editBody.trim()}
-                className="px-3 py-1.5 text-[12px] font-bold bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent-strong)] disabled:opacity-40 transition-colors"
-              >
+              </Button>
+              <Button type="button" size="sm" variant="primary" onClick={handleSaveEdit} disabled={!editTitle.trim() || !editBody.trim()}>
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -250,7 +251,7 @@ export default function AnnouncementCard({
             )}
           </div>
           {ann.announcement_comments.length > 0 && (
-            <button type="button" onClick={() => setShowComments(!showComments)} className="hover:underline hover:text-[var(--ink)] transition-colors">
+            <button type="button" onClick={() => setShowComments(!showComments)} className="hover:underline hover:text-[var(--ink)] transition-colors cursor-pointer">
               {ann.announcement_comments.length} comment{ann.announcement_comments.length !== 1 ? "s" : ""}
             </button>
           )}

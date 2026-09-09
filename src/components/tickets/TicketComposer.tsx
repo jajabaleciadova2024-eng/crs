@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
-import { Button } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 type UploadedFile = {
@@ -127,19 +127,31 @@ export default function TicketComposer({ onCreated }: { onCreated: () => void })
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 z-50 animate-fade-in"
-      onClick={() => { setOpen(false); setError(null); }}
-    >
-      <div
-        className="w-full max-w-lg bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl p-6 flex flex-col gap-4 animate-scale-in max-h-[90vh] overflow-y-auto"
-        style={{ boxShadow: "var(--shadow-lg)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-2">
+    <Modal
+      size="md"
+      onClose={() => { setOpen(false); setError(null); }}
+      title={
+        <span className="inline-flex items-center gap-2">
           <span className="text-xl">🛡️</span>
-          <h2 className="font-serif text-xl text-[var(--ink)] m-0">Submit a Concern</h2>
-        </div>
+          Submit a Concern
+        </span>
+      }
+      footer={
+        <>
+          <Button disabled={pending} onClick={() => { setOpen(false); setError(null); }}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            loading={pending}
+            disabled={pending || !subject.trim() || !description.trim() || uploading}
+            onClick={submit}
+          >
+            {pending ? "Submitting…" : "Submit Anonymously"}
+          </Button>
+        </>
+      }
+    >
 
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--accent-soft)] text-[var(--accent-strong)] text-[12px]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -212,14 +224,9 @@ export default function TicketComposer({ onCreated }: { onCreated: () => void })
             onChange={handleFileChange}
             className="hidden"
           />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="text-[12px] px-3 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors disabled:opacity-50"
-          >
+          <Button type="button" size="sm" onClick={() => fileRef.current?.click()} loading={uploading}>
             {uploading ? "Uploading…" : "📎 Add files"}
-          </button>
+          </Button>
           <span className="text-[10px] text-[var(--muted)] ml-2">
             Images, videos, PDFs, Word, Excel — max 25 MB each
           </span>
@@ -228,25 +235,6 @@ export default function TicketComposer({ onCreated }: { onCreated: () => void })
         {error && (
           <p className="text-[12px] text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{error}</p>
         )}
-
-        <div className="flex justify-end gap-2 mt-1">
-          <Button
-            style={{ padding: "7px 14px" }}
-            disabled={pending}
-            onClick={() => { setOpen(false); setError(null); }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            style={{ padding: "7px 14px" }}
-            disabled={pending || !subject.trim() || !description.trim() || uploading}
-            onClick={submit}
-          >
-            {pending ? "Submitting…" : "Submit Anonymously"}
-          </Button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

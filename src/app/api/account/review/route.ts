@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     .eq("id", reset_id)
     .single();
   if (!reset) return NextResponse.json({ error: "Reset not found." }, { status: 404 });
-  if (reset.status !== "pending") {
+  if (reset.status !== "pending" && !(reset.status === "approved" && status === "rejected")) {
     return NextResponse.json({ error: "That reset has already been reviewed." }, { status: 400 });
   }
 
@@ -74,12 +74,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // The clock restarts from the member's stated reset moment, not from now:
-  // a confirmation that arrives three days late must not hand out three
-  // extra days of validity.
   if (status === "approved") {
     await admin.from("credential_status").upsert(
       { profile_id: reset.profile_id, last_reset_at: reset.reset_at, updated_at: new Date().toISOString() },
+      { onConflict: "profile_id" },
+    );
+  } else if (status === "rejected" && reset.status === "approved") {
+    // Revoking an approved reset — roll back last_reset_at to the previous
+    // approved reset (if any), so the countdown reflects reality again.
+    const { data: prev } = await admin
+      .from("password_resets")
+      .select("reset_at")
+      .eq("profile_id", reset.profile_id)
+      .eq("status", "approved")
+      .neq("id", reset_id)
+      .order("reset_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    await admin.from("credential_status").upsert(
+      { profile_id: reset.profile_id, last_reset_at: prev?.reset_at ?? null, updated_at: new Date().toISOString() },
       { onConflict: "profile_id" },
     );
   }

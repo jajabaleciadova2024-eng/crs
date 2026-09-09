@@ -111,7 +111,7 @@ export default async function LeavePage() {
               : "Track requests from your team"
         }
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button href="/leave/calendar">View calendar →</Button>
             <Button href="/leave/history">View history →</Button>
           </div>
@@ -149,17 +149,17 @@ export default async function LeavePage() {
         )}
 
         <Panel title="Queue" hint={`${pendingCount} pending`}>
-          <div className="overflow-x-auto scroll-shadow-x">
-            <LeaveQueueTable
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              requests={(requests ?? []) as any}
-              leaveTypeConfigs={leaveTypeConfigs}
-              requireReason={orgSettings?.require_leave_reason ?? true}
-              viewerId={profile.id}
-              canViewAll={canViewAll}
-              canManage={canManage}
-            />
-          </div>
+          {/* LeaveQueueTable owns its own horizontal scroller — wrapping it
+              again here produced two nested scrollbars on a phone. */}
+          <LeaveQueueTable
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            requests={(requests ?? []) as any}
+            leaveTypeConfigs={leaveTypeConfigs}
+            requireReason={orgSettings?.require_leave_reason ?? true}
+            viewerId={profile.id}
+            canViewAll={canViewAll}
+            canManage={canManage}
+          />
         </Panel>
       </div>
     </>

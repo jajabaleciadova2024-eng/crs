@@ -152,7 +152,7 @@ function CommentItem({
                 setEditContent(comment.content);
                 setEditing(true);
               }}
-              className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--accent-strong)] transition-colors"
+              className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--accent-strong)] transition-colors cursor-pointer"
             >
               Edit
             </button>
@@ -161,7 +161,7 @@ function CommentItem({
             <button
               type="button"
               onClick={() => onDelete(comment.id)}
-              className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors"
+              className="text-[10.5px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer"
             >
               Delete
             </button>
@@ -268,16 +268,16 @@ export default function CommentSection({
           onKeyDown={handleKeyDown}
           placeholder="Write a comment… (@ to mention)"
           maxLength={1000}
-          className="flex-1 bg-[var(--paper)] border border-[var(--line)] rounded-full px-4 py-2 text-[13px] text-[var(--ink)] placeholder:text-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors"
+          className="flex-1 bg-[var(--paper)] border border-[var(--line)] rounded-full px-4 py-2 text-[13px] text-[var(--ink)] placeholder:text-[var(--muted)] outline-none focus:border-[var(--accent)] transition-colors cursor-pointer"
         />
         <button
           type="button"
           onClick={handleSubmit}
           disabled={!newComment.trim() || submitting}
-          className="shrink-0 p-2 rounded-full bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
+          className="shrink-0 p-2 rounded-full bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)] disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
         >
           {submitting ? (
-            <span className="w-4 h-4 block border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span className="w-4 h-4 block border-2 border-[var(--on-accent)]/30 border-t-[var(--on-accent)] rounded-full animate-spin" />
           ) : (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13" />

@@ -7,6 +7,7 @@ import { buildLeaveDayMap } from "@/lib/leaveCalendar";
 import { todayInManila } from "@/lib/scheduleDates";
 import { DEFAULT_LEAVE_TYPE_CONFIGS } from "@/lib/leaveTypes";
 import LeaveCalendar from "./LeaveCalendar";
+import { holidaysInRange } from "@/lib/holidays";
 
 // Read-only, visible to every signed-in role -- just plots which dates
 // have a pending or approved leave request on them, org-wide. See
@@ -16,11 +17,14 @@ export default async function LeaveCalendarPage() {
   await requireProfile();
   const supabase = await createClient();
 
-  const [requests, { data: orgSettings }] = await Promise.all([
+  const [requests, { data: orgSettings }, holidays] = await Promise.all([
     getLeaveCalendarRequests(),
     supabase.from("org_settings").select("leave_type_configs").limit(1).maybeSingle(),
+    holidaysInRange(supabase, "2020-01-01", "2099-12-31"),
   ]);
   const leaveTypeConfigs = orgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
+  const holidayMap: Record<string, string> = {};
+  for (const h of holidays) holidayMap[h.date] = h.name;
   const dayMap = buildLeaveDayMap(requests);
   const today = todayInManila();
 
@@ -37,7 +41,7 @@ export default async function LeaveCalendarPage() {
       />
 
       <Panel title="Calendar">
-        <LeaveCalendar dayMap={dayMap} leaveTypeConfigs={leaveTypeConfigs} today={today} />
+        <LeaveCalendar dayMap={dayMap} leaveTypeConfigs={leaveTypeConfigs} today={today} holidays={holidayMap} />
       </Panel>
     </>
   );

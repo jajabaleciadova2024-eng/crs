@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Modal } from "@/components/ui";
 import { useEffect, useState } from "react";
 import { formatFullName } from "@/lib/format";
 import Linkify from "@/components/Linkify";
@@ -64,24 +65,12 @@ export default function UnseenAnnouncementModal() {
     : "Team Leader";
 
   return (
-    <div
-      // items-start + my-auto, not items-center: a centred flex child that
-      // overflows its scroll container puts its own top ABOVE the scrollable
-      // area, so the header was clipped with no way to scroll up to it. On a
-      // phone in landscape 12px of this modal's top was unreachable.
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center overflow-y-auto px-4 py-4 z-[60] animate-fade-in"
-      onClick={dismiss}
-    >
-      <div
-        className="w-full max-w-lg my-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-scale-in"
-        style={{ boxShadow: "var(--shadow-lg)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal size="md" zIndex={60} onClose={dismiss} className="p-0! sm:p-0! gap-0 overflow-hidden">
         {/* Header banner */}
-        <div className="bg-[var(--accent)] px-6 py-4 text-white">
+        <div className="bg-[var(--accent)] px-6 py-4 text-[var(--on-accent)] rounded-t-2xl sm:rounded-t-xl">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[20px]">📢</span>
-            <span className="text-[11px] font-bold uppercase tracking-wider opacity-80">New Announcement</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider opacity-80">New Announcement</span>
           </div>
           <h2 className="text-[20px] font-serif font-bold m-0 leading-tight">{announcement.title}</h2>
           <p className="text-[12px] opacity-75 m-0 mt-1">
@@ -125,15 +114,10 @@ export default function UnseenAnnouncementModal() {
                 ? `Reminder ${showing.n} of ${showing.total}`
                 : ""}
           </span>
-          <button
-            type="button"
-            onClick={dismiss}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-[13px] font-bold bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] transition-colors shadow-sm"
-          >
+          <Button variant="primary" size="lg" onClick={dismiss}>
             Got it
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

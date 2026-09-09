@@ -21,7 +21,9 @@ export type BellType =
   | "schedule_changed"
   | "leave_updated"
   | "credential_proof_submitted"
-  | "credential_proof_reviewed";
+  | "credential_proof_reviewed"
+  | "chat_reply"
+  | "chat_reaction";
 
 export async function bellNotify(
   recipientIds: string[],

@@ -3,7 +3,7 @@
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Pill, Button } from "@/components/ui";
+import { Pill, Button, IconButton, Modal } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
 import type { AppRole, Profile } from "@/lib/database.types";
 
@@ -13,37 +13,6 @@ const ROLE_TONE: Record<AppRole, "warn" | "accent"> = {
   associate: "accent",
 };
 const ROLE_LABEL: Record<AppRole, string> = { team_leader: "Team Leader", oic: "OIC", associate: "Associate" };
-
-function IconButton({
-  label,
-  onClick,
-  disabled,
-  tone = "default",
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  tone?: "default" | "danger";
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex items-center justify-center w-8 h-8 rounded-md border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-        tone === "danger"
-          ? "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--bad)] hover:bg-[var(--bad-soft)] hover:border-[var(--bad)]"
-          : "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)]"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
 
 function Icon({ children }: { children: ReactNode }) {
   return (
@@ -190,7 +159,7 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
                 </IconButton>
                 <IconButton
                   label="Remove"
-                  tone="danger"
+                  tone="bad"
                   disabled={pending}
                   onClick={() => { setRemoveError(null); setConfirmingRemove(true); }}
                 >
@@ -208,19 +177,29 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
 
       {/* ── Edit modal ──────────────────────────────────────────────── */}
       {editing && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto"
-          onClick={() => { setEditing(false); setSaveError(null); }}
+        <Modal
+          onClose={() => { setEditing(false); setSaveError(null); }}
+          title={`Edit ${formatFullName(member.first_name, member.last_name)}`}
+          size="md"
+          footer={
+            <>
+              <Button
+                disabled={pending}
+                onClick={() => { setEditing(false); setSaveError(null); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                loading={pending}
+                disabled={pending || !psid.trim() || !firstName.trim() || !lastName.trim() || !email.trim()}
+                onClick={save}
+              >
+                {pending ? "Saving…" : "Save changes"}
+              </Button>
+            </>
+          }
         >
-          <div
-            className="w-full max-w-lg bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl p-6 flex flex-col gap-4 animate-scale-in my-auto"
-            style={{ boxShadow: "var(--shadow-lg)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-serif text-xl text-[var(--ink)] m-0">
-              Edit {formatFullName(member.first_name, member.last_name)}
-            </h2>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
               <label className="block">
                 <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold">PSID</span>
@@ -260,60 +239,38 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
               <p className="text-[12px] text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{saveError}</p>
             )}
 
-            <div className="flex justify-end gap-2 mt-1">
-              <Button
-                style={{ padding: "7px 14px" }}
-                disabled={pending}
-                onClick={() => { setEditing(false); setSaveError(null); }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                style={{ padding: "7px 14px" }}
-                disabled={pending || !psid.trim() || !firstName.trim() || !lastName.trim() || !email.trim()}
-                onClick={save}
-              >
-                {pending ? "Saving…" : "Save changes"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* ── Remove confirmation modal ───────────────────────────────── */}
       {confirmingRemove && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto"
-          onClick={() => setConfirmingRemove(false)}
+        <Modal
+          onClose={() => setConfirmingRemove(false)}
+          title={`Remove ${formatFullName(member.first_name, member.last_name)}?`}
+          size="sm"
+          footer={
+            <>
+              <Button disabled={pending} onClick={() => setConfirmingRemove(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                loading={pending}
+                disabled={pending}
+                onClick={removeMember}
+              >
+                {pending ? "Removing…" : "Yes, remove them"}
+              </Button>
+            </>
+          }
         >
-          <div
-            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in my-auto"
-            style={{ boxShadow: "var(--shadow-lg)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-serif text-xl text-[var(--ink)] m-0">Remove {formatFullName(member.first_name, member.last_name)}?</h2>
             <p className="text-sm text-[var(--muted)] m-0">
               This permanently deletes their account and login — they won&apos;t be able to sign in again, and this
               can&apos;t be undone. Their past schedule assignments and leave requests are removed with them. If you
               just want to disable their access without losing their history, use <strong className="text-[var(--ink)]">Deactivate</strong> instead.
             </p>
             {removeError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{removeError}</p>}
-            <div className="flex justify-end gap-2 mt-1">
-              <Button style={{ padding: "7px 14px" }} disabled={pending} onClick={() => setConfirmingRemove(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                style={{ padding: "7px 14px", background: "var(--bad-strong)", borderColor: "var(--bad-strong)" }}
-                disabled={pending}
-                onClick={removeMember}
-              >
-                {pending ? "Removing…" : "Yes, remove them"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

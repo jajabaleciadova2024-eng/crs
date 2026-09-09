@@ -44,7 +44,7 @@ export default function NavGroup({
             (and squeezes the label into an ellipsis). */}
         {badgeCount > 0 && !open && (
           <span
-            className="inline-flex items-center justify-center min-w-[19px] h-[19px] px-1.5 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold tabular-nums md:group-data-[collapsed=true]/sidebar:absolute md:group-data-[collapsed=true]/sidebar:-top-1 md:group-data-[collapsed=true]/sidebar:-right-1"
+            className="inline-flex items-center justify-center min-w-[19px] h-[19px] px-1.5 rounded-full bg-[var(--accent)] text-[var(--on-accent)] text-[10px] font-bold tabular-nums md:group-data-[collapsed=true]/sidebar:absolute md:group-data-[collapsed=true]/sidebar:-top-1 md:group-data-[collapsed=true]/sidebar:-right-1"
             style={{ boxShadow: "var(--shadow-xs)" }}
           >
             {badgeCount}

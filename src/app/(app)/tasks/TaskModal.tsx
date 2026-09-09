@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 
 interface TaskForm {
   title: string;
@@ -153,35 +153,29 @@ export default function TaskModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 overflow-y-auto" onClick={onClose}>
-      <div
-        className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl w-full max-w-xl p-5 sm:p-6 animate-scale-in my-auto"
-        style={{ boxShadow: "var(--shadow-lg, 0 10px 25px rgba(0,0,0,.1))" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-sm font-bold mb-4">{isEdit ? "Edit task" : "Add task"}</h2>
+    <Modal size="lg" onClose={onClose} title={isEdit ? "Edit task" : "Add task"}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <Field label="Title" value={form.title} onChange={(v) => update("title", v)} />
           <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+            <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
               Description (optional)
             </label>
             <textarea
               value={form.description}
               onChange={(e) => update("description", e.target.value)}
               rows={3}
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-y"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm resize-y"
             />
           </div>
           <Section title="Who it's for">
           <div>
-            <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+            <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
               Assign to
             </label>
             <select
               value={form.assign_to}
               onChange={(e) => update("assign_to", e.target.value)}
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
             >
               <option value="all">All Members</option>
               {members.map((m) => (
@@ -200,7 +194,7 @@ export default function TaskModal({
               blocked by it, and cannot be nudged about it. */}
           {form.assign_to === "all" && excludable.length > 0 && (
             <div>
-              <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                 Exclude members (optional)
               </label>
               <p className="text-[11.5px] text-[var(--muted)] m-0 mb-2 leading-snug">
@@ -254,14 +248,14 @@ export default function TaskModal({
           <Section title="Deadline & blocking">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Deadline (optional)
                 </label>
                 <input
                   type="date"
                   value={form.deadline}
                   onChange={(e) => update("deadline", e.target.value)}
-                  className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+                  className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
                 />
               </div>
               {form.deadline && (
@@ -275,7 +269,7 @@ export default function TaskModal({
             </div>
 
             <div className="flex flex-col gap-2">
-              <span className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)]">
+              <span className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
                 While blocking, lock
               </span>
               <label className="flex items-start gap-2.5 cursor-pointer">
@@ -368,17 +362,16 @@ export default function TaskModal({
             </p>
           )}
 
-          <div className="flex justify-end gap-2 mt-1">
+          <div className="flex flex-wrap justify-end gap-2 mt-1">
             <Button type="button" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
+            <Button type="submit" variant="primary" loading={submitting}>
               {submitting ? (isEdit ? "Saving…" : "Creating…") : isEdit ? "Save changes" : "Create task"}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -389,7 +382,7 @@ export default function TaskModal({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <fieldset className="rounded-lg border border-[var(--line)] bg-[var(--paper)]/40 px-3.5 py-3 m-0 flex flex-col gap-3">
-      <legend className="px-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--accent-strong)]">
+      <legend className="px-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-strong)]">
         {title}
       </legend>
       {children}
@@ -410,14 +403,14 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11.5px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">{label}</label>
+      <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">{label}</label>
       <input
         type={type}
         value={value}
         required={type !== "number"}
         min={type === "number" ? 0 : undefined}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm"
+        className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
       />
     </div>
   );

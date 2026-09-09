@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { Avatar } from "@/components/ui";
+import { Avatar, EmptyState } from "@/components/ui";
 
 type Notification = {
   id: string;
@@ -15,7 +15,8 @@ type Notification = {
     | "ticket_new" | "ticket_reply"
     | "task_submitted" | "task_reviewed" | "task_assigned" | "task_poke" | "password_reset_submitted" | "password_reset_reviewed" | "password_expiring" | "schedule_changed" | "leave_updated" | "credential_proof_submitted" | "credential_proof_reviewed"
     | "leave_submitted" | "leave_reviewed" | "schedule_published"
-    | "post_new";
+    | "post_new"
+    | "chat_reply" | "chat_reaction";
   post_id: string | null;
   comment_id: string | null;
   reaction: string | null;
@@ -80,6 +81,8 @@ function describe(n: Notification): string {
   if (n.type === "leave_reviewed") return `${name} reviewed your leave request`;
   if (n.type === "schedule_published") return `${name} published a new schedule`;
   if (n.type === "post_new") return `${name} shared a new post`;
+  if (n.type === "chat_reply") return `${name} replied to your message`;
+  if (n.type === "chat_reaction") return `${name} reacted to your message`;
   return "";
 }
 
@@ -203,8 +206,10 @@ export default function NotificationBell({ userId }: { userId: string }) {
       <button
         type="button"
         onClick={handleOpen}
-        aria-label="Notifications"
-        className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-[var(--paper-raised)] border border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
+        aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-[var(--paper-raised)] border border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] hover:shadow-[var(--shadow-sm)] transition-all"
         style={{ boxShadow: "var(--shadow-xs)" }}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -212,7 +217,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 z-10 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--bad)] text-white text-[10px] font-bold flex items-center justify-center animate-badge-pulse">
+          <span className="absolute -top-1 -right-1 z-10 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--bad)] text-[var(--on-accent)] text-[10px] font-bold flex items-center justify-center animate-badge-pulse">
             {unread > 99 ? "99+" : unread}
           </span>
         )}
@@ -220,8 +225,10 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
       {open && (
         <div
-          className="fixed right-2 top-14 md:absolute md:right-0 md:top-12 z-50 w-[calc(100vw-16px)] md:w-[340px] max-w-[380px] bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-fade-in-up"
-          style={{ boxShadow: "var(--shadow-lg, 0 10px 25px rgba(0,0,0,0.15))" }}
+          role="dialog"
+          aria-label="Notifications"
+          className="fixed right-2 top-[calc(56px+var(--safe-top))] md:absolute md:right-0 md:top-12 z-50 w-[calc(100vw-16px)] md:w-[340px] max-w-[380px] bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl overflow-hidden animate-fade-in-up"
+          style={{ boxShadow: "var(--shadow-lg)" }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
             <span className="font-bold text-[13px] text-[var(--ink)]">Notifications</span>
@@ -237,17 +244,24 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
           <div className="max-h-[400px] overflow-y-auto">
             {loading ? (
-              <div className="py-8 text-center text-[12px] text-[var(--muted)]">Loading…</div>
-            ) : items.length === 0 ? (
-              <div className="py-10 text-center text-[12px] text-[var(--muted)]">
-                <div className="text-2xl mb-1">🔔</div>
-                No notifications yet.
+              <div className="flex flex-col gap-2 px-4 py-3" aria-busy="true">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="skeleton w-8 h-8 rounded-full shrink-0" />
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="skeleton h-3 w-4/5" />
+                      <div className="skeleton h-2.5 w-1/4" />
+                    </div>
+                  </div>
+                ))}
               </div>
+            ) : items.length === 0 ? (
+              <EmptyState icon="🔔" title="You're all caught up" hint="Reactions, comments, approvals and schedule changes will show up here." />
             ) : (
               items.map((n) => (
                 <Link
                   key={n.id}
-                  href={n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" || n.type === "task_poke" ? "/tasks" : n.type === "password_reset_submitted" || n.type === "password_reset_reviewed" || n.type === "password_expiring" || n.type === "credential_proof_submitted" || n.type === "credential_proof_reviewed" ? "/account" : n.type === "leave_submitted" || n.type === "leave_reviewed" || n.type === "leave_updated" ? "/leave" : n.type === "schedule_published" || n.type === "schedule_changed" ? "/schedule" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
+                  href={n.type === "chat_reply" || n.type === "chat_reaction" ? "#open-chat" : n.type === "announcement" ? "/announcements" : n.type === "ticket_new" || n.type === "ticket_reply" ? "/concerns" : n.type === "task_submitted" || n.type === "task_reviewed" || n.type === "task_assigned" || n.type === "task_poke" ? "/tasks" : n.type === "password_reset_submitted" || n.type === "password_reset_reviewed" || n.type === "password_expiring" || n.type === "credential_proof_submitted" || n.type === "credential_proof_reviewed" ? "/account" : n.type === "leave_submitted" || n.type === "leave_reviewed" || n.type === "leave_updated" ? "/leave" : n.type === "schedule_published" || n.type === "schedule_changed" ? "/schedule" : n.post_id ? `/feed#post-${n.post_id}` : "/feed"}
                   onClick={() => {
                     if (!n.read) markOneRead(n.id);
                     setOpen(false);

@@ -21,7 +21,7 @@ export default function TaskBlockBanner({
       </p>
       <Link
         href="/tasks"
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-[12.5px] font-bold bg-[var(--warn)] text-white hover:opacity-90 transition-opacity"
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-[12.5px] font-bold bg-[var(--warn)] text-[var(--on-accent)] hover:opacity-90 transition-opacity"
       >
         Go to Tasks →
       </Link>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Button, Modal, EmptyState } from "@/components/ui";
 import TaskCard from "./TaskCard";
 import type { TaskData } from "./TaskCard";
 import TaskModal from "./TaskModal";
@@ -89,7 +89,11 @@ export default function TaskList({
       )}
 
       {tasks.length === 0 && (
-        <p className="text-[var(--muted)] text-sm py-6 text-center">No tasks yet.</p>
+        <EmptyState
+          icon="✅"
+          title="No tasks yet"
+          hint={canManage ? "Add a task above to assign it to the team or to specific members." : "Nothing assigned to you right now."}
+        />
       )}
 
       {/* TL: Pending Approvals section */}
@@ -108,7 +112,7 @@ export default function TaskList({
 
       {approved.length > 0 && (
         <>
-          <h3 className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-2 mt-4">
+          <h3 className="text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold mb-2 mt-4">
             Completed ({approved.length})
           </h3>
           <div className="flex flex-col gap-2">{renderCards(approved)}</div>
@@ -124,39 +128,32 @@ export default function TaskList({
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 overflow-y-auto" onClick={() => setDeleteTarget(null)}>
-          <div
-            className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl w-full max-w-sm p-5 animate-scale-in my-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-sm font-bold mb-2">Delete &ldquo;{deleteTarget.title}&rdquo;?</h2>
-            {deleteTarget.pendingCount > 0 ? (
-              <p className="text-[13px] text-[var(--bad)] font-semibold mb-4">
-                {deleteTarget.pendingCount} submission{deleteTarget.pendingCount !== 1 ? "s" : ""} still awaiting
-                your review will be discarded along with it — nobody will be notified, and there will be nothing left
-                to approve. This cannot be undone.
-              </p>
-            ) : (
-              <p className="text-[13px] text-[var(--muted)] mb-4">
-                This will permanently delete this task and all completion records. This cannot be undone.
-              </p>
-            )}
-            <div className="flex justify-end gap-2">
+        <Modal
+          onClose={() => setDeleteTarget(null)}
+          title={<>Delete &ldquo;{deleteTarget.title}&rdquo;?</>}
+          footer={
+            <>
               <Button type="button" onClick={() => setDeleteTarget(null)}>
                 Cancel
               </Button>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handleDelete}
-                disabled={deleting}
-                style={{ backgroundColor: "var(--bad)", borderColor: "var(--bad)" }}
-              >
+              <Button type="button" variant="danger" onClick={handleDelete} loading={deleting}>
                 {deleting ? "Deleting…" : "Delete"}
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        >
+          {deleteTarget.pendingCount > 0 ? (
+            <p className="text-[13px] text-[var(--bad)] font-semibold m-0">
+              {deleteTarget.pendingCount} submission{deleteTarget.pendingCount !== 1 ? "s" : ""} still awaiting
+              your review will be discarded along with it — nobody will be notified, and there will be nothing left
+              to approve. This cannot be undone.
+            </p>
+          ) : (
+            <p className="text-[13px] text-[var(--muted)] m-0">
+              This will permanently delete this task and all completion records. This cannot be undone.
+            </p>
+          )}
+        </Modal>
       )}
     </>
   );

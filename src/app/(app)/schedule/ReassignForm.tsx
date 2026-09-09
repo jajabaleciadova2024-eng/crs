@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Button, IconButton } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
 import type { Profile } from "@/lib/database.types";
 
@@ -35,12 +35,10 @@ export default function ReassignForm({
     // got noisy fast (see the daily-rotation grid in schedule/page.tsx).
     // Two arrows cycling into each other reads as "swap" at a glance.
     return (
-      <button
-        type="button"
+      <IconButton
+        size="sm"
         onClick={() => setOpen(true)}
-        aria-label={`Reassign ${workstationName}`}
-        title="Reassign"
-        className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors"
+        label={`Reassign ${workstationName}`}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 2l4 4-4 4" />
@@ -48,7 +46,7 @@ export default function ReassignForm({
           <path d="M7 22l-4-4 4-4" />
           <path d="M21 13v2a4 4 0 0 1-4 4H3" />
         </svg>
-      </button>
+      </IconButton>
     );
   }
 
@@ -84,7 +82,7 @@ export default function ReassignForm({
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
-          className="text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
+          className="text-xs border border-[var(--line)] rounded-md px-1.5 py-1 bg-[var(--paper)] text-[var(--ink)]"
           aria-label={`Reassign ${workstationName}`}
         >
           <option value="">— Unassigned —</option>
@@ -98,10 +96,10 @@ export default function ReassignForm({
             );
           })}
         </select>
-        <Button variant="primary" onClick={handleSave} disabled={pending} style={{ padding: "5px 10px" }}>
+        <Button variant="primary" onClick={handleSave} loading={pending} disabled={pending} size="sm">
           {pending ? "Saving…" : "Save"}
         </Button>
-        <Button onClick={() => setOpen(false)} disabled={pending} style={{ padding: "5px 10px" }}>
+        <Button onClick={() => setOpen(false)} disabled={pending} size="sm">
           Cancel
         </Button>
       </div>

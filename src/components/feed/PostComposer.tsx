@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { Button } from "@/components/ui";
 import { useMentionAutocomplete, MentionDropdown, type Mentionable } from "./mentions";
 import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
@@ -214,7 +215,8 @@ export default function PostComposer({
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={removeImage}
-              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[14px]"
+              aria-label="Remove image"
+              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-[14px] cursor-pointer"
             >
               ×
             </button>
@@ -264,7 +266,7 @@ export default function PostComposer({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || !!imageUrl}
-              className="p-2 rounded-md text-[var(--muted)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-md text-[var(--muted)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               title="Add photo"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -300,18 +302,16 @@ export default function PostComposer({
           </div>
 
           {/* Post button */}
-          <button
+          <Button
             type="button"
+            variant="primary"
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleSubmit}
+            loading={submitting}
             disabled={!canPost}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12.5px] font-bold bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:-translate-y-[0.5px] active:translate-y-0 shadow-sm"
           >
             {submitting ? (
-              <>
-                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Posting…
-              </>
+              "Posting…"
             ) : (
               <>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -321,7 +321,7 @@ export default function PostComposer({
                 Post
               </>
             )}
-          </button>
+          </Button>
         </div>
       )}
     </div>

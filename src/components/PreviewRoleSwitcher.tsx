@@ -61,7 +61,7 @@ export default function PreviewRoleSwitcher({ currentRole }: { currentRole: AppR
           {current.icon}
         </div>
         <div className="flex-1 min-w-0 text-left">
-          <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--muted)] leading-none mb-0.5">
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-[var(--muted)] leading-none mb-0.5">
             Viewing as
           </div>
           <div className="text-[12px] font-semibold text-[var(--ink)] truncate leading-tight">

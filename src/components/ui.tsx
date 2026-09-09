@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import Link from "next/link";
 
 // Title bar pinned to the top of every page inside the app shell — stays
@@ -85,7 +85,7 @@ export function PageHeader({
       </div>
       <header
         ref={headerRef}
-        className="fixed z-20 top-[calc(56px+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] px-3 sm:px-4 md:px-10 md:pr-[84px] py-3.5 md:py-5 bg-[var(--paper)]/85 backdrop-blur-md border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out"
+        className="fixed z-20 top-[calc(56px+var(--safe-top)+var(--preview-offset,0px))] md:top-[var(--preview-offset,0px)] left-0 md:left-[var(--sidebar-width,220px)] w-full md:w-[calc(100%-var(--sidebar-width,220px))] px-3 sm:px-4 md:px-10 md:pr-[84px] py-3.5 md:py-5 glass border-b border-[var(--line)] transition-[left,width,top] duration-200 ease-out"
       >
         {content}
       </header>
@@ -184,12 +184,25 @@ const PILL_STYLES: Record<string, string> = {
   muted: "bg-[var(--paper)] text-[var(--muted)]",
 };
 
-export function Pill({ tone = "muted", children }: { tone?: keyof typeof PILL_STYLES; children: ReactNode }) {
+export function Pill({
+  tone = "muted",
+  size = "md",
+  dot = true,
+  children,
+}: {
+  tone?: keyof typeof PILL_STYLES;
+  /** xs = compact role badge next to a name; md = status pill in a table. */
+  size?: "xs" | "md";
+  /** Leading status dot — off for identity badges (TL / OIC) that aren't a state. */
+  dot?: boolean;
+  children: ReactNode;
+}) {
+  const dims = size === "xs" ? "px-1.5 py-px text-[9.5px] gap-1 uppercase" : "px-2.5 py-0.5 text-[11px] gap-1.5";
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide leading-relaxed whitespace-nowrap ${PILL_STYLES[tone]}`}
+      className={`inline-flex items-center rounded-full font-bold tracking-wide leading-relaxed whitespace-nowrap ${dims} ${PILL_STYLES[tone]}`}
     >
-      <span className="w-[5px] h-[5px] rounded-full bg-current opacity-80" />
+      {dot && <span className="w-[5px] h-[5px] rounded-full bg-current opacity-80" />}
       {children}
     </span>
   );
@@ -214,7 +227,8 @@ export function Card({
   extraClass?: string;
 }) {
   const className =
-    "group block bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl px-4 py-4 hover:border-[var(--accent)] hover:-translate-y-[1px] transition-all duration-200" +
+    "group block bg-[var(--paper-raised)] border border-[var(--line)] rounded-xl px-4 py-4" +
+    (href ? " lift hover:border-[var(--accent)] cursor-pointer" : "") +
     (extraClass ? ` ${extraClass}` : "");
   const content = (
     <>
@@ -255,10 +269,11 @@ export function Avatar({
   firstName: string;
   lastName: string;
   avatarUrl?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
 }) {
   const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase();
   const sizes = {
+    xs: { outer: "w-[24px] h-[24px]", text: "text-[9px]", ring: "ring-1", mr: "mr-1" },
     sm: { outer: "w-[28px] h-[28px]", text: "text-[10px]", ring: "ring-1", mr: "mr-2" },
     md: { outer: "w-[36px] h-[36px]", text: "text-[12px]", ring: "ring-2", mr: "mr-2.5" },
     lg: { outer: "w-[72px] h-[72px]", text: "text-[22px]", ring: "ring-2", mr: "" },
@@ -285,38 +300,219 @@ export function Avatar({
   );
 }
 
+const BUTTON_VARIANTS = {
+  primary:
+    "bg-[var(--accent)] border-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-strong)] hover:border-[var(--accent-strong)] hover:-translate-y-[0.5px] active:translate-y-0 disabled:hover:transform-none shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)]",
+  ghost:
+    "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 hover:shadow-[var(--shadow-xs)]",
+  danger:
+    "bg-[var(--bad)] border-[var(--bad)] text-[var(--on-accent)] hover:bg-[var(--bad-strong)] hover:border-[var(--bad-strong)] hover:-translate-y-[0.5px] active:translate-y-0 disabled:hover:transform-none shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)]",
+  "danger-ghost":
+    "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--bad)] hover:border-[var(--bad)] hover:bg-[var(--bad-soft)]/60 hover:shadow-[var(--shadow-xs)]",
+} as const;
+
+const BUTTON_SIZES = {
+  sm: "min-h-[30px] px-2.5 py-1 text-[11.5px] rounded-md",
+  md: "min-h-[34px] px-3.5 py-1.5 text-[12.5px] rounded-md",
+  lg: "min-h-[42px] px-5 py-2.5 text-[13.5px] rounded-lg",
+} as const;
+
+export function Spinner({ className = "" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-block w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin ${className}`}
+    />
+  );
+}
+
 export function Button({
   children,
   variant = "ghost",
+  size = "md",
+  loading = false,
+  block = false,
   href,
+  className = "",
+  disabled,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "ghost";
+  variant?: keyof typeof BUTTON_VARIANTS;
+  size?: keyof typeof BUTTON_SIZES;
+  /** Shows a spinner and disables the button; children stay as the label. */
+  loading?: boolean;
+  /** Full width — the usual choice for the primary action on a phone. */
+  block?: boolean;
   // When set, renders as a nav Link styled identically to the button
   // (e.g. "View calendar" / "View history") instead of an actual <button>.
   href?: string;
 }) {
-  // min-h-[36px] keeps the primary hit-target comfortable on both mobile
-  // (touch spec's ~44px minimum is close after the caller's own padding)
-  // and desktop, without being visually clunky. inline-flex with center
-  // alignment stops icon+text buttons from wobbling in height.
-  const base = "inline-flex items-center justify-center gap-1.5 min-h-[34px] px-3.5 py-1.5 rounded-md text-[12.5px] font-bold border cursor-pointer whitespace-nowrap select-none";
-  const styles =
-    variant === "primary"
-      ? "bg-[var(--accent)] border-[var(--accent)] text-white hover:bg-[var(--accent-strong)] hover:border-[var(--accent-strong)] hover:-translate-y-[0.5px] active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none shadow-[var(--shadow-xs)] hover:shadow-[var(--shadow-sm)]"
-      : "bg-[var(--paper-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]/30 hover:shadow-[var(--shadow-xs)] disabled:opacity-50 disabled:cursor-not-allowed";
+  // min-h keeps the hit-target comfortable on both mobile (touch spec's
+  // ~44px minimum is close after the caller's own padding) and desktop,
+  // without being visually clunky. inline-flex with center alignment stops
+  // icon+text buttons from wobbling in height.
+  const base =
+    "inline-flex items-center justify-center gap-1.5 font-bold border cursor-pointer whitespace-nowrap select-none disabled:opacity-50 disabled:cursor-not-allowed";
+  const cls = `${base} ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${block ? "w-full" : ""} ${className}`;
 
   if (href) {
     return (
-      <Link href={href} className={`${base} ${styles}`}>
+      <Link href={href} className={cls}>
         {children}
       </Link>
     );
   }
 
   return (
-    <button className={`${base} ${styles}`} {...props}>
+    <button className={cls} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>
+      {loading && <Spinner />}
       {children}
     </button>
+  );
+}
+
+/** Square icon-only button — consistent 32px target, tone-aware hover. */
+export function IconButton({
+  children,
+  tone = "muted",
+  label,
+  size = "md",
+  className = "",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  tone?: "muted" | "accent" | "good" | "bad";
+  /** Accessible name — also used as the tooltip. */
+  label: string;
+  size?: "sm" | "md";
+}) {
+  const tones = {
+    muted: "text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--accent-soft)]/50",
+    accent: "text-[var(--accent-strong)] hover:bg-[var(--accent-soft)]",
+    good: "text-[var(--good)] hover:bg-[var(--good-soft)]",
+    bad: "text-[var(--muted)] hover:text-[var(--bad)] hover:bg-[var(--bad-soft)]",
+  };
+  const dims = size === "sm" ? "w-7 h-7" : "w-8 h-8";
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      className={`inline-flex items-center justify-center ${dims} rounded-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${tones[tone]} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * One dialog shell for the whole app. Backdrop click / Escape close it; the
+ * page behind stops scrolling while it is open; on phones it rises from
+ * the bottom as a sheet with a grab handle, on larger screens it is a
+ * centred card. `size` only changes the max width.
+ */
+export function Modal({
+  open = true,
+  onClose,
+  title,
+  titleId,
+  size = "sm",
+  children,
+  footer,
+  zIndex = 50,
+  className = "",
+}: {
+  open?: boolean;
+  onClose: () => void;
+  /** Rendered as the dialog heading — omit when the body supplies its own. */
+  title?: ReactNode;
+  titleId?: string;
+  size?: "sm" | "md" | "lg";
+  children: ReactNode;
+  /** Action row — wraps on narrow screens, right-aligned otherwise. */
+  footer?: ReactNode;
+  zIndex?: number;
+  /** Extra classes on the panel (e.g. remove padding for an edge-to-edge header). */
+  className?: string;
+}) {
+  const generatedId = useId();
+  const headingId = titleId ?? generatedId;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const width = size === "lg" ? "sm:max-w-2xl" : size === "md" ? "sm:max-w-md" : "sm:max-w-sm";
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-end sm:items-start justify-center sm:px-4 sm:py-6 animate-fade-in overflow-y-auto"
+      style={{ zIndex }}
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? headingId : undefined}
+        className={`sheet-panel ${width} sm:my-auto bg-[var(--paper-raised)] border border-[var(--line)] rounded-2xl sm:rounded-xl p-5 sm:p-6 flex flex-col gap-3 animate-slide-up sm:animate-scale-in ${className}`}
+        style={{ boxShadow: "var(--shadow-xl)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div aria-hidden="true" className="sm:hidden mx-auto -mt-1 mb-1 h-1 w-10 rounded-full bg-[var(--line-strong)]/60" />
+        {title && (
+          <h2 id={headingId} className="font-serif text-xl text-[var(--ink)] m-0 leading-tight">
+            {title}
+          </h2>
+        )}
+        {children}
+        {footer && <div className="flex flex-wrap justify-end gap-2 mt-1">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+/** Section eyebrow — the small uppercase label used above groups of content. */
+export function Eyebrow({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold ${className}`}>{children}</div>
+  );
+}
+
+/** Empty-state placeholder: icon, headline, optional hint/action. */
+export function EmptyState({
+  icon,
+  title,
+  hint,
+  action,
+}: {
+  icon?: ReactNode;
+  title: string;
+  hint?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center gap-2 py-8 px-4 animate-fade-in">
+      {icon && (
+        <div className="w-11 h-11 rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] flex items-center justify-center text-xl">
+          {icon}
+        </div>
+      )}
+      <div className="text-[13.5px] font-semibold text-[var(--ink)]">{title}</div>
+      {hint && <div className="text-[12px] text-[var(--muted)] max-w-[36ch] leading-snug">{hint}</div>}
+      {action && <div className="mt-1.5">{action}</div>}
+    </div>
   );
 }

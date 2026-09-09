@@ -79,7 +79,7 @@ function RotationRow({ member }: { member: Member }) {
           <select
             value={tenureGroup}
             onChange={(e) => setTenureGroup(e.target.value as TenureGroup)}
-            className="text-xs border border-[var(--line)] rounded px-1.5 py-1 bg-[var(--paper)]"
+            className="text-xs border border-[var(--line)] rounded-md px-1.5 py-1 bg-[var(--paper)] text-[var(--ink)]"
           >
             <option value="new_hire">New Hire</option>
             <option value="tenured">Tenured</option>
@@ -93,15 +93,15 @@ function RotationRow({ member }: { member: Member }) {
       <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
         {editing ? (
           <div className="flex gap-1.5">
-            <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pending} onClick={save}>
+            <Button variant="primary" size="sm" loading={pending} disabled={pending} onClick={save}>
               {pending ? "Saving…" : "Save"}
             </Button>
-            <Button style={{ padding: "5px 10px" }} onClick={() => setEditing(false)}>
+            <Button size="sm" onClick={() => setEditing(false)}>
               Cancel
             </Button>
           </div>
         ) : (
-          <Button style={{ padding: "5px 10px" }} onClick={() => setEditing(true)}>
+          <Button size="sm" onClick={() => setEditing(true)}>
             Edit
           </Button>
         )}

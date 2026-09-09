@@ -6,6 +6,7 @@ import SignOutButton from "@/components/SignOutButton";
 import PreviewRoleSwitcher from "@/components/PreviewRoleSwitcher";
 import NavLink from "@/components/NavLink";
 import NavGroup from "@/components/NavGroup";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type NavItem = {
   href: string;
@@ -81,6 +82,15 @@ const COMMUNITY_ITEMS: NavItem[] = [
     icon: (
       <Icon>
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </Icon>
+    ),
+  },
+  {
+    href: "#open-chat",
+    label: "Team Chat",
+    icon: (
+      <Icon>
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
       </Icon>
     ),
   },
@@ -306,7 +316,7 @@ export default function Sidebar({
   return (
     <aside className="px-3 pt-5 pb-4 flex flex-col gap-5 h-full w-full overflow-y-auto overflow-x-hidden shrink-0 bg-[var(--paper)]">
       <div className="px-1 flex items-center gap-2.5 md:group-data-[collapsed=true]/sidebar:justify-center md:group-data-[collapsed=true]/sidebar:px-0">
-        <span className="hidden md:group-data-[collapsed=true]/sidebar:flex w-9 h-9 rounded-lg bg-[var(--accent)] text-white items-center justify-center font-serif font-bold text-sm shrink-0 shadow-sm">
+        <span className="hidden md:group-data-[collapsed=true]/sidebar:flex w-9 h-9 rounded-lg bg-[var(--accent)] text-[var(--on-accent)] items-center justify-center font-serif font-bold text-sm shrink-0 shadow-sm">
           CN
         </span>
         <div className="md:group-data-[collapsed=true]/sidebar:hidden min-w-0">
@@ -318,12 +328,12 @@ export default function Sidebar({
               a tool people are mid-task in, and taking over the tab would
               lose whatever they were doing. */}
           <a
-            href="https://hirejps.com"
+            href="https://builder.hirejps.com/"
             target="_blank"
             rel="noopener noreferrer"
             className="block text-[9.5px] text-[var(--muted)] mt-1 hover:text-[var(--accent-strong)] transition-colors"
           >
-            Developer: <span className="font-semibold">HireJPS.com</span>
+            Developer: <span className="font-semibold">builder.hirejps.com</span>
           </a>
         </div>
       </div>
@@ -389,6 +399,12 @@ export default function Sidebar({
             <PreviewRoleSwitcher currentRole={profile.role} />
           </div>
         )}
+        {/* Appearance — every role gets the same control, so nobody's
+            colours differ from anyone else's unless they chose so. */}
+        <div className="flex items-center justify-between gap-2 px-1 md:group-data-[collapsed=true]/sidebar:hidden">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Appearance</span>
+          <ThemeToggle />
+        </div>
       </div>
 
       <div className="border-t border-[var(--line)] pt-3.5 flex items-center gap-2.5 md:group-data-[collapsed=true]/sidebar:justify-center">

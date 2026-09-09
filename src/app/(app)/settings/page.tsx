@@ -6,6 +6,7 @@ import ProfilePhotoUpload from "./ProfilePhotoUpload";
 import NotificationPrefsForm from "./NotificationPrefsForm";
 import OrgSettingsForm from "./OrgSettingsForm";
 import HolidayManager from "./HolidayManager";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default async function SettingsPage() {
   const profile = await requireProfile();
@@ -31,6 +32,16 @@ export default async function SettingsPage() {
 
       <Panel title="My account">
         <AccountForm profile={profile} />
+      </Panel>
+
+      <Panel
+        title="Appearance"
+        hint="This device only"
+        footnote="Colours are the same for every role. If the app looks different on someone else's screen, they have a different appearance setting or their device is in dark mode."
+      >
+        <div className="max-w-sm">
+          <ThemeToggle showLabels />
+        </div>
       </Panel>
 
       <Panel title="Notifications">

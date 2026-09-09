@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Pill } from "@/components/ui";
+import { Pill, Button } from "@/components/ui";
 import Linkify from "@/components/Linkify";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import { todayInManila } from "@/lib/scheduleDates";
@@ -839,13 +839,9 @@ export default function TaskCard({
                         Attach one or more images, then submit.
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="ml-1 shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer"
-                    >
+                    <Button type="button" size="sm" variant="primary" className="ml-1 shrink-0" onClick={() => fileInputRef.current?.click()}>
                       Choose photos
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -894,14 +890,16 @@ export default function TaskCard({
                       >
                         Remove all
                       </button>
-                      <button
+                      <Button
                         type="button"
+                        size="sm"
+                        variant="primary"
+                        className="ml-auto shrink-0"
                         onClick={() => handleSubmit(photos.map((p) => p.file))}
-                        disabled={toggling}
-                        className="ml-auto shrink-0 px-2.5 py-1.5 rounded-md text-[11.5px] font-bold bg-[var(--accent)] text-white hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                        loading={toggling || preparing}
                       >
                         {preparing ? "Preparing…" : toggling ? "Submitting…" : "Submit"}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -935,7 +933,7 @@ export default function TaskCard({
                 about it. Mirrors a rejected leave request's review_note. */}
             {isAssignee && task.completionStatus === "rejected" && (
               <div className="mt-2 rounded-lg border border-[var(--bad)]/40 bg-[var(--bad-soft)] px-3 py-2">
-                <div className="text-[11px] font-bold text-[var(--bad)] uppercase tracking-wider">
+                <div className="text-[11px] font-semibold text-[var(--bad)] uppercase tracking-wider">
                   Declined by your Team Leader
                 </div>
                 {task.myReviewNote && (
@@ -1084,25 +1082,27 @@ export default function TaskCard({
                                   <span className="text-[10.5px] text-[var(--muted)]">deciding\u2026</span>
                                 ) : (
                                   <span className="flex items-center gap-1">
-                                    <button
+                                    <Button
                                       type="button"
+                                      size="sm"
+                                      variant="primary"
                                       onClick={() => handleReview(c.id, "approved")}
-                                      disabled={reviewing === c.id}
-                                      className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--good)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                                      loading={reviewing === c.id}
                                     >
                                       Approve
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                       type="button"
+                                      size="sm"
+                                      variant="danger-ghost"
                                       onClick={() => {
                                         setDeclining(c.id);
                                         setDeclineNote("");
                                       }}
                                       disabled={reviewing === c.id}
-                                      className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
                                     >
                                       Decline
-                                    </button>
+                                    </Button>
                                   </span>
                                 )
                               ) : (
@@ -1131,17 +1131,19 @@ export default function TaskCard({
                         rows={2}
                         autoFocus
                         placeholder="Why are you declining? The member will see this."
-                        className="w-full max-w-[380px] px-2 py-1.5 rounded border border-[var(--line)] bg-[var(--paper)] text-[12px]"
+                        className="w-full max-w-[380px] px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-[12px]"
                       />
                       <div className="flex items-center gap-1.5">
-                        <button
+                        <Button
                           type="button"
+                          size="sm"
+                          variant="danger"
                           onClick={() => handleReview(r.completion!.id, "rejected", declineNote.trim())}
-                          disabled={reviewing === r.completion.id || !declineNote.trim()}
-                          className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-[var(--bad)] text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          loading={reviewing === r.completion.id}
+                          disabled={!declineNote.trim()}
                         >
                           Confirm decline
-                        </button>
+                        </Button>
                         <button
                           type="button"
                           onClick={() => setDeclining(null)}
@@ -1197,6 +1199,7 @@ export default function TaskCard({
               onClick={onEdit}
               className="p-1.5 rounded hover:bg-[var(--accent-soft)] text-[var(--muted)] hover:text-[var(--accent-strong)] transition-colors cursor-pointer"
               title="Edit task"
+              aria-label="Edit task"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -1208,6 +1211,7 @@ export default function TaskCard({
               onClick={onDelete}
               className="p-1.5 rounded hover:bg-[var(--bad-soft)] text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer"
               title="Delete task"
+              aria-label="Delete task"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />

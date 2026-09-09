@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { Button } from "@/components/ui";
+import AuthShell, { AuthNotice } from "@/components/AuthShell";
 
 // Landing page for BOTH invite and password-reset emails. Deliberately does
 // NOT auto-consume the one-time token on page load — the Supabase email
@@ -51,46 +54,31 @@ export default function AuthConfirmForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--paper)] px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="font-serif text-2xl text-[var(--ink)]">CRS Naga</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            {type === "invite" ? "Confirm your invitation" : "Confirm this request"}
+    <AuthShell
+      tagline={type === "invite" ? "Confirm your invitation" : "Confirm this request"}
+      footer={
+        <Link href="/login" className="text-xs font-bold text-[var(--muted)] hover:text-[var(--accent-strong)]">
+          ← Back to sign in
+        </Link>
+      }
+    >
+      {!tokenHash || !type ? (
+        <AuthNotice>This link is missing information it needs — please request a new one from the sign-in page.</AuthNotice>
+      ) : (
+        <>
+          <p className="text-sm text-[var(--ink)] m-0 leading-relaxed">
+            {type === "invite"
+              ? "Click below to confirm your account and set your password."
+              : "Click below to confirm and set a new password."}
           </p>
-        </div>
 
-        <div className="bg-[var(--paper-raised)] border border-[var(--line)] rounded-md p-6 flex flex-col gap-4">
-          {!tokenHash || !type ? (
-            <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
-              This link is missing information it needs — please request a new one from the sign-in page.
-            </p>
-          ) : (
-            <>
-              <p className="text-sm text-[var(--ink)]">
-                {type === "invite"
-                  ? "Click below to confirm your account and set your password."
-                  : "Click below to confirm and set a new password."}
-              </p>
+          {error && <AuthNotice>{error}</AuthNotice>}
 
-              {error && (
-                <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="button"
-                onClick={confirm}
-                disabled={loading}
-                className="mt-1 w-full py-2.5 rounded bg-[var(--accent)] text-white text-sm font-bold hover:bg-[var(--accent-strong)] disabled:opacity-50"
-              >
-                {loading ? "Confirming…" : "Continue"}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+          <Button type="button" variant="primary" size="lg" block loading={loading} onClick={confirm} className="mt-1">
+            {loading ? "Confirming…" : "Continue"}
+          </Button>
+        </>
+      )}
+    </AuthShell>
   );
 }

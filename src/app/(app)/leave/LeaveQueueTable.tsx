@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useState, useTransition, type ReactNode } from "react";
+import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pill, Button } from "@/components/ui";
+import { Pill, Button, IconButton, Modal } from "@/components/ui";
 import { formatFullName } from "@/lib/format";
 import { formatLeaveRanges, type LeaveDateRange } from "@/lib/leaveFormat";
 import EditLeaveRequestForm from "./EditLeaveRequestForm";
@@ -34,45 +34,6 @@ const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
   approved: "good",
   rejected: "bad",
 };
-
-// Compact icon-only action button for the Actions column. Labelled buttons
-// (Approve / Reject / Delete) wrapped onto separate lines in this narrow
-// column; icons keep all three on one row. The label is exposed as both
-// `title` and `aria-label` so hover and screen readers still get it.
-const ICON_TONE = {
-  good: "text-[var(--good)] hover:bg-[var(--good-soft,var(--accent-soft))] hover:border-[var(--good)]",
-  bad: "text-[var(--bad)] hover:bg-[var(--bad-soft,var(--accent-soft))] hover:border-[var(--bad)]",
-  muted: "text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:border-[var(--line)] hover:text-[var(--ink)]",
-} as const;
-
-function IconAction({
-  tone,
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  tone: keyof typeof ICON_TONE;
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      aria-label={label}
-      className={`inline-flex items-center justify-center w-7 h-7 rounded-md border border-[var(--line)] bg-[var(--paper-raised)] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${ICON_TONE[tone]}`}
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        {children}
-      </svg>
-    </button>
-  );
-}
 
 export default function LeaveQueueTable({
   requests,
@@ -291,7 +252,7 @@ export default function LeaveQueueTable({
                   {r.status === "rejected" && r.final_rejection && (
                     <div className="text-[10.5px] font-bold text-[var(--bad)] mt-1">Final — closed</div>
                   )}
-                  {r.review_note && (r.status === "rejected" || (r.status === "approved" && !r.document_path)) && (
+                  {r.review_note && (r.status === "rejected" || r.status === "approved") && (
                     <div className="text-[10.5px] text-[var(--muted)] mt-1 max-w-[180px]">{r.review_note}</div>
                   )}
                 </td>
@@ -322,10 +283,10 @@ export default function LeaveQueueTable({
                 <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
                   {isOwn && r.status === "pending" && !isEditing && (
                     <div className="flex gap-1.5">
-                      <Button style={{ padding: "5px 10px" }} onClick={() => setEditingId(r.id)}>
+                      <Button size="sm" onClick={() => setEditingId(r.id)}>
                         Edit
                       </Button>
-                      <Button style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => cancelRequest(r.id)}>
+                      <Button size="sm" disabled={pendingId === r.id} onClick={() => cancelRequest(r.id)}>
                         Cancel
                       </Button>
                     </div>
@@ -333,10 +294,10 @@ export default function LeaveQueueTable({
                   {isOwn && r.status === "rejected" && !r.final_rejection && !isEditing && (
                     <div className="flex flex-col gap-1 items-start">
                       <div className="flex gap-1.5">
-                        <Button style={{ padding: "5px 10px" }} onClick={() => setEditingId(r.id)}>
+                        <Button size="sm" onClick={() => setEditingId(r.id)}>
                           Edit
                         </Button>
-                        <Button variant="primary" style={{ padding: "5px 10px" }} disabled={pendingId === r.id} onClick={() => resubmitRequest(r.id)}>
+                        <Button variant="primary" size="sm" disabled={pendingId === r.id} onClick={() => resubmitRequest(r.id)}>
                           Resubmit
                         </Button>
                       </div>
@@ -356,12 +317,13 @@ export default function LeaveQueueTable({
                       <div className="flex items-center gap-1">
                         {!isOwn && (r.status === "pending" || isReopenedForReview) && (
                           <>
-                            <IconAction
+                            <IconButton
+                              size="sm"
                               tone="good"
-                              label={needsDocument ? "Approve — no document attached yet, you'll be asked for a note" : "Approve"}
+                              label={needsDocument ? "Approve — no document attached yet, you'll be asked for a note" : r.flagged_conflict ? "Approve — has a possible conflict, you'll be asked for a note" : "Approve"}
                               disabled={pendingId === r.id}
                               onClick={() => {
-                                if (needsDocument) {
+                                if (needsDocument || r.flagged_conflict) {
                                   setApprovingRequest(r);
                                   setApproveNote("");
                                   setApproveError(null);
@@ -370,9 +332,12 @@ export default function LeaveQueueTable({
                                 decide(r.id, "approved");
                               }}
                             >
-                              <path d="M20 6 9 17l-5-5" />
-                            </IconAction>
-                            <IconAction
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6 9 17l-5-5" />
+                              </svg>
+                            </IconButton>
+                            <IconButton
+                              size="sm"
                               tone="bad"
                               label="Reject"
                               disabled={pendingId === r.id}
@@ -382,11 +347,14 @@ export default function LeaveQueueTable({
                                 setRejectError(null);
                               }}
                             >
-                              <path d="M18 6 6 18M6 6l12 12" />
-                            </IconAction>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 6 6 18M6 6l12 12" />
+                              </svg>
+                            </IconButton>
                           </>
                         )}
-                        <IconAction
+                        <IconButton
+                          size="sm"
                           tone="muted"
                           label="Delete"
                           disabled={pendingId === r.id}
@@ -395,8 +363,10 @@ export default function LeaveQueueTable({
                             setDeleteError(null);
                           }}
                         >
-                          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </IconAction>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </IconButton>
                       </div>
                       {!isOwn && needsDocument && (r.status === "pending" || isReopenedForReview) && (
                         <span className="text-[10.5px] text-[var(--muted)]">No document attached yet</span>
@@ -433,13 +403,36 @@ export default function LeaveQueueTable({
       const isReopenableType = rejectingTypeConfig?.behavior === "auto_approve_document";
       const busy = pendingId === rejectingRequest.id;
       return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto" onClick={() => setRejectingRequest(null)}>
-          <div
-            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in my-auto"
-            style={{ boxShadow: "var(--shadow-lg)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-serif text-xl text-[var(--ink)] m-0">Reject this request?</h2>
+        <Modal
+          onClose={() => setRejectingRequest(null)}
+          title="Reject this request?"
+          size="sm"
+          footer={
+            <>
+              <Button disabled={busy} onClick={() => setRejectingRequest(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                loading={busy}
+                disabled={busy || !rejectNote.trim()}
+                onClick={() => submitReject(false)}
+              >
+                {busy ? "Rejecting…" : "Reject"}
+              </Button>
+              {isReopenableType && (
+                <Button
+                  variant="danger"
+                  loading={busy}
+                  disabled={busy || !rejectNote.trim()}
+                  onClick={() => submitReject(true)}
+                >
+                  {busy ? "Rejecting…" : "⛔ Reject — Final"}
+                </Button>
+              )}
+            </>
+          }
+        >
             <p className="text-sm text-[var(--muted)] m-0">
               Add a short note so the associate knows why — it&apos;s included in their notification.
             </p>
@@ -448,7 +441,7 @@ export default function LeaveQueueTable({
               onChange={(e) => setRejectNote(e.target.value)}
               rows={3}
               placeholder="e.g. Overlaps another approved Vacation request"
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-none"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm resize-none"
               autoFocus
             />
             {isReopenableType && (
@@ -458,69 +451,49 @@ export default function LeaveQueueTable({
               </p>
             )}
             {rejectError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{rejectError}</p>}
-            <div className="flex justify-end gap-2 mt-1 flex-wrap">
-              <Button style={{ padding: "7px 14px" }} disabled={busy} onClick={() => setRejectingRequest(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                style={{ padding: "7px 14px", background: "var(--bad)", borderColor: "var(--bad)" }}
-                disabled={busy || !rejectNote.trim()}
-                onClick={() => submitReject(false)}
-              >
-                {busy ? "Rejecting…" : "Reject"}
-              </Button>
-              {isReopenableType && (
-                <Button
-                  variant="primary"
-                  style={{ padding: "7px 14px", background: "var(--bad-strong)", borderColor: "var(--bad-strong)" }}
-                  disabled={busy || !rejectNote.trim()}
-                  onClick={() => submitReject(true)}
-                >
-                  {busy ? "Rejecting…" : "⛔ Reject — Final"}
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
+        </Modal>
       );
     })()}
 
     {approvingRequest && (() => {
       const busy = pendingId === approvingRequest.id;
       const typeConfig = leaveTypeConfigs.find((c) => c.key === approvingRequest.leave_type);
+      const isConflictApproval = approvingRequest.flagged_conflict && !(typeConfig?.behavior === "auto_approve_document" && !approvingRequest.document_path && !approvingRequest.is_half_day);
       return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto" onClick={() => setApprovingRequest(null)}>
-          <div
-            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in my-auto"
-            style={{ boxShadow: "var(--shadow-lg)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-serif text-xl text-[var(--ink)] m-0">Approve without a document?</h2>
+        <Modal
+          onClose={() => setApprovingRequest(null)}
+          title={isConflictApproval ? "Approve despite conflict?" : "Approve without a document?"}
+          size="sm"
+          footer={
+            <>
+              <Button disabled={busy} onClick={() => setApprovingRequest(null)}>
+                Cancel
+              </Button>
+              <Button variant="primary" loading={busy} disabled={busy || !approveNote.trim()} onClick={submitApproveWithoutDocument}>
+                {busy ? "Approving…" : "Approve anyway"}
+              </Button>
+            </>
+          }
+        >
             <p className="text-sm text-[var(--muted)] m-0">
-              {typeConfig?.label ?? approvingRequest.leave_type} requests are normally held until a supporting
-              document is uploaded. You can still approve this one on your own judgment — add a short note
-              explaining why, so there&apos;s a record of it.
+              {isConflictApproval
+                ? "This request overlaps with another leave request. You can still approve it — add a short note explaining why, so there’s a record of it."
+                : <>
+                    {typeConfig?.label ?? approvingRequest.leave_type} requests are normally held until a supporting
+                    document is uploaded. You can still approve this one on your own judgment — add a short note
+                    explaining why, so there&apos;s a record of it.
+                  </>}
             </p>
             <textarea
               value={approveNote}
               onChange={(e) => setApproveNote(e.target.value)}
               rows={3}
-              placeholder="e.g. Verbally confirmed, document to follow"
-              className="w-full px-2.5 py-2 rounded border border-[var(--line)] bg-[var(--paper)] text-sm resize-none"
+              placeholder={isConflictApproval ? "e.g. Checked with the team, coverage is fine" : "e.g. Verbally confirmed, document to follow"}
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm resize-none"
               autoFocus
             />
             {approveError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{approveError}</p>}
-            <div className="flex justify-end gap-2 mt-1">
-              <Button style={{ padding: "7px 14px" }} disabled={busy} onClick={() => setApprovingRequest(null)}>
-                Cancel
-              </Button>
-              <Button variant="primary" style={{ padding: "7px 14px" }} disabled={busy || !approveNote.trim()} onClick={submitApproveWithoutDocument}>
-                {busy ? "Approving…" : "Approve anyway"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        </Modal>
       );
     })()}
 
@@ -528,34 +501,33 @@ export default function LeaveQueueTable({
       const busy = pendingId === deletingRequest.id;
       const typeConfig = leaveTypeConfigs.find((c) => c.key === deletingRequest.leave_type);
       return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center px-4 py-6 z-50 animate-fade-in overflow-y-auto" onClick={() => setDeletingRequest(null)}>
-          <div
-            className="w-full max-w-sm bg-[var(--paper-raised)] border border-[var(--line)] rounded-lg p-6 flex flex-col gap-3 animate-scale-in my-auto"
-            style={{ boxShadow: "var(--shadow-lg)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-serif text-xl text-[var(--ink)] m-0">Delete this leave request?</h2>
+        <Modal
+          onClose={() => setDeletingRequest(null)}
+          title="Delete this leave request?"
+          size="sm"
+          footer={
+            <>
+              <Button disabled={busy} onClick={() => setDeletingRequest(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                loading={busy}
+                disabled={busy}
+                onClick={confirmDelete}
+              >
+                {busy ? "Deleting…" : "Delete"}
+              </Button>
+            </>
+          }
+        >
             <p className="text-sm text-[var(--muted)] m-0">
               {formatFullName(deletingRequest.profiles?.first_name, deletingRequest.profiles?.last_name)}&apos;s{" "}
               {typeConfig?.label ?? deletingRequest.leave_type} request ({deletingRequest.status}) will be removed for
               good — this can&apos;t be undone.
             </p>
             {deleteError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{deleteError}</p>}
-            <div className="flex justify-end gap-2 mt-1">
-              <Button style={{ padding: "7px 14px" }} disabled={busy} onClick={() => setDeletingRequest(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                style={{ padding: "7px 14px", background: "var(--bad)", borderColor: "var(--bad)" }}
-                disabled={busy}
-                onClick={confirmDelete}
-              >
-                {busy ? "Deleting…" : "Delete"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        </Modal>
       );
     })()}
     </>
