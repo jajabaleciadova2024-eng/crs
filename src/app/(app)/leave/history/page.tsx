@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Panel, PageHeader } from "@/components/ui";
 import { getPayPeriod } from "@/lib/payPeriod";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, type LeaveTypeConfig } from "@/lib/leaveTypes";
+import CollapsiblePeriod from "./CollapsiblePeriod";
 import LeaveHistoryRow from "./LeaveHistoryRow";
 
 const TH =
@@ -13,7 +14,6 @@ export default async function LeaveHistoryPage() {
   const profile = await requireProfile();
   const canViewAll = isApprover(profile.role);
   const isTL = profile.role === "team_leader";
-  const canDownload = isTL;
 
   const supabase = await createClient();
   const historyQuery = supabase
@@ -41,9 +41,6 @@ export default async function LeaveHistoryPage() {
     periods.get(period.key)!.rows.push(r);
   }
 
-  // Column count for colSpan in expanded rows
-  const colCount = 5 + (canViewAll ? 1 : 0) + (isTL ? 1 : 0);
-
   return (
     <>
       <PageHeader
@@ -64,27 +61,25 @@ export default async function LeaveHistoryPage() {
         </Panel>
       ) : (
         Array.from(periods.entries()).map(([key, { label, rows }]) => (
-          <Panel key={key} title={label} hint={`${rows.length} decided`}>
+          <CollapsiblePeriod key={key} title={label} hint={`${rows.length} decided`}>
             <div className="overflow-x-auto scroll-shadow-x -mx-4 sm:-mx-5">
-              <table className="w-full text-[13px] border-collapse min-w-[540px]" style={{ tableLayout: "fixed" }}>
+              <table className="w-full text-[13px] border-collapse min-w-[480px]" style={{ tableLayout: "fixed" }}>
                 <colgroup>
-                  <col style={{ width: isTL ? "5%" : "6%" }} />
-                  {canViewAll && <col style={{ width: isTL ? "20%" : "22%" }} />}
-                  <col style={{ width: isTL ? "15%" : canViewAll ? "17%" : "20%" }} />
-                  <col style={{ width: isTL ? "28%" : canViewAll ? "29%" : "40%" }} />
-                  <col style={{ width: isTL ? "12%" : canViewAll ? "13%" : "17%" }} />
-                  <col style={{ width: isTL ? "14%" : "13%" }} />
+                  {canViewAll && <col style={{ width: isTL ? "24%" : "26%" }} />}
+                  <col style={{ width: isTL ? "17%" : canViewAll ? "19%" : "22%" }} />
+                  <col style={{ width: isTL ? "30%" : canViewAll ? "30%" : "40%" }} />
+                  <col style={{ width: isTL ? "13%" : canViewAll ? "12%" : "19%" }} />
+                  <col style={{ width: isTL ? "10%" : canViewAll ? "13%" : "19%" }} />
                   {isTL && <col style={{ width: "6%" }} />}
                 </colgroup>
                 <thead>
                   <tr>
-                    <th className={`${TH} px-2`}><span className="sr-only">Expand</span></th>
                     {canViewAll && <th className={TH}>Associate</th>}
                     <th className={TH}>Type</th>
                     <th className={TH}>Dates</th>
                     <th className={TH}>Status</th>
                     <th className={TH}>Decided</th>
-                    {isTL && <th className={`${TH} px-2`}><span className="sr-only">Actions</span></th>}
+                    {isTL && <th className={`${TH} px-2 text-center`}><span className="sr-only">Actions</span></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -95,9 +90,7 @@ export default async function LeaveHistoryPage() {
                         key={r.id}
                         r={r as any}
                         canViewAll={canViewAll}
-                        canDownload={canDownload}
                         isTL={isTL}
-                        colCount={colCount}
                         typeConfig={
                           typeConfig
                             ? { key: typeConfig.key, label: typeConfig.label, behavior: typeConfig.behavior }
@@ -109,7 +102,7 @@ export default async function LeaveHistoryPage() {
                 </tbody>
               </table>
             </div>
-          </Panel>
+          </CollapsiblePeriod>
         ))
       )}
     </>
