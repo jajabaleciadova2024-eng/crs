@@ -66,16 +66,15 @@ export default async function LeaveHistoryPage() {
         Array.from(periods.entries()).map(([key, { label, rows }]) => (
           <Panel key={key} title={label} hint={`${rows.length} decided`}>
             <div className="overflow-x-auto scroll-shadow-x -mx-4 sm:-mx-5">
-              <table className="w-full text-[13px] border-collapse min-w-[540px]">
-                {/* Explicit column widths prevent random browser distribution */}
+              <table className="w-full text-[13px] border-collapse min-w-[540px]" style={{ tableLayout: "fixed" }}>
                 <colgroup>
-                  <col style={{ width: 36 }} />
-                  {canViewAll && <col style={{ width: "22%" }} />}
-                  <col style={{ width: "18%" }} />
-                  <col style={{ width: canViewAll ? "28%" : "36%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "12%" }} />
-                  {isTL && <col style={{ width: 40 }} />}
+                  <col style={{ width: isTL ? "5%" : "6%" }} />
+                  {canViewAll && <col style={{ width: isTL ? "20%" : "22%" }} />}
+                  <col style={{ width: isTL ? "15%" : canViewAll ? "17%" : "20%" }} />
+                  <col style={{ width: isTL ? "28%" : canViewAll ? "29%" : "40%" }} />
+                  <col style={{ width: isTL ? "12%" : canViewAll ? "13%" : "17%" }} />
+                  <col style={{ width: isTL ? "14%" : "13%" }} />
+                  {isTL && <col style={{ width: "6%" }} />}
                 </colgroup>
                 <thead>
                   <tr>
