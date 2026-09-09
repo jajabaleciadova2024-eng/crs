@@ -1,20 +1,10 @@
 import Link from "next/link";
 import { requireProfile, isApprover } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, Pill, PageHeader } from "@/components/ui";
+import { Panel, PageHeader } from "@/components/ui";
 import { getPayPeriod } from "@/lib/payPeriod";
-import { formatLeaveRanges } from "@/lib/leaveFormat";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, type LeaveTypeConfig } from "@/lib/leaveTypes";
-import { formatFullName } from "@/lib/format";
-import { DocumentLinks } from "../DocumentUpload";
-import DeleteLeaveButton from "./DeleteLeaveButton";
-import type { LeaveStatus } from "@/lib/database.types";
-
-const STATUS_TONE: Record<LeaveStatus, "warn" | "good" | "bad"> = {
-  pending: "warn",
-  approved: "good",
-  rejected: "bad",
-};
+import LeaveHistoryRow from "./LeaveHistoryRow";
 
 export default async function LeaveHistoryPage() {
   const profile = await requireProfile();
@@ -86,77 +76,30 @@ export default async function LeaveHistoryPage() {
         Array.from(periods.entries()).map(([key, { label, rows }]) => (
           <Panel key={key} title={label} hint={`${rows.length} decided`}>
             <div className="overflow-x-auto scroll-shadow-x">
-              <table className="w-full text-[13px] border-collapse min-w-[680px]">
+              <table className="w-full text-[13px] border-collapse min-w-[520px]">
                 <thead>
                   <tr>
-                    {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap w-0">Associate</th>}
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap w-0">Type</th>
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap w-0">Dates</th>
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Reason</th>
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap w-0">Status</th>
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap w-0">Doc</th>
-                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap w-0">Decided</th>
+                    <th className="w-0 border-b border-[var(--line)]"><span className="sr-only">Expand</span></th>
+                    {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Associate</th>}
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Type</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Dates</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Status</th>
+                    <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Decided</th>
                     {isTL && <th className="w-0 border-b border-[var(--line)]"><span className="sr-only">Actions</span></th>}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const p = (r as any).profiles;
                     const typeConfig = leaveTypeConfigs.find((c) => c.key === r.leave_type);
                     return (
-                      <tr key={r.id} className="hover:bg-[var(--paper-raised)] transition-colors">
-                        {canViewAll && (
-                          <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">{formatFullName(p?.first_name, p?.last_name)}</td>
-                        )}
-                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap capitalize">
-                          <div className="flex items-center gap-1.5">
-                            <span>{typeConfig?.label ?? r.leave_type}</span>
-                            {r.is_half_day && <Pill>½</Pill>}
-                          </div>
-                          {typeConfig?.behavior === "auto_approve_document" && r.status === "approved" && !r.document_path && !r.is_half_day && (
-                            <div className="mt-0.5"><Pill tone="warn">No doc</Pill></div>
-                          )}
-                        </td>
-                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap text-[var(--muted)]">
-                          {formatLeaveRanges({ start_date: r.start_date, end_date: r.end_date }, r.leave_request_ranges)}
-                        </td>
-                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
-                          <span className="block max-w-[220px] break-words line-clamp-2">{r.reason ?? "—"}</span>
-                        </td>
-                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
-                          <Pill tone={STATUS_TONE[r.status as LeaveStatus]}>{r.status[0].toUpperCase() + r.status.slice(1)}</Pill>
-                          {r.status === "rejected" && r.final_rejection && (
-                            <div className="text-[10px] font-bold text-[var(--bad)] mt-0.5">Final</div>
-                          )}
-                          {r.review_note && (r.status === "rejected" || (r.status === "approved" && !r.document_path)) && (
-                            <div className="text-[10px] text-[var(--muted)] mt-0.5 max-w-[140px] line-clamp-2">{r.review_note}</div>
-                          )}
-                        </td>
-                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
-                          {typeConfig?.behavior === "auto_approve_document" ? (
-                            r.document_path ? (
-                              <DocumentLinks
-                                requestId={r.id}
-                                canDownload={canDownload}
-                                memberName={formatFullName(p?.first_name, p?.last_name)}
-                              />
-                            ) : (
-                              <span className="text-[var(--muted)]">—</span>
-                            )
-                          ) : (
-                            <span className="text-[var(--muted)]">—</span>
-                          )}
-                        </td>
-                        <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)] whitespace-nowrap">
-                          {r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "—"}
-                        </td>
-                        {isTL && (
-                          <td className="px-1.5 py-2.5 border-b border-[var(--line)]">
-                            <DeleteLeaveButton id={r.id} label={formatFullName(p?.first_name, p?.last_name)} />
-                          </td>
-                        )}
-                      </tr>
+                      <LeaveHistoryRow
+                        key={r.id}
+                        r={r as any}
+                        canViewAll={canViewAll}
+                        canDownload={canDownload}
+                        isTL={isTL}
+                        typeConfig={typeConfig ? { key: typeConfig.key, label: typeConfig.label, behavior: typeConfig.behavior } : undefined}
+                      />
                     );
                   })}
                 </tbody>
