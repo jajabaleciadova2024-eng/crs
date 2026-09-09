@@ -12,7 +12,7 @@ export default function CollapsiblePeriod({
   hint: string;
   children: ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   return (
     <Panel title={title} hint={hint} collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)}>
       {children}

@@ -130,16 +130,13 @@ export function Panel({
         // was the one that gave, squeezed to zero width at 320px.
         className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-4 sm:px-5 py-3 sm:py-3.5 ${
           collapsed ? "" : "border-b border-[var(--line)]"
-        }`}
+        } ${onToggle ? "cursor-pointer" : ""}`}
+        {...(onToggle ? { onClick: onToggle, role: "button", tabIndex: 0 } : {})}
       >
         {onToggle ? (
-          // The title is the toggle, not just the chevron — a 13px arrow is
-          // a poor target on a phone.
-          <button
-            type="button"
-            onClick={onToggle}
+          <div
             aria-expanded={!collapsed}
-            className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+            className="flex items-center gap-2 min-w-0 flex-1 text-left"
           >
             <svg
               width="13"
@@ -158,7 +155,7 @@ export function Panel({
               <path d="m9 18 6-6-6-6" />
             </svg>
             <h2 className="text-[13px] sm:text-sm font-bold m-0 tracking-tight truncate">{title}</h2>
-          </button>
+          </div>
         ) : (
           <h2 className="text-[13px] sm:text-sm font-bold m-0 tracking-tight truncate">{title}</h2>
         )}
