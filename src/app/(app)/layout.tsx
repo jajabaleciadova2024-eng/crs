@@ -6,6 +6,7 @@ import SidebarShell from "@/components/SidebarShell";
 import PreviewBanner from "@/components/PreviewBanner";
 import NotificationBell from "@/components/NotificationBell";
 import UnseenAnnouncementModal from "@/components/announcements/UnseenAnnouncementModal";
+import LeaveFilingReminderModal from "@/components/LeaveFilingReminderModal";
 import AutoLogout from "@/components/AutoLogout";
 import GroupChat from "@/components/chat/GroupChat";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -177,6 +178,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <NotificationBell userId={profile.id} />
       </div>
       <UnseenAnnouncementModal />
+      <LeaveFilingReminderModal />
       <GroupChat userId={profile.id} currentUserRole={profile.role} members={activeMembers} />
       <AutoLogout />
     </div>
