@@ -65,6 +65,10 @@ export default function LeaveQueueTable({
   const [approvingRequest, setApprovingRequest] = useState<QueueRequest | null>(null);
   const [approveNote, setApproveNote] = useState("");
   const [approveError, setApproveError] = useState<string | null>(null);
+  const [finalizingRequest, setFinalizingRequest] = useState<QueueRequest | null>(null);
+  const [finalizeType, setFinalizeType] = useState("");
+  const [finalizeNote, setFinalizeNote] = useState("");
+  const [finalizeError, setFinalizeError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
@@ -118,6 +122,33 @@ export default function LeaveQueueTable({
       setApprovingRequest(null);
       setApproveNote("");
       setApproveError(null);
+    });
+  }
+
+  function submitFinalize() {
+    if (!finalizingRequest) return;
+    setPendingId(finalizingRequest.id);
+    startTransition(async () => {
+      const res = await fetch(`/api/leave/${finalizingRequest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "approved",
+          note: finalizeNote.trim() || undefined,
+          leave_type: finalizeType,
+        }),
+      });
+      setPendingId(null);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setFinalizeError(body.error ?? "Couldn't finalize that request.");
+        return;
+      }
+      setFinalizingRequest(null);
+      setFinalizeType("");
+      setFinalizeNote("");
+      setFinalizeError(null);
+      router.refresh();
     });
   }
 
@@ -353,6 +384,25 @@ export default function LeaveQueueTable({
                             </IconButton>
                           </>
                         )}
+                        {!isOwn && r.status === "rejected" && !r.final_rejection && (
+                          <IconButton
+                            size="sm"
+                            tone="accent"
+                            label="Finalize — change type & approve"
+                            disabled={pendingId === r.id}
+                            onClick={() => {
+                              setFinalizingRequest(r);
+                              setFinalizeType(r.leave_type);
+                              setFinalizeNote("");
+                              setFinalizeError(null);
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </IconButton>
+                        )}
                         <IconButton
                           size="sm"
                           tone="muted"
@@ -527,6 +577,50 @@ export default function LeaveQueueTable({
               good — this can&apos;t be undone.
             </p>
             {deleteError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{deleteError}</p>}
+        </Modal>
+      );
+    })()}
+
+    {finalizingRequest && (() => {
+      const busy = pendingId === finalizingRequest.id;
+      return (
+        <Modal
+          onClose={() => setFinalizingRequest(null)}
+          title="Finalize rejected request"
+          size="sm"
+          footer={
+            <>
+              <Button disabled={busy} onClick={() => setFinalizingRequest(null)}>
+                Cancel
+              </Button>
+              <Button variant="primary" loading={busy} disabled={busy || !finalizeType.trim()} onClick={submitFinalize}>
+                {busy ? "Finalizing…" : "Finalize & Approve"}
+              </Button>
+            </>
+          }
+        >
+            <p className="text-sm text-[var(--muted)] m-0">
+              Change the leave type if needed and approve this request — it will move to history as approved.
+            </p>
+            <label className="block text-[12px] font-semibold text-[var(--ink)] mt-2">Leave Type</label>
+            <select
+              value={finalizeType}
+              onChange={(e) => setFinalizeType(e.target.value)}
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
+            >
+              {leaveTypeConfigs.map((c) => (
+                <option key={c.key} value={c.key}>{c.label}</option>
+              ))}
+            </select>
+            <label className="block text-[12px] font-semibold text-[var(--ink)] mt-3">Note <span className="font-normal text-[var(--muted)]">(optional)</span></label>
+            <textarea
+              value={finalizeNote}
+              onChange={(e) => setFinalizeNote(e.target.value)}
+              rows={2}
+              placeholder="e.g. Settled personally, changed to Vacation"
+              className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm resize-none"
+            />
+            {finalizeError && <p className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded px-3 py-2 m-0">{finalizeError}</p>}
         </Modal>
       );
     })()}

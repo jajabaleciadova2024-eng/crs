@@ -26,7 +26,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const body = await request.json();
-  const { status, note, final } = body ?? {};
+  const { status, note, final, leave_type } = body ?? {};
   if (status !== "approved" && status !== "rejected") {
     return NextResponse.json({ error: "Status must be 'approved' or 'rejected'." }, { status: 400 });
   }
@@ -66,20 +66,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
   }
 
+  const updatePayload: Record<string, unknown> = {
+    status,
+    reviewed_by: user.id,
+    reviewed_at: new Date().toISOString(),
+    seen_by_associate: false,
+    review_note: status === "rejected" || approvedWithoutDocument || (status === "approved" && note) ? String(note).trim() : null,
+    final_rejection: status === "rejected" && Boolean(final),
+  };
+  if (status === "approved" && typeof leave_type === "string" && leave_type.trim()) {
+    updatePayload.leave_type = leave_type.trim();
+  }
+
   const { error } = await supabase
     .from("leave_requests")
-    .update({
-      status,
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-      seen_by_associate: false,
-      review_note: status === "rejected" || approvedWithoutDocument || (status === "approved" && note) ? String(note).trim() : null,
-      // A final rejection ends the reject -> re-upload -> re-review cycle
-      // for good (see 0012_leave_final_rejection.sql) -- reset to false
-      // on approval too, so a fresh cycle starts clean if this row is
-      // ever reused.
-      final_rejection: status === "rejected" && Boolean(final),
-    })
+    .update(updatePayload)
     .eq("id", id);
 
   if (error) {
