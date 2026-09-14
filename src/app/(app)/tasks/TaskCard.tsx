@@ -132,6 +132,11 @@ export interface TaskData {
   requires_approval?: boolean;
   requires_photo?: boolean;
   requires_completion_date?: boolean;
+  /** The Team Leader's examples of what a good proof looks like: storage
+      paths (for editing the task) and short-lived signed URLs (to show them). */
+  sample_photo_paths?: string[] | null;
+  /** Index-aligned with sample_photo_paths; null where signing failed. */
+  sample_photo_urls?: (string | null)[] | null;
   // The Team Leader's reason, when THIS viewer's submission was declined.
   myReviewNote?: string | null;
   created_at: string;
@@ -509,6 +514,9 @@ export default function TaskCard({
   // A Team Leader's own submission is approved as it is written, so it is
   // never "pending" and there is nothing to withdraw.
   const canUndo = isAssignee && !canManage && task.completionStatus === "pending";
+  // Guide images, when there are any and they signed cleanly. One that did
+  // not sign is dropped here rather than rendered as a broken thumbnail.
+  const sampleUrls = (task.sample_photo_urls ?? []).filter((url): url is string => !!url);
   // A photo is still outstanding: this task wants one, and it has not been
   // submitted yet (a decline puts you back in this state).
   const needsPhoto = isAssignee && !!task.requires_photo && notDoneYet;
@@ -797,6 +805,63 @@ export default function TaskCard({
                   onChange={(e) => setCompletionDate(e.target.value)}
                   className="px-2 py-1.5 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[12px] text-[var(--ink)]"
                 />
+              </div>
+            )}
+
+            {/* What the Team Leader wants to see. Shown to everyone the task
+                is for — and to the Team Leader themselves, who otherwise had
+                no way to check what they attached — directly above the
+                picker, so it is read at the moment the photo is chosen
+                rather than remembered from the task description. */}
+            {sampleUrls.length > 0 && (
+              <div className="mt-2.5 w-fit max-w-full rounded-lg border border-[var(--line)] bg-[var(--paper)]/70 px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    className="shrink-0 text-[var(--accent-strong)]"
+                  >
+                    <circle cx="12" cy="12" r="9.2" />
+                    <path d="M12 16.5v-5M12 8.2v.1" />
+                  </svg>
+                  <span className="text-[12px] font-semibold text-[var(--ink)] leading-tight">
+                    {sampleUrls.length === 1 ? "Sample photo" : `Sample photos (${sampleUrls.length})`}
+                  </span>
+                </div>
+                <div className="text-[11px] text-[var(--muted)] leading-tight mt-0.5">
+                  {needsPhoto
+                    ? "What your Team Leader wants to see — tap to open it full size."
+                    : "The example attached to this task — tap to open it full size."}
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {sampleUrls.map((url, i) => (
+                    // A plain anchor, not a scripted opener: the URL is
+                    // already signed, so there is nothing to await and
+                    // nothing for a popup blocker to swallow.
+                    <a
+                      key={url}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block w-16 h-16 shrink-0 rounded-md overflow-hidden border border-[var(--line)] hover:border-[var(--accent)] transition-colors"
+                      title={`Open sample ${i + 1} full size`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`Sample proof photo ${i + 1} for ${task.title}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
 

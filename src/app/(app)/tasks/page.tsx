@@ -7,6 +7,7 @@ import { Panel, PageHeader, Button } from "@/components/ui";
 import TaskList from "./TaskList";
 import { taskAppliesTo } from "@/lib/taskAssignment";
 import { withMissingColumnFallback } from "@/lib/schemaCompat";
+import { signTaskSamplePhotos } from "@/lib/taskSampleStorage";
 
 export default async function TasksPage() {
   const profile = await requireProfile();
@@ -96,8 +97,23 @@ export default async function TasksPage() {
     canManage ? true : taskAppliesTo(t, profile.id),
   );
 
+  // The Team Leader's sample photos — what a good proof looks like — signed
+  // for the whole page in one call. Unlike a member's own proof, which is
+  // fetched per click by whoever is entitled to see it, these are
+  // instructions everybody the task is for is meant to read, so they are
+  // rendered inline with the card.
+  const sampleUrls = await signTaskSamplePhotos(
+    filtered.flatMap((t: any) => (t.sample_photo_paths as string[] | null) ?? []),
+  );
+
   const enriched = filtered.map((t: any) => ({
     ...t,
+    // Index-aligned with sample_photo_paths — a path that failed to sign
+    // comes back null rather than shortening the list, so the modal can
+    // still pair each preview with the path it would keep or remove.
+    sample_photo_urls: ((t.sample_photo_paths as string[] | null) ?? []).map(
+      (path) => sampleUrls.get(path) ?? null,
+    ),
     completionStatus: (myStatusMap.get(t.id) as string | undefined) ?? "none",
     myReviewNote: (myNoteMap.get(t.id) as string | null | undefined) ?? null,
     // What the member themselves sent. They could see a status pill and

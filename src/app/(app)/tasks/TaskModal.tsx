@@ -1,8 +1,22 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Modal } from "@/components/ui";
+import {
+  shrinkImagesForUpload,
+  readUploadError,
+  NETWORK_ERROR_MESSAGE,
+} from "@/lib/imageUpload";
+
+// Enough for a good example, a bad one, and a close-up. Mirrors
+// MAX_SAMPLE_PHOTOS in src/lib/taskSampleStorage.ts, which is server-only
+// and so cannot be imported here.
+const MAX_SAMPLE_PHOTOS = 3;
+// The ceiling on what can be PICKED. Samples are re-encoded before they are
+// sent, so this only has to keep something absurd out of the browser's
+// memory — what actually goes over the wire is decided later.
+const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
 
 interface TaskForm {
   title: string;
@@ -49,6 +63,10 @@ export default function TaskModal({
     excluded_ids?: string[] | null;
     blocks_schedule?: boolean;
     blocks_leave?: boolean;
+    /** Sample photos already stored, and the signed URLs to preview them —
+        index-aligned, with null where a path failed to sign. */
+    sample_photo_paths?: string[] | null;
+    sample_photo_urls?: (string | null)[] | null;
     /** Used only to keep people who have already acted out of the exclusion
         list — excusing them from work they have done means nothing. */
     completions?: { profile_id: string; status: string }[];
@@ -93,6 +111,75 @@ export default function TaskModal({
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Re-encoding a few phone photos takes a moment and it happens after the
+  // press, so the button says which step is running rather than looking stuck.
+  const [preparing, setPreparing] = useState(false);
+
+  // Sample photos: the Team Leader's own examples of what a proof should
+  // show. Members guessed before — the same work photographed the wrong way
+  // came back through the review queue again and again with nothing to point
+  // at. Two lists, because they behave differently on save: the ones already
+  // stored are kept (or dropped) by path, the newly picked ones are uploaded.
+  // Every stored path stays on this list even when its preview could not be
+  // signed: dropping it here would send it back as "not kept", and a
+  // momentary signing failure would silently delete the Team Leader's sample.
+  const [keptSamples, setKeptSamples] = useState<{ path: string; url: string | null }[]>(() =>
+    (editTask?.sample_photo_paths ?? []).map((path, i) => ({
+      path,
+      url: editTask?.sample_photo_urls?.[i] ?? null,
+    })),
+  );
+  type PickedSample = { file: File; url: string };
+  const [newSamples, setNewSamples] = useState<PickedSample[]>([]);
+  const [sampleError, setSampleError] = useState<string | null>(null);
+  const sampleInputRef = useRef<HTMLInputElement>(null);
+  const sampleCount = keptSamples.length + newSamples.length;
+
+  // Object URLs are a manual resource, created WITH the file in the handler
+  // that picked it. They still have to be revoked by hand — the ref keeps
+  // this effect from re-running (and revoking live previews) on every pick.
+  const newSamplesRef = useRef<PickedSample[]>([]);
+  useEffect(() => {
+    newSamplesRef.current = newSamples;
+  }, [newSamples]);
+  useEffect(() => {
+    return () => {
+      for (const p of newSamplesRef.current) URL.revokeObjectURL(p.url);
+    };
+  }, []);
+
+  function chooseSamples(picked: FileList | null) {
+    if (!picked) return;
+    setSampleError(null);
+    const incoming = [...picked];
+    const notImage = incoming.find((f) => !f.type.startsWith("image/"));
+    if (notImage) {
+      setSampleError("Only images can be attached as a sample.");
+      return;
+    }
+    const tooBig = incoming.find((f) => f.size > MAX_SOURCE_BYTES);
+    if (tooBig) {
+      setSampleError(`"${tooBig.name}" is too large (25MB max).`);
+      return;
+    }
+    setNewSamples((prev) => {
+      // Adding, not replacing — picking a second time extends the set.
+      const room = MAX_SAMPLE_PHOTOS - keptSamples.length - prev.length;
+      if (incoming.length > room) {
+        setSampleError(`Up to ${MAX_SAMPLE_PHOTOS} sample photos — the rest were left out.`);
+      }
+      const taken = incoming.slice(0, Math.max(0, room));
+      return [...prev, ...taken.map((file) => ({ file, url: URL.createObjectURL(file) }))];
+    });
+  }
+
+  function removeNewSample(index: number) {
+    setNewSamples((prev) => {
+      const gone = prev[index];
+      if (gone) URL.revokeObjectURL(gone.url);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
 
   // Anyone who has already submitted — approved, or waiting on review.
   // Excusing them is a no-op at best and confusing at worst: the point of
@@ -114,6 +201,7 @@ export default function TaskModal({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setSampleError(null);
     setSubmitting(true);
 
     const payload: Record<string, unknown> = {
@@ -132,24 +220,60 @@ export default function TaskModal({
       excluded_ids: form.assign_to === "all" ? [...excluded] : [],
     };
 
-    if (isEdit) payload.id = editTask!.id;
-
-    const res = await fetch("/api/tasks", {
-      method: isEdit ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    setSubmitting(false);
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "Something went wrong.");
-      return;
+    if (isEdit) {
+      payload.id = editTask!.id;
+      // Which stored samples survived this edit. Sent on every edit, not
+      // only when one was removed — it is the whole list the task should
+      // keep, so leaving it out on a plain title change would be read as
+      // "no change" and leaving it out on a removal would silently undo it.
+      payload.sample_photo_paths = keptSamples.map((s) => s.path);
     }
 
-    onClose();
-    router.refresh();
+    try {
+      let res: Response;
+      if (newSamples.length > 0) {
+        // A phone photo is 3–8MB and the platform refuses a request body
+        // over ~4.5MB before this route ever runs — which came back as a
+        // failure with no message at all. Re-encode them to fit one request.
+        setPreparing(true);
+        const { files, error: tooBig } = await shrinkImagesForUpload(newSamples.map((p) => p.file));
+        setPreparing(false);
+        if (tooBig) {
+          setSampleError(tooBig);
+          setSubmitting(false);
+          return;
+        }
+
+        // The rest of the form is too structured to flatten into form
+        // fields, so it rides along whole as one JSON blob beside the files.
+        const fd = new FormData();
+        fd.append("payload", JSON.stringify(payload));
+        for (const f of files) fd.append("sample_photo", f);
+        res = await fetch("/api/tasks", { method: isEdit ? "PATCH" : "POST", body: fd });
+      } else {
+        res = await fetch("/api/tasks", {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      setSubmitting(false);
+
+      if (!res.ok) {
+        setError(await readUploadError(res, "Something went wrong."));
+        return;
+      }
+
+      onClose();
+      router.refresh();
+    } catch {
+      // A dropped connection rejects the fetch outright. Unhandled, that
+      // left the button spinning with nothing to read.
+      setPreparing(false);
+      setSubmitting(false);
+      setError(NETWORK_ERROR_MESSAGE);
+    }
   }
 
   return (
@@ -353,6 +477,113 @@ export default function TaskModal({
                 </span>
               </span>
             </label>
+
+            {/* The guide for that photo. Requiring proof without showing what
+                proof looks like is what filled the review queue with the
+                right work photographed the wrong way — a screen instead of
+                the logbook, the whole room instead of the counter. Nested
+                under the checkbox it belongs to, and still shown when the
+                requirement is switched off so samples already attached can
+                be seen and removed rather than quietly hanging on. */}
+            {(form.requires_photo || sampleCount > 0) && (
+              <div className="ml-[26px] pl-3 border-l-2 border-[var(--line)] flex flex-col gap-1.5">
+                <span className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                  Sample photo (optional)
+                </span>
+                <p className="text-[11.5px] text-[var(--muted)] m-0 leading-snug">
+                  Attach up to {MAX_SAMPLE_PHOTOS} examples of what a good proof looks like. Everyone the task is
+                  for sees them on the task, right where they attach their own.
+                </p>
+
+                <input
+                  ref={sampleInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={(e) => {
+                    chooseSamples(e.target.files);
+                    // Cleared, or picking the same file twice running is a
+                    // no-op because the input's value never changed.
+                    e.target.value = "";
+                  }}
+                />
+
+                {sampleCount > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-0.5">
+                    {keptSamples.map((sample, i) => (
+                      <div key={sample.path} className="relative w-16 h-16 shrink-0">
+                        {sample.url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={sample.url}
+                            alt={`Sample ${i + 1}`}
+                            className="w-full h-full rounded-md object-cover border border-[var(--line)]"
+                          />
+                        ) : (
+                          // Still attached, just not previewable right now —
+                          // saying so beats a broken image, and leaving it
+                          // listed keeps it on the task.
+                          <div className="w-full h-full rounded-md border border-[var(--line)] bg-[var(--paper)] flex items-center justify-center text-center text-[9.5px] leading-tight text-[var(--muted)] px-1">
+                            No preview
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setKeptSamples((prev) => prev.filter((k) => k.path !== sample.path))}
+                          disabled={submitting}
+                          aria-label={`Remove sample ${i + 1}`}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black/75 text-white text-[12px] leading-none flex items-center justify-center hover:bg-black cursor-pointer disabled:opacity-50"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {newSamples.map((picked, i) => (
+                      <div key={picked.url} className="relative w-16 h-16 shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={picked.url}
+                          alt={picked.file.name}
+                          className="w-full h-full rounded-md object-cover border border-[var(--line)]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeNewSample(i)}
+                          disabled={submitting}
+                          aria-label={`Remove ${picked.file.name}`}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black/75 text-white text-[12px] leading-none flex items-center justify-center hover:bg-black cursor-pointer disabled:opacity-50"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => sampleInputRef.current?.click()}
+                  disabled={submitting || sampleCount >= MAX_SAMPLE_PHOTOS}
+                  className="self-start inline-flex items-center gap-1.5 mt-0.5 px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[var(--line)] text-[var(--accent-strong)] hover:border-[var(--accent)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="m21 15-5-5L5 21" />
+                  </svg>
+                  {sampleCount === 0
+                    ? "Add sample photo"
+                    : `Add more (${sampleCount}/${MAX_SAMPLE_PHOTOS})`}
+                </button>
+
+                {sampleError && (
+                  <p role="alert" className="text-[11.5px] text-[var(--bad)] m-0">
+                    {sampleError}
+                  </p>
+                )}
+              </div>
+            )}
             </div>
           </Section>
 
@@ -367,7 +598,15 @@ export default function TaskModal({
               Cancel
             </Button>
             <Button type="submit" variant="primary" loading={submitting}>
-              {submitting ? (isEdit ? "Saving…" : "Creating…") : isEdit ? "Save changes" : "Create task"}
+              {preparing
+                ? "Preparing photos…"
+                : submitting
+                  ? isEdit
+                    ? "Saving…"
+                    : "Creating…"
+                  : isEdit
+                    ? "Save changes"
+                    : "Create task"}
             </Button>
           </div>
         </form>
