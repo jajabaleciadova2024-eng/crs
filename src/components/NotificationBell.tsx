@@ -32,6 +32,12 @@ type Notification = {
 const REACTION_EMOJI: Record<string, string> = {
   like: "👍",
   heart: "❤️",
+  laugh: "😂",
+  wow: "😮",
+  sad: "😢",
+  fire: "🔥",
+  clap: "👏",
+  thinking: "🤔",
   poop: "💩",
   roll_eyes: "🙄",
   angry: "😡",

@@ -33,7 +33,7 @@ export type ChatMsg = {
   } | null;
 };
 
-const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🤔", "💩", "🙄", "😡", "🎉", "💯", "👀"];
 const POLL_INTERVAL = 5000;
 
 export default function GroupChat({

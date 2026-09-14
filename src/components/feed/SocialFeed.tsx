@@ -8,7 +8,7 @@ import PostComposer from "./PostComposer";
 import PostCard from "./PostCard";
 import type { Mentionable } from "./mentions";
 
-export type ReactionType = "like" | "heart" | "angry" | "poop" | "roll_eyes";
+export type ReactionType = "like" | "heart" | "laugh" | "wow" | "sad" | "fire" | "clap" | "thinking" | "angry" | "poop" | "roll_eyes";
 // `profiles` is joined on read so the reaction list can name who reacted.
 // It is absent on rows that arrive via realtime or an optimistic update —
 // PostCard falls back to the mentionable roster for those, so a missing

@@ -7,10 +7,16 @@ import { Avatar, Pill, Button } from "@/components/ui";
 import CommentSection from "./CommentSection";
 import { renderTextWithMentions, type Mentionable } from "./mentions";
 
-// Ordered: positive → love → funny → negative
+// Ordered: positive → love → funny → expressive → negative
 const REACTION_EMOJI: Record<string, string> = {
   like: "👍",
   heart: "❤️",
+  laugh: "😂",
+  wow: "😮",
+  sad: "😢",
+  fire: "🔥",
+  clap: "👏",
+  thinking: "🤔",
   poop: "💩",
   roll_eyes: "🙄",
   angry: "😡",
@@ -18,11 +24,17 @@ const REACTION_EMOJI: Record<string, string> = {
 const REACTION_LABEL: Record<string, string> = {
   like: "Like",
   heart: "Heart",
+  laugh: "Haha",
+  wow: "Wow",
+  sad: "Sad",
+  fire: "Fire",
+  clap: "Clap",
+  thinking: "Thinking",
   poop: "Poop",
   roll_eyes: "Roll Eyes",
   angry: "Angry",
 };
-const REACTION_ORDER: ReactionType[] = ["like", "heart", "poop", "roll_eyes", "angry"];
+const REACTION_ORDER: ReactionType[] = ["like", "heart", "laugh", "wow", "sad", "fire", "clap", "thinking", "poop", "roll_eyes", "angry"];
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();

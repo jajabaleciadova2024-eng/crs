@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const VALID_REACTIONS = ["like", "heart", "angry", "poop", "roll_eyes"] as const;
+const VALID_REACTIONS = ["like", "heart", "laugh", "wow", "sad", "fire", "clap", "thinking", "angry", "poop", "roll_eyes"] as const;
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: announcementId } = await params;

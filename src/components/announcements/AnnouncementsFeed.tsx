@@ -8,7 +8,7 @@ import AnnouncementComposer from "./AnnouncementComposer";
 import { readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 import type { Mentionable } from "@/components/feed/mentions";
 
-export type ReactionType = "like" | "heart" | "angry" | "poop" | "roll_eyes";
+export type ReactionType = "like" | "heart" | "laugh" | "wow" | "sad" | "fire" | "clap" | "thinking" | "angry" | "poop" | "roll_eyes";
 export type Reaction = { id: string; profile_id: string; reaction: ReactionType };
 export type CommentAuthor = { first_name: string; last_name: string; avatar_url: string | null };
 export type Comment = {

@@ -8,12 +8,14 @@ import type { Mentionable } from "@/components/feed/mentions";
 import Linkify from "@/components/Linkify";
 
 const REACTION_EMOJI: Record<string, string> = {
-  like: "👍", heart: "❤️", poop: "💩", roll_eyes: "🙄", angry: "😡",
+  like: "👍", heart: "❤️", laugh: "😂", wow: "😮", sad: "😢",
+  fire: "🔥", clap: "👏", thinking: "🤔", poop: "💩", roll_eyes: "🙄", angry: "😡",
 };
 const REACTION_LABEL: Record<string, string> = {
-  like: "Like", heart: "Heart", poop: "Poop", roll_eyes: "Roll Eyes", angry: "Angry",
+  like: "Like", heart: "Heart", laugh: "Haha", wow: "Wow", sad: "Sad",
+  fire: "Fire", clap: "Clap", thinking: "Thinking", poop: "Poop", roll_eyes: "Roll Eyes", angry: "Angry",
 };
-const REACTION_ORDER: ReactionType[] = ["like", "heart", "poop", "roll_eyes", "angry"];
+const REACTION_ORDER: ReactionType[] = ["like", "heart", "laugh", "wow", "sad", "fire", "clap", "thinking", "poop", "roll_eyes", "angry"];
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);

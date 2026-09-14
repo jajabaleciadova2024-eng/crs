@@ -6,9 +6,11 @@ import { useMentionAutocomplete, MentionDropdown, type Mentionable } from "./men
 import { shrinkOneForUpload, readUploadError, NETWORK_ERROR_MESSAGE } from "@/lib/imageUpload";
 
 const MOOD_EMOJIS = [
-  "😀", "😂", "🥹", "😍", "🤩", "😎", "🤔", "😤",
-  "😭", "🥳", "😴", "🤯", "🫡", "💪", "🔥", "❤️",
-  "👏", "🙏", "😅", "🤣", "😊", "🥰", "😇", "🤗",
+  "😀", "😂", "🤣", "😅", "😊", "🥰", "😍", "🤩",
+  "😎", "🤔", "🤗", "🥹", "😭", "😤", "😡", "🤯",
+  "🥳", "😴", "🫡", "😇", "💪", "🔥", "❤️", "💯",
+  "👏", "🙏", "👀", "🎉", "✨", "💀", "🫠", "😮",
+  "👍", "👎", "💩", "🙄", "😢", "🤝", "🫶", "💕",
 ];
 
 export default function PostComposer({
