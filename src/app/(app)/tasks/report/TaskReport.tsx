@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Panel, Pill, Button } from "@/components/ui";
 import ProofViewer from "@/components/ProofViewer";
+import SampleViewer from "@/components/SampleViewer";
 
 export type ReportRow = {
   profileId: string;
@@ -24,6 +25,7 @@ export type ReportTask = {
   requiresPhoto: boolean;
   requiresCompletionDate: boolean;
   blockingNow: boolean;
+  samplePhotoUrls?: string[];
   rows: ReportRow[];
 };
 
@@ -215,6 +217,31 @@ export default function TaskReport({ tasks }: { tasks: ReportTask[] }) {
               {t.requiresPhoto && <span>· Photo required</span>}
               {t.requiresCompletionDate && <span>· Date required</span>}
             </div>
+
+            {t.samplePhotoUrls && t.samplePhotoUrls.length > 0 && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[11px] font-semibold text-[var(--muted)] uppercase tracking-wider">
+                  Sample{t.samplePhotoUrls.length > 1 ? "s" : ""}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {t.samplePhotoUrls.map((url, i) => (
+                    <SampleViewer key={url} urls={t.samplePhotoUrls!} title={t.title} initialIndex={i}>
+                      <span
+                        className="block w-12 h-12 shrink-0 rounded-md overflow-hidden border border-[var(--line)] hover:border-[var(--accent)] transition-colors"
+                        title={`Open sample ${i + 1} full size`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`Sample photo ${i + 1} for ${t.title}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </span>
+                    </SampleViewer>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="overflow-x-auto scroll-shadow-x">
               <table className="w-full text-[13px] border-collapse min-w-[520px]">

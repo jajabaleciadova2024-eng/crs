@@ -10,6 +10,7 @@ import { formatFullName } from "@/lib/format";
 import { isTaskBlockingToday } from "@/lib/taskBlocking";
 import TaskReport, { type ReportRow, type ReportTask } from "./TaskReport";
 import { taskAppliesTo } from "@/lib/taskAssignment";
+import { signTaskSamplePhotos } from "@/lib/taskSampleStorage";
 
 // Full task × member matrix. The point of this page is the people who are
 // MISSING: a member who never submitted has no member_task_completions row
@@ -59,6 +60,12 @@ export default async function TaskReportPage() {
     ...(strayProfiles ?? []).map((m: any) => [m.id, m] as const),
   ]);
 
+  // Sign all sample photos in one batch so the report can show them.
+  const allSamplePaths = (tasks ?? []).flatMap((t: any) => t.sample_photo_paths ?? []);
+  const sampleSigned = allSamplePaths.length > 0
+    ? await signTaskSamplePhotos(allSamplePaths)
+    : new Map<string, string>();
+
   const reportTasks: ReportTask[] = [];
   for (const t of (tasks ?? []) as any[]) {
     // Who this task is for, on the roster as it stands today, PLUS anyone
@@ -92,6 +99,11 @@ export default async function TaskReportPage() {
         };
       });
 
+    const samplePaths: string[] = t.sample_photo_paths ?? [];
+    const samplePhotoUrls = samplePaths
+      .map((p: string) => sampleSigned.get(p))
+      .filter((u): u is string => !!u);
+
     reportTasks.push({
       id: t.id,
       title: t.title,
@@ -101,6 +113,7 @@ export default async function TaskReportPage() {
       requiresPhoto: !!t.requires_photo,
       requiresCompletionDate: !!t.requires_completion_date,
       blockingNow: isTaskBlockingToday(t),
+      samplePhotoUrls,
       rows,
     });
   }

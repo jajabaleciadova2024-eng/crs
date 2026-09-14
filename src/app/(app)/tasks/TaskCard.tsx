@@ -15,6 +15,7 @@ import {
   NETWORK_ERROR_MESSAGE,
 } from "@/lib/imageUpload";
 import ProofViewer from "@/components/ProofViewer";
+import SampleViewer from "@/components/SampleViewer";
 
 
 const MAX_PHOTOS = 6;
@@ -842,24 +843,19 @@ export default function TaskCard({
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {sampleUrls.map((url, i) => (
-                    // A plain anchor, not a scripted opener: the URL is
-                    // already signed, so there is nothing to await and
-                    // nothing for a popup blocker to swallow.
-                    <a
-                      key={url}
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block w-16 h-16 shrink-0 rounded-md overflow-hidden border border-[var(--line)] hover:border-[var(--accent)] transition-colors"
-                      title={`Open sample ${i + 1} full size`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt={`Sample proof photo ${i + 1} for ${task.title}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </a>
+                    <SampleViewer key={url} urls={sampleUrls} title={task.title} initialIndex={i}>
+                      <span
+                        className="block w-16 h-16 shrink-0 rounded-md overflow-hidden border border-[var(--line)] hover:border-[var(--accent)] transition-colors"
+                        title={`Open sample ${i + 1} full size`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`Sample proof photo ${i + 1} for ${task.title}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </span>
+                    </SampleViewer>
                   ))}
                 </div>
               </div>
