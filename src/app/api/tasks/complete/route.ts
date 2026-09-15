@@ -159,11 +159,17 @@ export async function POST(request: Request) {
     // identical notifications with nothing extra to review.
     const { data: alreadyPending } = await admin
       .from("member_task_completions")
-      .select("id")
+      .select("id, photo_paths, photo_path")
       .eq("task_id", task_id)
       .eq("profile_id", user.id)
-      .eq("status", "pending")
+      .in("status", ["pending", "rejected"])
       .maybeSingle();
+
+    // Clean up old photos from storage when re-submitting with new ones.
+    if (alreadyPending && photos.length > 0) {
+      const oldPaths: string[] = alreadyPending.photo_paths ?? (alreadyPending.photo_path ? [alreadyPending.photo_path] : []);
+      for (const old of oldPaths) await deleteTaskPhoto(old);
+    }
 
     const row = {
       task_id,

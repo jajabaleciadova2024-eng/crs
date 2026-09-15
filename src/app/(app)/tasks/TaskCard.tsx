@@ -228,6 +228,7 @@ export default function TaskCard({
   // Briefly rings the attach panel when the checkbox sends you to it, so the
   // click visibly lands somewhere instead of appearing to do nothing.
   const [pulse, setPulse] = useState(false);
+  const [replacingPhotos, setReplacingPhotos] = useState(false);
   // "When did you actually do it?" — only asked when the task requires it.
   const [completionDate, setCompletionDate] = useState("");
 
@@ -424,6 +425,7 @@ export default function TaskCard({
       }
       setToggling(false);
       clearPhotos();
+      setReplacingPhotos(false);
       router.refresh();
     } catch {
       // A dropped connection rejects the fetch outright. Unhandled, that
@@ -520,7 +522,7 @@ export default function TaskCard({
   const sampleUrls = (task.sample_photo_urls ?? []).filter((url): url is string => !!url);
   // A photo is still outstanding: this task wants one, and it has not been
   // submitted yet (a decline puts you back in this state).
-  const needsPhoto = isAssignee && !!task.requires_photo && notDoneYet;
+  const needsPhoto = isAssignee && !!task.requires_photo && (notDoneYet || replacingPhotos);
   const needsDate = isAssignee && !!task.requires_completion_date && notDoneYet;
 
   return (
@@ -951,6 +953,16 @@ export default function TaskCard({
                       >
                         Remove all
                       </button>
+                      {replacingPhotos && (
+                        <button
+                          type="button"
+                          onClick={() => { clearPhotos(); setReplacingPhotos(false); }}
+                          disabled={toggling}
+                          className="text-[11px] font-bold text-[var(--muted)] hover:text-[var(--bad)] transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <Button
                         type="button"
                         size="sm"
@@ -959,7 +971,7 @@ export default function TaskCard({
                         onClick={() => handleSubmit(photos.map((p) => p.file))}
                         loading={toggling || preparing}
                       >
-                        {preparing ? "Preparing…" : toggling ? "Submitting…" : "Submit"}
+                        {preparing ? "Preparing…" : toggling ? "Submitting…" : replacingPhotos ? "Replace & Resubmit" : "Submit"}
                       </Button>
                     </div>
                   </div>
@@ -980,12 +992,29 @@ export default function TaskCard({
                   <span>Done {formatDeadline(task.mySubmission.completionDate)}</span>
                 )}
                 {task.mySubmission.photoCount > 0 && (
-                  <ProofViewer
-                    fetchUrl={`/api/tasks/photo/${task.mySubmission.id}`}
-                    title={task.title}
-                    subtitle="Your submission"
-                    count={task.mySubmission.photoCount}
-                  />
+                  <>
+                    <ProofViewer
+                      fetchUrl={`/api/tasks/photo/${task.mySubmission.id}`}
+                      title={task.title}
+                      subtitle="Your submission"
+                      count={task.mySubmission.photoCount}
+                    />
+                    {task.completionStatus === "pending" && !replacingPhotos && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReplacingPhotos(true);
+                          clearPhotos();
+                          requestAnimationFrame(() => {
+                            photoPanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                          });
+                        }}
+                        className="text-[11px] font-semibold text-[var(--accent-strong)] hover:underline cursor-pointer"
+                      >
+                        Replace photos
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )}
