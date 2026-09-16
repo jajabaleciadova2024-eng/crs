@@ -7,7 +7,7 @@ const PAGE_SIZE = 50;
 
 const MSG_SELECT = `
   id, author_id, content, image_url, reply_to_id, original_content,
-  created_at, updated_at, deleted_at,
+  created_at, updated_at, deleted_at, pinned_at, pinned_by,
   profiles!chat_messages_author_id_fkey(first_name, last_name, avatar_url, role),
   chat_reactions(id, profile_id, emoji, profiles!chat_reactions_profile_id_fkey(first_name, last_name))
 `;

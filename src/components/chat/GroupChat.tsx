@@ -18,6 +18,8 @@ export type ChatMsg = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  pinned_at: string | null;
+  pinned_by: string | null;
   profiles: { first_name: string; last_name: string; avatar_url: string | null; role: string } | null;
   chat_reactions: {
     id: string;
@@ -31,6 +33,16 @@ export type ChatMsg = {
     content: string;
     profiles: { first_name: string; last_name: string } | null;
   } | null;
+};
+
+type PinnedMsg = {
+  id: string;
+  author_id: string;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+  pinned_at: string;
+  profiles: { first_name: string; last_name: string } | null;
 };
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🤔", "💩", "🙄", "😡", "🎉", "💯", "👀"];
@@ -58,6 +70,7 @@ export default function GroupChat({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [pinned, setPinned] = useState<PinnedMsg[]>([]);
 
   const isTL = currentUserRole === "team_leader";
   const mentionable = useMemo(() => {
@@ -94,6 +107,15 @@ export default function GroupChat({
     }
   }, []);
 
+  const fetchPinned = useCallback(async () => {
+    try {
+      const res = await fetch("/api/chat/pinned", { cache: "no-store" });
+      if (!res.ok) return;
+      const { pinned: p } = await res.json();
+      setPinned(p ?? []);
+    } catch {}
+  }, []);
+
   const fetchUnread = useCallback(async () => {
     try {
       const res = await fetch("/api/chat/unread", { cache: "no-store" });
@@ -120,9 +142,10 @@ export default function GroupChat({
     if (open) {
       setLoading(true);
       fetchMessages();
+      fetchPinned();
       markRead();
     }
-  }, [open, fetchMessages, markRead]);
+  }, [open, fetchMessages, fetchPinned, markRead]);
 
   // Realtime subscription + polling
   useEffect(() => {
@@ -134,7 +157,7 @@ export default function GroupChat({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "chat_messages" },
-        () => fetchMessages(),
+        () => { fetchMessages(); fetchPinned(); },
       )
       .on(
         "postgres_changes",
@@ -159,7 +182,7 @@ export default function GroupChat({
       clearInterval(poll);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [open, fetchMessages, markRead]);
+  }, [open, fetchMessages, fetchPinned, markRead]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -399,6 +422,38 @@ export default function GroupChat({
             </button>
           </div>
 
+          {/* Pinned messages bar */}
+          {pinned.length > 0 && (
+            <div className="border-b border-[var(--line)] bg-[var(--warn-soft)]/40 max-h-[120px] overflow-y-auto">
+              {pinned.map((p) => (
+                <div key={p.id} className="flex items-start gap-2 px-3 py-1.5 border-b border-[var(--line)]/50 last:border-b-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-[var(--warn)]">
+                    <path d="M12 17v5" /><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[9.5px] font-bold text-[var(--warn)] uppercase tracking-wider">
+                      Pinned · {toTitleCase(p.profiles?.first_name)}
+                    </span>
+                    <p className="text-[11.5px] text-[var(--ink)] truncate m-0">{p.content || "📷 Image"}</p>
+                  </div>
+                  {isTL && (
+                    <button
+                      type="button"
+                      onClick={async () => { await fetch(`/api/chat/${p.id}/pin`, { method: "DELETE" }); fetchPinned(); fetchMessages(); }}
+                      aria-label="Unpin message"
+                      title="Unpin"
+                      className="shrink-0 p-0.5 text-[var(--muted)] hover:text-[var(--bad)] cursor-pointer"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Messages area */}
           <div
             ref={scrollContainerRef}
@@ -479,6 +534,13 @@ export default function GroupChat({
                     }}
                     onDelete={async () => {
                       await fetch(`/api/chat/${msg.id}`, { method: "DELETE" });
+                      fetchMessages();
+                      fetchPinned();
+                    }}
+                    onPin={async () => {
+                      const isPinned = Boolean(msg.pinned_at);
+                      await fetch(`/api/chat/${msg.id}/pin`, { method: isPinned ? "DELETE" : "POST" });
+                      fetchPinned();
                       fetchMessages();
                     }}
                     reactionEmojis={REACTION_EMOJIS}
