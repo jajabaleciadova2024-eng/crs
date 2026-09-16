@@ -383,12 +383,34 @@ export default function TaskModal({
                 />
               </div>
               {form.deadline && (
-                <Field
-                  label="Start blocking (days before)"
-                  value={form.blocker_days_before}
-                  onChange={(v) => update("blocker_days_before", v)}
-                  type="number"
-                />
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
+                    Start blocking on
+                  </label>
+                  <input
+                    type="date"
+                    value={(() => {
+                      const days = Number(form.blocker_days_before) || 0;
+                      if (!days) return form.deadline;
+                      const d = new Date(form.deadline + "T00:00:00");
+                      d.setDate(d.getDate() - days);
+                      return d.toISOString().slice(0, 10);
+                    })()}
+                    max={form.deadline}
+                    onChange={(e) => {
+                      const picked = e.target.value;
+                      if (!picked) { update("blocker_days_before", "0"); return; }
+                      const diff = Math.round((new Date(form.deadline + "T00:00:00").getTime() - new Date(picked + "T00:00:00").getTime()) / 86400000);
+                      update("blocker_days_before", String(Math.max(0, diff)));
+                    }}
+                    className="w-full px-2.5 py-2 rounded-md border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] text-sm"
+                  />
+                  {Number(form.blocker_days_before) > 0 && (
+                    <p className="text-[10.5px] text-[var(--muted)] m-0 mt-1">
+                      {form.blocker_days_before} day{Number(form.blocker_days_before) === 1 ? "" : "s"} before deadline
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
