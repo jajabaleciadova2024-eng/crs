@@ -69,10 +69,64 @@ export default function LeaveQueueTable({
   const [finalizeType, setFinalizeType] = useState("");
   const [finalizeNote, setFinalizeNote] = useState("");
   const [finalizeError, setFinalizeError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
-  const colCount = 4 + (canViewAll ? 1 : 0) + 2; // Type, Dates, Reason, Status + Associate? + Actions/Document
+  // A request the Team Leader can approve in one click, with no note needed:
+  // pending, not their own, and not held back by a missing document or a
+  // flagged conflict (both of which require a deliberate note). Only these
+  // are offered for bulk approval.
+  function isSimpleApprovable(r: QueueRequest): boolean {
+    if (!canManage || r.associate_id === viewerId || r.status !== "pending") return false;
+    const tc = leaveTypeConfigs.find((c) => c.key === r.leave_type);
+    const needsDoc = tc?.behavior === "auto_approve_document" && !r.document_path && !r.is_half_day;
+    return !needsDoc && !r.flagged_conflict;
+  }
+
+  const bulkApprovable = canManage ? requests.filter(isSimpleApprovable) : [];
+  const allSelected = bulkApprovable.length > 0 && bulkApprovable.every((r) => selected.has(r.id));
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+    setBulkError(null);
+  }
+
+  function toggleSelectAll() {
+    setSelected((prev) => (bulkApprovable.every((r) => prev.has(r.id)) ? new Set() : new Set(bulkApprovable.map((r) => r.id))));
+    setBulkError(null);
+  }
+
+  async function bulkApprove() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    setBulkError(null);
+    const results = await Promise.allSettled(
+      ids.map((id) =>
+        fetch(`/api/leave/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "approved" }),
+        }).then((res) => { if (!res.ok) throw new Error(); })
+      )
+    );
+    setBulkBusy(false);
+    const failed = results.filter((r) => r.status === "rejected").length;
+    setSelected(new Set());
+    if (failed > 0) {
+      setBulkError(`${failed} of ${ids.length} could not be approved. Please try again.`);
+    }
+    router.refresh();
+  }
+
+  const colCount = 4 + (canViewAll ? 1 : 0) + 2 + (canManage ? 1 : 0); // Type, Dates, Reason, Status + Associate? + Actions/Document + checkbox?
 
   function decide(id: string, status: "approved" | "rejected", note?: string, final?: boolean, onDone?: (ok: boolean, error?: string) => void) {
     setPendingId(id);
@@ -219,10 +273,44 @@ export default function LeaveQueueTable({
 
   return (
     <>
+    {canManage && bulkApprovable.length > 0 && (
+      <div className="flex flex-wrap items-center gap-2 mb-2 min-h-[32px]">
+        {selected.size > 0 ? (
+          <>
+            <span className="text-[12px] font-semibold text-[var(--ink)]">{selected.size} selected</span>
+            <Button size="sm" variant="primary" loading={bulkBusy} disabled={bulkBusy} onClick={bulkApprove}>
+              {bulkBusy ? "Approving…" : `Approve ${selected.size}`}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="text-[12px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] cursor-pointer"
+            >
+              Clear
+            </button>
+          </>
+        ) : (
+          <span className="text-[11.5px] text-[var(--muted)]">Tick requests to approve several at once.</span>
+        )}
+        {bulkError && <span className="text-[11.5px] text-[var(--bad)]">{bulkError}</span>}
+      </div>
+    )}
     <div className="overflow-x-auto scroll-shadow-x">
     <table className="w-full text-[13px] border-collapse min-w-[700px]">
       <thead>
         <tr>
+          {canManage && (
+            <th className="px-2 py-2.5 border-b border-[var(--line)] w-8">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleSelectAll}
+                disabled={bulkApprovable.length === 0}
+                aria-label="Select all approvable"
+                className="cursor-pointer"
+              />
+            </th>
+          )}
           {canViewAll && <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Associate</th>}
           <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Type</th>
           <th className="text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-2 sm:px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">Dates</th>
@@ -260,6 +348,19 @@ export default function LeaveQueueTable({
           return (
             <Fragment key={r.id}>
               <tr>
+                {canManage && (
+                  <td className="px-2 py-2.5 border-b border-[var(--line)] align-top">
+                    {isSimpleApprovable(r) && (
+                      <input
+                        type="checkbox"
+                        checked={selected.has(r.id)}
+                        onChange={() => toggleSelect(r.id)}
+                        aria-label="Select for bulk approve"
+                        className="cursor-pointer"
+                      />
+                    )}
+                  </td>
+                )}
                 {canViewAll && (
                   <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">{formatFullName(r.profiles?.first_name, r.profiles?.last_name)}</td>
                 )}

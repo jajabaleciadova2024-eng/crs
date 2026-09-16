@@ -1,14 +1,11 @@
 import Link from "next/link";
 import { requireProfile, isApprover } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Panel, PageHeader } from "@/components/ui";
+import { PageHeader } from "@/components/ui";
 import { getPayPeriod } from "@/lib/payPeriod";
 import { DEFAULT_LEAVE_TYPE_CONFIGS, type LeaveTypeConfig } from "@/lib/leaveTypes";
-import CollapsiblePeriod from "./CollapsiblePeriod";
-import LeaveHistoryRow from "./LeaveHistoryRow";
-
-const TH =
-  "text-left text-[10px] uppercase tracking-wider text-[var(--muted)] font-semibold px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap";
+import HistoryBrowser from "./HistoryBrowser";
+import type { HistoryRow } from "./LeaveHistoryRow";
 
 export default async function LeaveHistoryPage() {
   const profile = await requireProfile();
@@ -32,13 +29,13 @@ export default async function LeaveHistoryPage() {
   ]);
   const leaveTypeConfigs: LeaveTypeConfig[] = orgSettings?.leave_type_configs ?? DEFAULT_LEAVE_TYPE_CONFIGS;
 
-  const periods = new Map<string, { label: string; rows: NonNullable<typeof decided> }>();
+  const periods = new Map<string, { key: string; label: string; rows: HistoryRow[] }>();
   for (const r of decided ?? []) {
     const period = getPayPeriod(r.start_date);
     if (!periods.has(period.key)) {
-      periods.set(period.key, { label: period.label, rows: [] });
+      periods.set(period.key, { key: period.key, label: period.label, rows: [] });
     }
-    periods.get(period.key)!.rows.push(r);
+    periods.get(period.key)!.rows.push(r as unknown as HistoryRow);
   }
 
   return (
@@ -53,60 +50,12 @@ export default async function LeaveHistoryPage() {
         }
       />
 
-      {periods.size === 0 ? (
-        <Panel title="No decided leave yet">
-          <p className="text-sm text-[var(--muted)] m-0">
-            Once requests are approved or rejected, they&apos;ll show up here grouped by period.
-          </p>
-        </Panel>
-      ) : (
-        Array.from(periods.entries()).map(([key, { label, rows }]) => (
-          <CollapsiblePeriod key={key} title={label} hint={`${rows.length} decided`}>
-            <div className="overflow-x-auto scroll-shadow-x -mx-4 sm:-mx-5">
-              <table className="w-full text-[13px] border-collapse min-w-[480px]" style={{ tableLayout: "fixed" }}>
-                <colgroup>
-                  {canViewAll && <col style={{ width: isTL ? "20%" : "22%" }} />}
-                  <col style={{ width: isTL ? "14%" : canViewAll ? "16%" : "18%" }} />
-                  <col style={{ width: isTL ? "22%" : canViewAll ? "22%" : "28%" }} />
-                  <col style={{ width: isTL ? "16%" : canViewAll ? "16%" : "22%" }} />
-                  <col style={{ width: isTL ? "12%" : canViewAll ? "12%" : "16%" }} />
-                  <col style={{ width: isTL ? "10%" : canViewAll ? "12%" : "16%" }} />
-                  {isTL && <col style={{ width: "6%" }} />}
-                </colgroup>
-                <thead>
-                  <tr>
-                    {canViewAll && <th className={TH}>Associate</th>}
-                    <th className={TH}>Type</th>
-                    <th className={TH}>Dates</th>
-                    <th className={TH}>Reason</th>
-                    <th className={TH}>Status</th>
-                    <th className={TH}>Decided</th>
-                    {isTL && <th className={`${TH} px-2 text-center`}><span className="sr-only">Actions</span></th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => {
-                    const typeConfig = leaveTypeConfigs.find((c) => c.key === r.leave_type);
-                    return (
-                      <LeaveHistoryRow
-                        key={r.id}
-                        r={r as any}
-                        canViewAll={canViewAll}
-                        isTL={isTL}
-                        typeConfig={
-                          typeConfig
-                            ? { key: typeConfig.key, label: typeConfig.label, behavior: typeConfig.behavior }
-                            : undefined
-                        }
-                      />
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CollapsiblePeriod>
-        ))
-      )}
+      <HistoryBrowser
+        periods={Array.from(periods.values())}
+        leaveTypeConfigs={leaveTypeConfigs}
+        canViewAll={canViewAll}
+        isTL={isTL}
+      />
     </>
   );
 }
