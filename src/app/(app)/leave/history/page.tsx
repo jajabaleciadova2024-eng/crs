@@ -65,11 +65,12 @@ export default async function LeaveHistoryPage() {
             <div className="overflow-x-auto scroll-shadow-x -mx-4 sm:-mx-5">
               <table className="w-full text-[13px] border-collapse min-w-[480px]" style={{ tableLayout: "fixed" }}>
                 <colgroup>
-                  {canViewAll && <col style={{ width: isTL ? "24%" : "26%" }} />}
-                  <col style={{ width: isTL ? "17%" : canViewAll ? "19%" : "22%" }} />
-                  <col style={{ width: isTL ? "30%" : canViewAll ? "30%" : "40%" }} />
-                  <col style={{ width: isTL ? "13%" : canViewAll ? "12%" : "19%" }} />
-                  <col style={{ width: isTL ? "10%" : canViewAll ? "13%" : "19%" }} />
+                  {canViewAll && <col style={{ width: isTL ? "20%" : "22%" }} />}
+                  <col style={{ width: isTL ? "14%" : canViewAll ? "16%" : "18%" }} />
+                  <col style={{ width: isTL ? "22%" : canViewAll ? "22%" : "28%" }} />
+                  <col style={{ width: isTL ? "16%" : canViewAll ? "16%" : "22%" }} />
+                  <col style={{ width: isTL ? "12%" : canViewAll ? "12%" : "16%" }} />
+                  <col style={{ width: isTL ? "10%" : canViewAll ? "12%" : "16%" }} />
                   {isTL && <col style={{ width: "6%" }} />}
                 </colgroup>
                 <thead>
@@ -77,6 +78,7 @@ export default async function LeaveHistoryPage() {
                     {canViewAll && <th className={TH}>Associate</th>}
                     <th className={TH}>Type</th>
                     <th className={TH}>Dates</th>
+                    <th className={TH}>Reason</th>
                     <th className={TH}>Status</th>
                     <th className={TH}>Decided</th>
                     {isTL && <th className={`${TH} px-2 text-center`}><span className="sr-only">Actions</span></th>}

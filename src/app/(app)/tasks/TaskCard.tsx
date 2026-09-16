@@ -739,9 +739,11 @@ export default function TaskCard({
                   </span>
                 );
               })()}
-            {task.deadline && task.blocker_days_before > 0 && (
-              <span>Blocks {task.blocker_days_before}d before</span>
-            )}
+            {task.deadline && task.blocker_days_before > 0 && (() => {
+              const d = new Date(task.deadline + "T00:00:00");
+              d.setDate(d.getDate() - task.blocker_days_before);
+              return <span>Blocks from {formatDeadline(d.toISOString().slice(0, 10))}</span>;
+            })()}
             {!task.deadline && <span>No deadline — blocks until done</span>}
             {task.requires_approval === false && <span>No approval needed</span>}
             {/* Collapsed, this line is the whole card — it has to say

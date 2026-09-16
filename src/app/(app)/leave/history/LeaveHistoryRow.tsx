@@ -68,6 +68,10 @@ export default function LeaveHistoryRow({
         {formatLeaveRanges({ start_date: r.start_date, end_date: r.end_date }, r.leave_request_ranges ?? [])}
       </td>
 
+      <td className="px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">
+        <span className="block truncate">{r.reason ?? "—"}</span>
+      </td>
+
       <td className="px-3 py-2.5 border-b border-[var(--line)] whitespace-nowrap">
         <div className="flex flex-col gap-0.5">
           <Pill tone={STATUS_TONE[r.status as LeaveStatus]}>
