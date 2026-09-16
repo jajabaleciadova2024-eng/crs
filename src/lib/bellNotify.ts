@@ -10,6 +10,8 @@ export type BellType =
   | "task_submitted"
   | "task_reviewed"
   | "task_assigned"
+  | "task_due"
+  | "task_overdue"
   | "leave_submitted"
   | "leave_reviewed"
   | "schedule_published"
