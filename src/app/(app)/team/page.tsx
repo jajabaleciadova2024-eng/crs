@@ -43,7 +43,7 @@ export default async function TeamPage() {
             </thead>
             <tbody>
               {members && members.length > 0 ? (
-                members.map((m) => <MemberRow key={m.id} member={m} isSelf={m.id === profile.id} />)
+                members.map((m) => <MemberRow key={m.id} member={m} isSelf={m.id === profile.id} callerIsSuperAdmin={profile.is_super_admin} />)
               ) : (
                 <tr>
                   <td colSpan={6}>

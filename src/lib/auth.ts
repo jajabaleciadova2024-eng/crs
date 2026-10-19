@@ -102,3 +102,7 @@ export async function requireProfile(): Promise<Profile> {
 export function isApprover(role: AppRole) {
   return APPROVER_ROLES.includes(role);
 }
+
+export function isSuperAdmin(profile: Pick<Profile, "is_super_admin">) {
+  return profile.is_super_admin === true;
+}

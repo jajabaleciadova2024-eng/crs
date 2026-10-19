@@ -56,6 +56,7 @@ const TEAM_LEADER = {
   email: "jerickpsalinas@gmail.com",
   mobile_number: "09564112380",
   role: "team_leader",
+  is_super_admin: true,
 };
 
 async function main() {

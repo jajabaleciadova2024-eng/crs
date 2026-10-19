@@ -28,6 +28,7 @@ export interface Profile {
   mobile_number: string | null;
   avatar_url: string | null;
   role: AppRole;
+  is_super_admin: boolean;
   is_immune: boolean;
   is_active: boolean;
   tenure_group: TenureGroup;
@@ -330,6 +331,7 @@ export interface Database {
           mobile_number?: string | null;
           avatar_url?: string | null;
           role?: AppRole;
+          is_super_admin?: boolean;
           is_immune?: boolean;
           is_active?: boolean;
           tenure_group?: TenureGroup;
@@ -345,6 +347,7 @@ export interface Database {
           mobile_number?: string | null;
           avatar_url?: string | null;
           role?: AppRole;
+          is_super_admin?: boolean;
           is_immune?: boolean;
           is_active?: boolean;
           tenure_group?: TenureGroup;

@@ -25,7 +25,9 @@ function Icon({ children }: { children: ReactNode }) {
 const INPUT_CLS =
   "mt-1 w-full text-[13px] border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--paper)] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent-soft)] transition-colors";
 
-export default function MemberRow({ member, isSelf }: { member: Profile; isSelf: boolean }) {
+export default function MemberRow({ member, isSelf, callerIsSuperAdmin }: { member: Profile; isSelf: boolean; callerIsSuperAdmin: boolean }) {
+  const targetIsSuperAdmin = member.is_super_admin;
+  const protectedFromCaller = targetIsSuperAdmin && !callerIsSuperAdmin;
   const [editing, setEditing] = useState(false);
   const [psid, setPsid] = useState(member.psid);
   const [firstName, setFirstName] = useState(member.first_name);
@@ -121,31 +123,35 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
         <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.email}</td>
         <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)] text-[var(--muted)]">{member.mobile_number ?? "—"}</td>
         <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
-          <Pill tone={ROLE_TONE[member.role]}>{ROLE_LABEL[member.role]}</Pill>
+          <Pill tone={ROLE_TONE[member.role]}>{member.is_super_admin ? "Super Admin" : ROLE_LABEL[member.role]}</Pill>
         </td>
         <td className="px-2 sm:px-3 py-2.5 border-b border-[var(--line)]">
           <div className="flex gap-1.5">
-            <IconButton label="Edit" onClick={startEdit}>
-              <Icon>
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </Icon>
-            </IconButton>
-            <IconButton
-              label={resetSent ? "Reset link sent" : "Reset password"}
-              onClick={sendReset}
-              disabled={pending || resetSent}
-            >
-              {resetSent ? (
-                <Icon><path d="M20 6 9 17l-5-5" /></Icon>
-              ) : (
+            {!protectedFromCaller && (
+              <IconButton label="Edit" onClick={startEdit}>
                 <Icon>
-                  <circle cx="7.5" cy="15.5" r="4.5" />
-                  <path d="M10.6 12.4 19 4l2 2-2 2 2 2-3 3-2-2-3.4 3.4" />
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
                 </Icon>
-              )}
-            </IconButton>
-            {!isSelf && (
+              </IconButton>
+            )}
+            {!protectedFromCaller && (
+              <IconButton
+                label={resetSent ? "Reset link sent" : "Reset password"}
+                onClick={sendReset}
+                disabled={pending || resetSent}
+              >
+                {resetSent ? (
+                  <Icon><path d="M20 6 9 17l-5-5" /></Icon>
+                ) : (
+                  <Icon>
+                    <circle cx="7.5" cy="15.5" r="4.5" />
+                    <path d="M10.6 12.4 19 4l2 2-2 2 2 2-3 3-2-2-3.4 3.4" />
+                  </Icon>
+                )}
+              </IconButton>
+            )}
+            {!isSelf && !protectedFromCaller && (
               <>
                 <IconButton
                   label={member.is_active ? "Deactivate" : "Reactivate"}
@@ -170,6 +176,9 @@ export default function MemberRow({ member, isSelf }: { member: Profile; isSelf:
                   </Icon>
                 </IconButton>
               </>
+            )}
+            {protectedFromCaller && (
+              <span className="text-[11px] text-[var(--muted)] italic">Super Admin</span>
             )}
           </div>
         </td>

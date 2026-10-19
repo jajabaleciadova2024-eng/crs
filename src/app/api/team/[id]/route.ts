@@ -28,6 +28,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   const admin = createAdminClient();
 
+  // Block deletion of super-admin accounts by non-super-admins.
+  const [{ data: targetProfile }, { data: callerFull }] = await Promise.all([
+    admin.from("profiles").select("is_super_admin").eq("id", id).single(),
+    admin.from("profiles").select("is_super_admin").eq("id", user.id).single(),
+  ]);
+  if (targetProfile?.is_super_admin && !callerFull?.is_super_admin) {
+    return NextResponse.json({ error: "Cannot remove a super admin." }, { status: 403 });
+  }
+
   // Profile row first — assignments/leave_requests/notification_prefs
   // cascade-delete with the profile (see 0001_init.sql), but
   // schedule_weeks.generated_by and leave_requests/access_requests's
